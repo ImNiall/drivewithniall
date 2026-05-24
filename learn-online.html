@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Learn to Drive Online | Drive with Niall</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="course-page">
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="Drive with Niall home">
+        <span class="brand-mark">DWN</span>
+        <span>
+          <strong>Drive with Niall</strong>
+          <small>Learn to drive online</small>
+        </span>
+      </a>
+      <nav class="desktop-nav" aria-label="Course navigation">
+        <a href="#course">Course</a>
+        <a href="#watch-path">Watch path</a>
+        <a href="#video-library">Lessons</a>
+        <a href="index.html#book">Book lessons</a>
+      </nav>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false" aria-label="Switch to dark mode">
+        <span class="theme-toggle-icon">☾</span>
+        <span class="theme-toggle-text">Dark</span>
+      </button>
+      <a class="outline-button" href="index.html">Home</a>
+    </header>
+
+    <main>
+      <section class="course-hero" id="course">
+        <div class="course-hero-copy">
+          <p class="eyebrow">Learn to drive online</p>
+          <h1>Video lessons that track your progress from first drive to test ready</h1>
+          <p>
+            Watch short videos before your next drive, mark each skill as watched, practised, or confident,
+            and unlock the full path when you are ready to keep going.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-button" href="#video-library">Start free preview</a>
+            <a class="secondary-button" href="index.html#packages">Unlock full course</a>
+          </div>
+        </div>
+        <aside class="course-progress-panel" aria-label="Course progress">
+          <span class="course-pill">Free Level 01 + paid full course</span>
+          <strong id="progressTitle">0% complete</strong>
+          <div class="progress-track" aria-hidden="true">
+            <span id="progressFill"></span>
+          </div>
+          <p id="progressDetail">0 of 16 video lessons complete</p>
+          <div class="next-lesson-card" id="nextLessonCard">
+            <span>Up next</span>
+            <strong id="nextLessonTitle">Cockpit drill and safety setup</strong>
+            <a href="#video-library" id="nextLessonLink">Continue learning</a>
+          </div>
+          <button class="secondary-action" id="resetProgress" type="button">Reset progress</button>
+        </aside>
+      </section>
+
+      <section class="course-dashboard" aria-label="Learning dashboard">
+        <article>
+          <span class="dashboard-icon">★</span>
+          <h2>Badges</h2>
+          <div class="badge-row" id="badgeRow">
+            <span>First video</span>
+            <span>Control basics</span>
+            <span>Test prep</span>
+          </div>
+        </article>
+        <article>
+          <span class="dashboard-icon">!</span>
+          <h2>Weak areas</h2>
+          <p id="weakAreaSummary">Use “I struggled” on a lesson and it will appear here for revision.</p>
+        </article>
+        <article>
+          <span class="dashboard-icon">P</span>
+          <h2>Parent view</h2>
+          <p id="parentSummary">Progress summary will update as videos are completed and confidence is rated.</p>
+        </article>
+        <article class="upgrade-card">
+          <span class="dashboard-icon">+</span>
+          <h2>Unlock full course</h2>
+          <p>Level 01 is the free preview. The full course adds junctions, manoeuvres, complex roads, mock tests, and test-ready support.</p>
+          <a class="secondary-action" href="index.html#packages">See packages</a>
+        </article>
+      </section>
+
+      <section class="section course-shell" id="watch-path">
+        <aside class="course-sidebar">
+          <p class="eyebrow">Course order</p>
+          <h2>Your watch path</h2>
+          <ol class="course-path">
+            <li><a href="#stage-1">First time in the car</a></li>
+            <li><a href="#stage-2">Control the car</a></li>
+            <li><a href="#stage-3">Read the road</a></li>
+            <li><a href="#stage-4">Junctions and roundabouts</a></li>
+            <li><a href="#stage-5">Parking and manoeuvres</a></li>
+            <li><a href="#stage-6">Complex driving</a></li>
+            <li><a href="#stage-7">Independent driving</a></li>
+            <li><a href="#stage-8">Test ready</a></li>
+          </ol>
+        </aside>
+
+        <div class="course-main" id="video-library">
+          <section class="video-stage is-free" id="stage-1">
+            <div class="stage-heading">
+              <span>Level 01 · Free preview</span>
+              <h2>First time in the car</h2>
+              <p>Start here if you are new or nervous. These videos make the first lesson feel predictable.</p>
+            </div>
+            <div class="video-grid">
+              <article class="video-card" data-lesson="cockpit-drill">
+                <div class="video-frame"><span>▶</span><small>06:20</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Watch first</p>
+                  <h3>Cockpit drill and safety setup</h3>
+                  <p>Seat, mirrors, steering position, seatbelt, doors, and getting comfortable before moving.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+              <article class="video-card" data-lesson="first-move-off">
+                <div class="video-frame"><span>▶</span><small>08:15</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Core skill</p>
+                  <h3>Prepare, observe, move, stop</h3>
+                  <p>The first moving-off routine, stopping safely, and checking blind spots before movement.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="video-stage is-premium" id="stage-2">
+            <div class="stage-heading">
+              <span>Level 02 · Full course</span>
+              <h2>Control the car</h2>
+              <p>Build smooth control so you have time to think when the road gets busier.</p>
+            </div>
+            <div class="video-grid">
+              <article class="video-card" data-lesson="clutch-control">
+                <div class="video-frame"><span>▶</span><small>09:40</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Manual control</p>
+                  <h3>Clutch control without panic</h3>
+                  <p>Biting point, gas balance, slow control, hills, and how to avoid common stalls.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+              <article class="video-card" data-lesson="gears-steering">
+                <div class="video-frame"><span>▶</span><small>10:05</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Core skill</p>
+                  <h3>Gears, steering, and smooth braking</h3>
+                  <p>Changing gear by feel, steering through bends, and braking progressively.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="video-stage is-premium" id="stage-3">
+            <div class="stage-heading">
+              <span>Level 03 · Full course</span>
+              <h2>Read the road</h2>
+              <p>Learn the routines that stop you reacting late.</p>
+            </div>
+            <div class="video-grid">
+              <article class="video-card" data-lesson="mirrors-signals">
+                <div class="video-frame"><span>▶</span><small>07:35</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Routine</p>
+                  <h3>Mirrors, signals, position, speed, look</h3>
+                  <p>The basic driving routine for turns, hazards, lane changes, and speed changes.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+              <article class="video-card" data-lesson="hazard-reading">
+                <div class="video-frame"><span>▶</span><small>11:20</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Awareness</p>
+                  <h3>Spotting hazards early</h3>
+                  <p>Parked cars, pedestrians, side roads, following distance, and reading brake lights.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="video-stage is-premium" id="stage-4">
+            <div class="stage-heading">
+              <span>Level 04 · Full course</span>
+              <h2>Junctions and roundabouts</h2>
+              <p>Learn how to approach, decide, and commit without rushing.</p>
+            </div>
+            <div class="video-grid">
+              <article class="video-card" data-lesson="emerging">
+                <div class="video-frame"><span>▶</span><small>12:10</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Junctions</p>
+                  <h3>Emerging left and right</h3>
+                  <p>Open and closed junctions, creeping and peeping, gap choice, and hesitation.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+              <article class="video-card" data-lesson="roundabouts">
+                <div class="video-frame"><span>▶</span><small>14:30</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Roundabouts</p>
+                  <h3>Roundabouts made simple</h3>
+                  <p>Mini, single-lane, multi-lane, lane choice, signals, and exits.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="video-stage is-premium" id="stage-5">
+            <div class="stage-heading">
+              <span>Level 05 · Full course</span>
+              <h2>Parking and manoeuvres</h2>
+              <p>Slow control, observations, reference points, and safe corrections.</p>
+            </div>
+            <div class="video-grid">
+              <article class="video-card" data-lesson="bay-parking">
+                <div class="video-frame"><span>▶</span><small>09:25</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Parking</p>
+                  <h3>Forward and reverse bay parking</h3>
+                  <p>Reference points, steering timing, correction, and leaving the bay safely.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+              <article class="video-card" data-lesson="parallel-parking">
+                <div class="video-frame"><span>▶</span><small>10:45</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Parking</p>
+                  <h3>Parallel parking</h3>
+                  <p>Kerb judgement, all-round observation, steering phases, and correcting calmly.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="video-stage is-premium" id="stage-6">
+            <div class="stage-heading">
+              <span>Level 06 · Full course</span>
+              <h2>Complex driving</h2>
+              <p>Busier roads, faster roads, and situations where planning matters.</p>
+            </div>
+            <div class="video-grid">
+              <article class="video-card" data-lesson="dual-carriageways">
+                <div class="video-frame"><span>▶</span><small>13:00</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Higher speed</p>
+                  <h3>Dual carriageways and lane changes</h3>
+                  <p>Joining, leaving, overtaking, safe gaps, and mirror checks before speed changes.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+              <article class="video-card" data-lesson="town-country">
+                <div class="video-frame"><span>▶</span><small>12:45</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Risk control</p>
+                  <h3>Town centres and country roads</h3>
+                  <p>Pedestrians, cyclists, hidden bends, narrow roads, road surfaces, and safe speed.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="video-stage is-premium" id="stage-7">
+            <div class="stage-heading">
+              <span>Level 07 · Full course</span>
+              <h2>Independent driving</h2>
+              <p>Follow signs and sat nav without losing your driving routine.</p>
+            </div>
+            <div class="video-grid">
+              <article class="video-card" data-lesson="sat-nav">
+                <div class="video-frame"><span>▶</span><small>08:50</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Independence</p>
+                  <h3>Sat nav without tunnel vision</h3>
+                  <p>Listening to instructions while keeping your main attention on the road.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+              <article class="video-card" data-lesson="missed-turns">
+                <div class="video-frame"><span>▶</span><small>07:55</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Confidence</p>
+                  <h3>Wrong lanes and missed turns</h3>
+                  <p>How to recover safely without sudden moves or panic decisions.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="video-stage is-premium" id="stage-8">
+            <div class="stage-heading">
+              <span>Level 08 · Full course</span>
+              <h2>Test ready</h2>
+              <p>Understand the standard, reduce faults, and arrive knowing what to expect.</p>
+            </div>
+            <div class="video-grid">
+              <article class="video-card" data-lesson="mock-test">
+                <div class="video-frame"><span>▶</span><small>15:15</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Mock test</p>
+                  <h3>How driving tests are marked</h3>
+                  <p>Driving faults, serious faults, dangerous faults, and how to recover after mistakes.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+              <article class="video-card" data-lesson="show-me-tell-me">
+                <div class="video-frame"><span>▶</span><small>09:10</small></div>
+                <div class="video-card-body">
+                  <p class="lesson-type">Final prep</p>
+                  <h3>Show-me-tell-me and test-day nerves</h3>
+                  <p>Vehicle checks, examiner instructions, breathing, reset points, and staying composed.</p>
+                  <button class="lesson-complete" type="button">Mark complete</button>
+                </div>
+              </article>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+      <a href="index.html">Home</a>
+      <a href="#video-library">Course</a>
+      <a href="#course">Progress</a>
+      <a href="index.html#book">Book</a>
+    </nav>
+
+    <dialog class="lesson-dialog" id="lessonDialog">
+      <form method="dialog" class="lesson-dialog-card">
+        <button class="close-button" aria-label="Close">×</button>
+        <p class="eyebrow" id="dialogType">Video lesson</p>
+        <h2 id="dialogTitle">Lesson title</h2>
+        <div class="lesson-player">
+          <span>▶</span>
+          <p>Video placeholder</p>
+        </div>
+        <div class="lesson-detail-grid">
+          <section>
+            <h3>Watch</h3>
+            <p id="dialogWatch">Short video explanation and demonstration.</p>
+          </section>
+          <section>
+            <h3>Practise</h3>
+            <p id="dialogPractice">What to focus on before the next lesson.</p>
+          </section>
+          <section>
+            <h3>Reflect</h3>
+            <p id="dialogReflect">One question to check understanding.</p>
+          </section>
+        </div>
+        <div class="timestamp-list">
+          <span>00:00 Intro</span>
+          <span>01:20 Demo</span>
+          <span>04:40 Common mistakes</span>
+          <span>06:10 Recap</span>
+        </div>
+        <label>
+          Ask Niall about this lesson
+          <textarea id="lessonQuestion" rows="3" placeholder="Type a question or describe what felt difficult."></textarea>
+        </label>
+        <div class="dialog-actions">
+          <button class="secondary-action" type="button" id="saveQuestion">Save question</button>
+          <button class="primary-button" type="button" id="downloadNotes">Download notes</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script>
+      (() => {
+        const button = document.querySelector("#themeToggle");
+        if (!button) return;
+        button.dataset.inlineThemeToggle = "true";
+
+        button.addEventListener("click", () => {
+          const isDark = document.body.classList.toggle("dark-mode");
+          button.setAttribute("aria-pressed", String(isDark));
+          button.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+          button.querySelector(".theme-toggle-icon").textContent = isDark ? "☀" : "☾";
+          button.querySelector(".theme-toggle-text").textContent = isDark ? "Light" : "Dark";
+          try {
+            localStorage.setItem("driveTheme", isDark ? "dark" : "light");
+          } catch {}
+        });
+      })();
+    </script>
+    <script src="course.js"></script>
+  </body>
+</html>

@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drive with Niall</title>
+    <link rel="stylesheet" href="styles.css?v=ui-polish-1" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#home" aria-label="Drive with Niall home">
+        <span class="brand-mark">DWN</span>
+        <span>
+          <strong>Drive with Niall</strong>
+          <small>Learn, practise, pass</small>
+        </span>
+      </a>
+      <nav class="desktop-nav" aria-label="Main navigation">
+        <a href="learn-online.html">Online course</a>
+        <a href="#resources">Resources</a>
+        <a href="#book">Lessons</a>
+        <a href="#packages">Packages</a>
+        <a href="#reviews">Reviews</a>
+      </nav>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false" aria-label="Switch to dark mode">
+        <span class="theme-toggle-icon">☾</span>
+        <span class="theme-toggle-text">Dark</span>
+      </button>
+      <a class="outline-button" href="learn-online.html">View course</a>
+    </header>
+
+    <main id="home">
+      <section class="hero">
+        <img
+          class="hero-image"
+          src="https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1800&q=85"
+          alt="Learner driver on a road with an instructor"
+        />
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <p class="eyebrow">Drivewithniall.com</p>
+          <h1>Drive with Niall</h1>
+          <p>
+            Learn the road in clear levels, practise between lessons, and track what it takes to get test ready.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-button" href="learn-online.html">Learn to drive online</a>
+            <a class="secondary-button" href="#book">Book a lesson</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="quick-panel" aria-label="Student portal preview">
+        <div>
+          <span class="status-dot"></span>
+          <strong>Next open slot</strong>
+          <p>Tuesday 26 May, 10:30 AM</p>
+        </div>
+        <div>
+          <strong>Level-by-level training</strong>
+          <p>Clear stages, quick checks, and what to practise next</p>
+        </div>
+        <div>
+          <strong>Support when stuck</strong>
+          <p>Confidence clinics, group sessions, and lesson booking</p>
+        </div>
+      </section>
+
+      <section class="section course-preview-section" id="learn">
+        <div class="section-heading">
+          <p class="eyebrow">Learn to drive online</p>
+          <h2>Video lessons that make every driving lesson easier</h2>
+          <p>
+            Start with the free beginner level, then move through a clear video course that tracks progress,
+            confidence, weak areas, and what to practise next.
+          </p>
+        </div>
+
+        <div class="homepage-course-preview">
+          <article class="continue-card">
+            <span class="course-pill">Free preview</span>
+            <h3>Level 01: First time in the car</h3>
+            <p>Watch cockpit drill, safety setup, moving off, stopping, and the first routines before a practical lesson.</p>
+            <div class="mini-progress"><span style="width: 18%"></span></div>
+            <a class="primary-button" href="learn-online.html">Start online course</a>
+          </article>
+
+          <div class="preview-video-grid">
+            <article class="mini-video-card">
+              <div class="mini-thumb"><span>▶</span><small>06:20</small></div>
+              <strong>Cockpit drill</strong>
+              <p>Setup, mirrors, controls, and safety checks.</p>
+            </article>
+            <article class="mini-video-card">
+              <div class="mini-thumb"><span>▶</span><small>09:40</small></div>
+              <strong>Clutch control</strong>
+              <p>Biting point, slow control, hills, and stalls.</p>
+            </article>
+            <article class="mini-video-card">
+              <div class="mini-thumb"><span>▶</span><small>14:30</small></div>
+              <strong>Roundabouts</strong>
+              <p>Approach, lane choice, signals, and exits.</p>
+            </article>
+          </div>
+        </div>
+
+        <div class="course-feature-strip">
+          <span>Progress tracking</span>
+          <span>Confidence ratings</span>
+          <span>Weak-area revision</span>
+          <span>Badges and milestones</span>
+          <span>Book lessons by topic</span>
+        </div>
+      </section>
+
+      <section class="band" id="resources">
+        <div class="section-heading">
+          <p class="eyebrow">Resources</p>
+          <h2>Everything students need between lessons</h2>
+          <p>Use this area for downloadable guides, lesson recap sheets, local test-route notes, theory links, and progress checklists.</p>
+        </div>
+        <div class="resource-grid">
+          <article>
+            <strong>Progress checklists</strong>
+            <p>Track confidence across controls, junctions, manoeuvres, independent driving, and test readiness.</p>
+          </article>
+          <article>
+            <strong>Lesson recap sheets</strong>
+            <p>Give students a clear summary of what went well, what to practise, and what the next lesson will cover.</p>
+          </article>
+          <article>
+            <strong>Test preparation guides</strong>
+            <p>Keep show-me-tell-me questions, mock test advice, and common fault explanations in one easy place.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="webinars">
+        <div class="section-heading">
+          <p class="eyebrow">Live coaching</p>
+          <h2>1-1 and group webinars</h2>
+          <p>Offer live support for theory, test planning, and problem areas when students need more than a standard lesson.</p>
+        </div>
+        <div class="webinar-layout">
+          <article>
+            <span class="icon">1</span>
+            <h3>1-1 confidence clinic</h3>
+            <p>Private video call focused on a student's current blockers, recent lesson feedback, and test plan.</p>
+            <button class="secondary-action" data-select-webinar="1-1 confidence clinic">Book webinar</button>
+          </article>
+          <article>
+            <span class="icon">G</span>
+            <h3>Group test-ready workshop</h3>
+            <p>Small group session covering common test faults, local route challenges, and examiner expectations.</p>
+            <button class="secondary-action" data-select-webinar="Group test-ready workshop">Reserve place</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="band split" id="apply">
+        <div class="section-heading align-left">
+          <p class="eyebrow">Student intake</p>
+          <h2>Place students at the right training stage</h2>
+          <p>Capture the details needed before recommending videos, webinars, lesson packages, or test preparation support.</p>
+          <ul class="feature-list">
+            <li>Personal details and preferred contact method</li>
+            <li>Licence status, theory test, and practical test date</li>
+            <li>Driving experience, confidence level, and goals</li>
+            <li>Lesson preferences and medical or accessibility notes</li>
+          </ul>
+        </div>
+        <form class="intake-form" id="studentForm">
+          <label>Full name <input name="name" type="text" placeholder="Student name" required /></label>
+          <label>Email <input name="email" type="email" placeholder="name@example.com" required /></label>
+          <label>
+            Current ability
+            <select name="level" required>
+              <option value="">Choose one</option>
+              <option>Complete beginner</option>
+              <option>Can move off and stop</option>
+              <option>Working on junctions</option>
+              <option>Nearly test ready</option>
+              <option>Full licence refresher</option>
+            </select>
+          </label>
+          <label>
+            Theory test status
+            <select name="theory" required>
+              <option value="">Choose one</option>
+              <option>Not booked</option>
+              <option>Booked</option>
+              <option>Passed</option>
+            </select>
+          </label>
+          <label class="full">
+            What do you want help with?
+            <textarea name="goals" rows="4" placeholder="Tell me about your goals, concerns, availability, and test date."></textarea>
+          </label>
+          <button class="primary-button full" type="submit">Submit application</button>
+          <p class="form-message" role="status"></p>
+        </form>
+      </section>
+
+      <section class="section" id="book">
+        <div class="section-heading">
+          <p class="eyebrow">Practical lessons</p>
+          <h2>Book time in the car</h2>
+          <p>Lesson booking supports the training platform, giving students a simple way to request practical driving time.</p>
+        </div>
+        <div class="booking-layout">
+          <div class="availability-list" id="availabilityList"></div>
+          <aside class="booking-summary">
+            <h3>Booking summary</h3>
+            <p id="selectedSlot">Choose an available lesson slot.</p>
+            <label>
+              Lesson type
+              <select id="lessonType">
+                <option>Manual lesson - 1 hour</option>
+                <option>Manual lesson - 2 hours</option>
+                <option>Mock driving test</option>
+                <option>Pass Plus / refresher</option>
+              </select>
+            </label>
+            <button class="primary-button" id="confirmBooking">Request booking</button>
+            <p class="small-note">Final confirmation can be sent by email or SMS once your live calendar is connected.</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section" id="packages">
+        <div class="section-heading">
+          <p class="eyebrow">Lesson packages</p>
+          <h2>Buy hours online</h2>
+          <p>Offer single lessons, blocks of hours, premium learning access, and webinar bundles.</p>
+        </div>
+        <div class="package-grid">
+          <article class="package-card">
+            <h3>Training Starter</h3>
+            <p class="price">£180</p>
+            <p>5 hours plus beginner resources for new learners building basic control and confidence.</p>
+            <button data-package="Training Starter - £180">Buy package</button>
+          </article>
+          <article class="package-card featured">
+            <span class="badge">Most popular</span>
+            <h3>Test Ready Training</h3>
+            <p class="price">£350</p>
+            <p>10 hours, open module support, mock test prep, and priority diary slots.</p>
+            <button data-package="Test Ready Training - £350">Buy package</button>
+          </article>
+          <article class="package-card">
+            <h3>Premium Resources</h3>
+            <p class="price">£620</p>
+            <p>20 hours, all webinars, premium videos, and a full test-route preparation plan.</p>
+            <button data-package="Premium Resources - £620">Buy package</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="reviews">
+        <div class="section-heading">
+          <p class="eyebrow">Student reviews</p>
+          <h2>Success stories with photos</h2>
+          <p>Show real student feedback to build trust with new learners and parents.</p>
+        </div>
+        <div class="review-grid">
+          <article class="review-card">
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80" alt="Review from student Amy" />
+            <div>
+              <strong>Amy P.</strong>
+              <span>Passed first time</span>
+              <p>"The videos helped me understand junctions before lessons, so I felt much calmer in the car."</p>
+            </div>
+          </article>
+          <article class="review-card">
+            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80" alt="Review from student Marcus" />
+            <div>
+              <strong>Marcus L.</strong>
+              <span>3 minors</span>
+              <p>"Booking was easy, the mock test feedback was clear, and I knew exactly what to practise."</p>
+            </div>
+          </article>
+          <article class="review-card">
+            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80" alt="Review from student Sana" />
+            <div>
+              <strong>Sana K.</strong>
+              <span>Confidence course</span>
+              <p>"The webinars made a big difference. I could ask questions and go through tricky roundabouts."</p>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>
+        <strong>Drive with Niall</strong>
+        <p>Drivewithniall.com will become your branded learner driver training hub, with lesson booking and paid resources built around your teaching style.</p>
+      </div>
+      <a class="outline-button" href="#learn">Training modules</a>
+    </footer>
+
+    <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+      <a href="index.html">Home</a>
+      <a href="learn-online.html">Course</a>
+      <a href="learn-online.html#course">Progress</a>
+      <a href="#book">Book</a>
+    </nav>
+
+    <dialog class="modal" id="paymentModal">
+      <form method="dialog" class="modal-card">
+        <button class="close-button" aria-label="Close">×</button>
+        <p class="eyebrow">Secure checkout</p>
+        <h2 id="paymentTitle">Buy package</h2>
+        <label>Cardholder name <input type="text" placeholder="Name on card" /></label>
+        <label>Card details <input type="text" placeholder="Handled by Stripe or another payment provider" /></label>
+        <button class="primary-button" type="button">Proceed to payment</button>
+        <p class="small-note">Live card payments should be handled by Stripe Checkout, Square, or another PCI-compliant provider.</p>
+      </form>
+    </dialog>
+
+    <script src="app.js?v=ui-polish-1"></script>
+  </body>
+</html>
