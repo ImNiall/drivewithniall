@@ -385,7 +385,8 @@ body.dark-mode .review-card,
 body.dark-mode .booking-summary,
 body.dark-mode .covered-areas,
 body.dark-mode .booking-request-form,
-body.dark-mode .intake-form {
+body.dark-mode .intake-form,
+body.dark-mode .webinar-request-form {
   background: #17202f;
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
 }
@@ -431,6 +432,19 @@ body.dark-mode textarea {
   color: #f7fbff;
   background: #0f172a;
   border-color: #31405f;
+}
+
+body.dark-mode label,
+body.dark-mode .webinar-request-form h3,
+body.dark-mode .intake-form h3,
+body.dark-mode .booking-request-form h3 {
+  color: #f7fbff;
+}
+
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+  color: #a9b7ca;
+  opacity: 1;
 }
 
 @keyframes heroRise {
@@ -1707,26 +1721,32 @@ h3 {
 .booking-request-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  padding: 22px;
+  gap: 20px 22px;
+  padding: 28px;
 }
 
 label {
   display: grid;
-  gap: 7px;
+  gap: 9px;
   color: var(--navy);
+  font-size: 0.95rem;
   font-weight: 800;
+  line-height: 1.25;
 }
 
 input,
 select,
 textarea {
   width: 100%;
-  padding: 12px 13px;
+  min-height: 50px;
+  padding: 13px 15px;
   color: var(--ink);
   background: #fbfcfd;
   border: 1px solid var(--line);
   border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 textarea {
@@ -1886,10 +1906,10 @@ textarea {
 .webinar-request-form {
   display: none;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  max-width: 960px;
-  margin: 18px auto 0;
-  padding: 22px;
+  gap: 20px 22px;
+  max-width: 1120px;
+  margin: 28px auto 0;
+  padding: 30px;
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 8px;
