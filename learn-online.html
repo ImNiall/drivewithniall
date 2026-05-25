@@ -39,7 +39,7 @@
           </p>
           <div class="hero-actions">
             <a class="primary-button" href="#video-library">Start free preview</a>
-            <a class="secondary-button" href="index.html#packages">Unlock full course</a>
+            <a class="secondary-button" href="index.html#book">Request lessons</a>
           </div>
         </div>
         <aside class="course-progress-panel" aria-label="Course progress">
@@ -82,7 +82,7 @@
           <span class="dashboard-icon">+</span>
           <h2>Unlock full course</h2>
           <p>Level 01 is the free preview. The full course adds junctions, manoeuvres, complex roads, mock tests, and test-ready support.</p>
-          <a class="secondary-action" href="index.html#packages">See packages</a>
+          <a class="secondary-action" href="index.html#book">Request access</a>
         </article>
       </section>
 
@@ -344,7 +344,7 @@
         <h2 id="dialogTitle">Lesson title</h2>
         <div class="lesson-player">
           <span>▶</span>
-          <p>Video placeholder</p>
+          <p>Video lesson preview</p>
         </div>
         <div class="lesson-detail-grid">
           <section>
@@ -377,24 +377,6 @@
       </form>
     </dialog>
 
-    <script>
-      (() => {
-        const button = document.querySelector("#themeToggle");
-        if (!button) return;
-        button.dataset.inlineThemeToggle = "true";
-
-        button.addEventListener("click", () => {
-          const isDark = document.body.classList.toggle("dark-mode");
-          button.setAttribute("aria-pressed", String(isDark));
-          button.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
-          button.querySelector(".theme-toggle-icon").textContent = isDark ? "☀" : "☾";
-          button.querySelector(".theme-toggle-text").textContent = isDark ? "Light" : "Dark";
-          try {
-            localStorage.setItem("driveTheme", isDark ? "dark" : "light");
-          } catch {}
-        });
-      })();
-    </script>
     <script src="course.js"></script>
   </body>
 </html>

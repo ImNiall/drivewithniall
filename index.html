@@ -19,8 +19,6 @@
         <a href="learn-online.html">Online course</a>
         <a href="#resources">Resources</a>
         <a href="#book">Lessons</a>
-        <a href="#packages">Packages</a>
-        <a href="#reviews">Reviews</a>
       </nav>
       <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false" aria-label="Switch to dark mode">
         <span class="theme-toggle-icon">☾</span>
@@ -117,7 +115,7 @@
         <div class="section-heading">
           <p class="eyebrow">Resources</p>
           <h2>Everything students need between lessons</h2>
-          <p>Use this area for downloadable guides, lesson recap sheets, local test-route notes, theory links, and progress checklists.</p>
+          <p>Download practical guides, lesson recap sheets, theory links, and progress checklists to keep improving between lessons.</p>
         </div>
         <div class="resource-grid">
           <article>
@@ -139,37 +137,122 @@
         <div class="section-heading">
           <p class="eyebrow">Live coaching</p>
           <h2>1-1 and group webinars</h2>
-          <p>Offer live support for theory, test planning, and problem areas when students need more than a standard lesson.</p>
+          <p>Get extra support with confidence, theory, test planning, and tricky driving topics through live online coaching.</p>
         </div>
         <div class="webinar-layout">
           <article>
             <span class="icon">1</span>
             <h3>1-1 confidence clinic</h3>
             <p>Private video call focused on a student's current blockers, recent lesson feedback, and test plan.</p>
-            <button class="secondary-action" data-select-webinar="1-1 confidence clinic">Book webinar</button>
+            <a class="secondary-action" href="#webinarRequestForm" data-select-webinar="1-1 confidence clinic">Book webinar</a>
           </article>
           <article>
             <span class="icon">G</span>
             <h3>Group test-ready workshop</h3>
             <p>Small group session covering common test faults, local route challenges, and examiner expectations.</p>
-            <button class="secondary-action" data-select-webinar="Group test-ready workshop">Reserve place</button>
+            <a class="secondary-action" href="#webinarRequestForm" data-select-webinar="Group test-ready workshop">Reserve place</a>
           </article>
         </div>
+        <form class="webinar-request-form" id="webinarRequestForm" action="https://formsubmit.co/contact@drivewithniall.co.uk" method="POST">
+          <p class="eyebrow">Webinar request</p>
+          <h3>Request live coaching</h3>
+          <input type="hidden" name="_subject" value="New Drive with Niall webinar request" />
+          <input type="hidden" name="_template" value="table" />
+          <input type="text" name="_honey" autocomplete="off" tabindex="-1" aria-hidden="true" class="form-honeypot" />
+          <label>
+            Webinar type
+            <select name="webinar_type" id="webinarType" required>
+              <option>1-1 confidence clinic</option>
+              <option>Group test-ready workshop</option>
+            </select>
+          </label>
+          <label>Full name <input name="name" type="text" placeholder="Student name" required /></label>
+          <label>Email <input name="email" type="email" placeholder="name@example.com" required /></label>
+          <label>Phone <input name="phone" type="tel" placeholder="Mobile number" required /></label>
+          <label>
+            Current stage
+            <select name="current_stage" required>
+              <option value="">Choose one</option>
+              <option>Complete beginner</option>
+              <option>Had a few lessons</option>
+              <option>Nearly test ready</option>
+              <option>Test booked</option>
+              <option>Full licence refresher</option>
+            </select>
+          </label>
+          <label>
+            Have you recently failed a driving test?
+            <select name="recent_test_fail" required>
+              <option value="">Choose one</option>
+              <option>Yes, within the last month</option>
+              <option>Yes, within the last 3 months</option>
+              <option>Yes, more than 3 months ago</option>
+              <option>No</option>
+              <option>I have not taken a driving test yet</option>
+            </select>
+          </label>
+          <label>
+            Do you regularly have driving lessons with an instructor?
+            <select name="regular_instructor_lessons" required>
+              <option value="">Choose one</option>
+              <option>Yes, every week</option>
+              <option>Yes, but not every week</option>
+              <option>Not currently</option>
+              <option>I am looking for an instructor</option>
+            </select>
+          </label>
+          <label>
+            Do you practise in a personal, family, or friend's car?
+            <select name="private_practice" required>
+              <option value="">Choose one</option>
+              <option>Yes, regularly</option>
+              <option>Sometimes</option>
+              <option>Not yet, but I plan to</option>
+              <option>No</option>
+            </select>
+          </label>
+          <label>
+            Theory test status
+            <select name="theory_test_status" required>
+              <option value="">Choose one</option>
+              <option>Not booked</option>
+              <option>Booked</option>
+              <option>Passed</option>
+            </select>
+          </label>
+          <label>
+            Practical test status
+            <select name="practical_test_status" required>
+              <option value="">Choose one</option>
+              <option>Not booked</option>
+              <option>Booked</option>
+              <option>Recently failed</option>
+              <option>Passed and want refresher support</option>
+            </select>
+          </label>
+          <label class="full">
+            What would you like help with?
+            <textarea name="topic" rows="4" placeholder="Tell me what you want to cover, such as nerves, roundabouts, test faults, theory, or planning."></textarea>
+          </label>
+          <label class="full">
+            Availability
+            <textarea name="availability" rows="3" placeholder="Which days and times usually work for a video call?" required></textarea>
+          </label>
+          <button class="primary-button full" type="submit">Send webinar request</button>
+          <p class="form-message full" role="status"></p>
+        </form>
       </section>
 
       <section class="band split" id="apply">
         <div class="section-heading align-left">
-          <p class="eyebrow">Student intake</p>
-          <h2>Place students at the right training stage</h2>
-          <p>Capture the details needed before recommending videos, webinars, lesson packages, or test preparation support.</p>
-          <ul class="feature-list">
-            <li>Personal details and preferred contact method</li>
-            <li>Licence status, theory test, and practical test date</li>
-            <li>Driving experience, confidence level, and goals</li>
-            <li>Lesson preferences and medical or accessibility notes</li>
-          </ul>
+          <p class="eyebrow">Start learning</p>
+          <h2>Tell me about your driving goals</h2>
+          <p>Share your experience, availability, and what you want help with. I will review your details and get back to you about the best next step.</p>
         </div>
-        <form class="intake-form" id="studentForm">
+        <form class="intake-form" id="studentForm" action="https://formsubmit.co/contact@drivewithniall.co.uk" method="POST">
+          <input type="hidden" name="_subject" value="New Drive with Niall student enquiry" />
+          <input type="hidden" name="_template" value="table" />
+          <input type="text" name="_honey" autocomplete="off" tabindex="-1" aria-hidden="true" class="form-honeypot" />
           <label>Full name <input name="name" type="text" placeholder="Student name" required /></label>
           <label>Email <input name="email" type="email" placeholder="name@example.com" required /></label>
           <label>
@@ -204,97 +287,93 @@
       <section class="section" id="book">
         <div class="section-heading">
           <p class="eyebrow">Practical lessons</p>
-          <h2>Book time in the car</h2>
-          <p>Lesson booking supports the training platform, giving students a simple way to request practical driving time.</p>
+          <h2>Request driving lessons</h2>
+          <p>Tell me where you are, what stage you are at, and when you can usually do lessons. I will reply with availability or waiting list options.</p>
         </div>
         <div class="booking-layout">
-          <div class="availability-list" id="availabilityList"></div>
-          <aside class="booking-summary">
-            <h3>Booking summary</h3>
-            <p id="selectedSlot">Choose an available lesson slot.</p>
+          <aside class="covered-areas">
+            <h3>Areas covered</h3>
+            <p>I currently cover these postcode areas:</p>
+            <ul>
+              <li>B29</li>
+              <li>B30</li>
+              <li>B31</li>
+              <li>B32</li>
+              <li>B45</li>
+              <li>B47</li>
+              <li>B48</li>
+              <li>B60</li>
+              <li>B61</li>
+              <li>B62</li>
+              <li>B63</li>
+              <li>B97</li>
+              <li>B98</li>
+            </ul>
+            <div class="availability-status" id="availabilityStatus" data-status="open">
+              <strong>Taking lesson enquiries</strong>
+              <span>Submit the form and I will get back to you.</span>
+            </div>
+          </aside>
+          <form class="booking-request-form" id="bookingRequestForm" action="https://formsubmit.co/contact@drivewithniall.co.uk" method="POST">
+            <input type="hidden" name="_subject" value="New Drive with Niall lesson request" />
+            <input type="hidden" name="_template" value="table" />
+            <input type="hidden" name="availability_status" id="bookingAvailabilityStatus" value="Taking lesson enquiries" />
+            <input type="text" name="_honey" autocomplete="off" tabindex="-1" aria-hidden="true" class="form-honeypot" />
+            <label>Full name <input name="name" type="text" placeholder="Student name" required /></label>
+            <label>Email <input name="email" type="email" placeholder="name@example.com" required /></label>
+            <label>Phone <input name="phone" type="tel" placeholder="Mobile number" required /></label>
+            <label>Address <input name="address" type="text" placeholder="Where would lessons start?" required /></label>
+            <label>Postcode <input name="postcode" type="text" placeholder="Example: B31" required /></label>
             <label>
               Lesson type
-              <select id="lessonType">
-                <option>Manual lesson - 1 hour</option>
+              <select name="lesson_type" required>
+                <option value="">Choose one</option>
                 <option>Manual lesson - 2 hours</option>
                 <option>Mock driving test</option>
                 <option>Pass Plus / refresher</option>
               </select>
             </label>
-            <button class="primary-button" id="confirmBooking">Request booking</button>
-            <p class="small-note">Final confirmation can be sent by email or SMS once your live calendar is connected.</p>
-          </aside>
+            <label>
+              Current stage
+              <select name="current_stage" required>
+                <option value="">Choose one</option>
+                <option>Complete beginner</option>
+                <option>Had a few lessons</option>
+                <option>Changing instructor</option>
+                <option>Nearly test ready</option>
+                <option>Full licence refresher</option>
+              </select>
+            </label>
+            <label>
+              Theory test status
+              <select name="theory_status" required>
+                <option value="">Choose one</option>
+                <option>Not booked</option>
+                <option>Booked</option>
+                <option>Passed</option>
+              </select>
+            </label>
+            <label>Practical test date <input name="practical_test_date" type="text" placeholder="If booked, add the date" /></label>
+            <label class="full">
+              Availability
+              <textarea name="availability" rows="3" placeholder="Which days and times usually work for you?" required></textarea>
+            </label>
+            <label class="full">
+              Anything else I should know?
+              <textarea name="notes" rows="4" placeholder="Tell me about goals, nerves, previous lessons, accessibility needs, or preferred pick-up point."></textarea>
+            </label>
+            <button class="primary-button full" type="submit" id="bookingSubmitButton">Send lesson request</button>
+            <p class="form-message full" role="status"></p>
+          </form>
         </div>
       </section>
 
-      <section class="section" id="packages">
-        <div class="section-heading">
-          <p class="eyebrow">Lesson packages</p>
-          <h2>Buy hours online</h2>
-          <p>Offer single lessons, blocks of hours, premium learning access, and webinar bundles.</p>
-        </div>
-        <div class="package-grid">
-          <article class="package-card">
-            <h3>Training Starter</h3>
-            <p class="price">£180</p>
-            <p>5 hours plus beginner resources for new learners building basic control and confidence.</p>
-            <button data-package="Training Starter - £180">Buy package</button>
-          </article>
-          <article class="package-card featured">
-            <span class="badge">Most popular</span>
-            <h3>Test Ready Training</h3>
-            <p class="price">£350</p>
-            <p>10 hours, open module support, mock test prep, and priority diary slots.</p>
-            <button data-package="Test Ready Training - £350">Buy package</button>
-          </article>
-          <article class="package-card">
-            <h3>Premium Resources</h3>
-            <p class="price">£620</p>
-            <p>20 hours, all webinars, premium videos, and a full test-route preparation plan.</p>
-            <button data-package="Premium Resources - £620">Buy package</button>
-          </article>
-        </div>
-      </section>
-
-      <section class="section" id="reviews">
-        <div class="section-heading">
-          <p class="eyebrow">Student reviews</p>
-          <h2>Success stories with photos</h2>
-          <p>Show real student feedback to build trust with new learners and parents.</p>
-        </div>
-        <div class="review-grid">
-          <article class="review-card">
-            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80" alt="Review from student Amy" />
-            <div>
-              <strong>Amy P.</strong>
-              <span>Passed first time</span>
-              <p>"The videos helped me understand junctions before lessons, so I felt much calmer in the car."</p>
-            </div>
-          </article>
-          <article class="review-card">
-            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80" alt="Review from student Marcus" />
-            <div>
-              <strong>Marcus L.</strong>
-              <span>3 minors</span>
-              <p>"Booking was easy, the mock test feedback was clear, and I knew exactly what to practise."</p>
-            </div>
-          </article>
-          <article class="review-card">
-            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80" alt="Review from student Sana" />
-            <div>
-              <strong>Sana K.</strong>
-              <span>Confidence course</span>
-              <p>"The webinars made a big difference. I could ask questions and go through tricky roundabouts."</p>
-            </div>
-          </article>
-        </div>
-      </section>
     </main>
 
     <footer class="footer">
       <div>
         <strong>Drive with Niall</strong>
-        <p>Drivewithniall.com will become your branded learner driver training hub, with lesson booking and paid resources built around your teaching style.</p>
+        <p>Driving lessons, online learning, and live coaching for learners who want clear guidance and steady progress.</p>
       </div>
       <a class="outline-button" href="#learn">Training modules</a>
     </footer>
@@ -305,18 +384,6 @@
       <a href="learn-online.html#course">Progress</a>
       <a href="#book">Book</a>
     </nav>
-
-    <dialog class="modal" id="paymentModal">
-      <form method="dialog" class="modal-card">
-        <button class="close-button" aria-label="Close">×</button>
-        <p class="eyebrow">Secure checkout</p>
-        <h2 id="paymentTitle">Buy package</h2>
-        <label>Cardholder name <input type="text" placeholder="Name on card" /></label>
-        <label>Card details <input type="text" placeholder="Handled by Stripe or another payment provider" /></label>
-        <button class="primary-button" type="button">Proceed to payment</button>
-        <p class="small-note">Live card payments should be handled by Stripe Checkout, Square, or another PCI-compliant provider.</p>
-      </form>
-    </dialog>
 
     <script src="app.js?v=ui-polish-1"></script>
   </body>

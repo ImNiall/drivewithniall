@@ -59,6 +59,10 @@ function setTheme(mode) {
   safeSet("driveTheme", mode);
 }
 
+function persistVisibleTheme() {
+  safeSet("driveTheme", document.body.classList.contains("dark-mode") ? "dark" : "light");
+}
+
 function safeGet(key) {
   try {
     return localStorage.getItem(key);
@@ -260,11 +264,15 @@ setTheme(savedTheme || (prefersDark ? "dark" : "light"));
 injectLessonControls();
 updateProgress();
 
-if (themeToggle && !themeToggle.dataset.inlineThemeToggle) {
+if (themeToggle) {
   themeToggle.addEventListener("click", () => {
     setTheme(document.body.classList.contains("dark-mode") ? "light" : "dark");
   });
 }
+
+document.querySelectorAll('a[href$=".html"], a[href^="learn-online.html"], a[href^="index.html"]').forEach((link) => {
+  link.addEventListener("click", persistVisibleTheme);
+});
 
 lessonCards.forEach((card) => {
   card.querySelector(".lesson-complete").addEventListener("click", () => {
@@ -324,6 +332,8 @@ document
   .querySelectorAll("button, .primary-button, .secondary-button, .outline-button, .course-path a")
   .forEach((element) => {
     element.addEventListener("click", (event) => {
+      if (element.tagName === "A" && element.href && !element.href.includes("#")) return;
+
       const rect = element.getBoundingClientRect();
       const ripple = document.createElement("span");
       const size = Math.max(rect.width, rect.height);

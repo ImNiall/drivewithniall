@@ -1,16 +1,32 @@
-const availability = [
-  { day: "Tue 26 May", time: "10:30 AM", area: "Town centre routes", price: "£38" },
-  { day: "Wed 27 May", time: "2:00 PM", area: "Junctions and roundabouts", price: "£38" },
-  { day: "Thu 28 May", time: "9:00 AM", area: "Mock test slot", price: "£45" },
-  { day: "Fri 29 May", time: "4:30 PM", area: "Beginner lesson", price: "£38" },
-];
+const bookingAvailabilityMode = "open"; // Use "waiting-list" when no lesson spaces are available.
 
-const paymentModal = document.querySelector("#paymentModal");
-const paymentTitle = document.querySelector("#paymentTitle");
-const availabilityList = document.querySelector("#availabilityList");
-const selectedSlot = document.querySelector("#selectedSlot");
 const themeToggle = document.querySelector("#themeToggle");
-let selectedAvailability = null;
+const availabilityStatus = document.querySelector("#availabilityStatus");
+const bookingAvailabilityStatus = document.querySelector("#bookingAvailabilityStatus");
+const bookingSubmitButton = document.querySelector("#bookingSubmitButton");
+const webinarRequestForm = document.querySelector("#webinarRequestForm");
+const webinarType = document.querySelector("#webinarType");
+
+function updateBookingAvailability() {
+  if (!availabilityStatus) return;
+
+  const isWaitingList = bookingAvailabilityMode === "waiting-list";
+  availabilityStatus.dataset.status = isWaitingList ? "waiting-list" : "open";
+  availabilityStatus.querySelector("strong").textContent = isWaitingList ? "No lesson spaces currently available" : "Taking lesson enquiries";
+  availabilityStatus.querySelector("span").textContent = isWaitingList
+    ? "Submit the form to join the waiting list and I will reply when a space opens."
+    : "Submit the form and I will get back to you.";
+
+  if (bookingAvailabilityStatus) {
+    bookingAvailabilityStatus.value = isWaitingList ? "Waiting list" : "Taking lesson enquiries";
+  }
+
+  if (bookingSubmitButton) {
+    bookingSubmitButton.textContent = isWaitingList ? "Join waiting list" : "Send lesson request";
+  }
+}
+
+updateBookingAvailability();
 
 function setTheme(mode) {
   const isDark = mode === "dark";
@@ -26,6 +42,10 @@ function setTheme(mode) {
   localStorage.setItem("driveTheme", mode);
 }
 
+function persistVisibleTheme() {
+  localStorage.setItem("driveTheme", document.body.classList.contains("dark-mode") ? "dark" : "light");
+}
+
 const savedTheme = localStorage.getItem("driveTheme");
 const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
 setTheme(savedTheme || (prefersDark ? "dark" : "light"));
@@ -34,57 +54,32 @@ themeToggle?.addEventListener("click", () => {
   setTheme(document.body.classList.contains("dark-mode") ? "light" : "dark");
 });
 
-document.querySelectorAll("[data-package]").forEach((button) => {
-  button.addEventListener("click", () => {
-    paymentTitle.textContent = button.dataset.package;
-    paymentModal.showModal();
-  });
+document.querySelectorAll('a[href$=".html"], a[href^="learn-online.html"], a[href^="index.html"]').forEach((link) => {
+  link.addEventListener("click", persistVisibleTheme);
 });
 
 document.querySelectorAll("[data-select-webinar]").forEach((button) => {
   button.addEventListener("click", () => {
-    selectedSlot.textContent = `${button.dataset.selectWebinar} selected. Choose a diary slot to attach it to your booking request.`;
-    document.querySelector("#book").scrollIntoView({ behavior: "smooth" });
+    if (webinarType) {
+      webinarType.value = button.dataset.selectWebinar;
+    }
+    webinarRequestForm?.classList.add("is-visible");
+    window.setTimeout(() => {
+      webinarRequestForm?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 0);
   });
 });
 
-availability.forEach((slot) => {
-  const button = document.createElement("button");
-  button.className = "slot-button";
-  button.type = "button";
-  button.innerHTML = `
-    <span>
-      <strong>${slot.day} at ${slot.time}</strong>
-      <span>${slot.area}</span>
-    </span>
-    <span class="slot-price">${slot.price}</span>
-  `;
-
-  button.addEventListener("click", () => {
-    selectedAvailability = slot;
-    document.querySelectorAll(".slot-button").forEach((item) => item.classList.remove("is-selected"));
-    button.classList.add("is-selected");
-    selectedSlot.textContent = `${slot.day} at ${slot.time} for ${slot.area}.`;
-  });
-
-  availabilityList.append(button);
+document.querySelector("#studentForm")?.addEventListener("submit", (event) => {
+  event.currentTarget.querySelector(".form-message").textContent = "Sending your enquiry...";
 });
 
-document.querySelector("#confirmBooking").addEventListener("click", () => {
-  if (!selectedAvailability) {
-    selectedSlot.textContent = "Please choose an available slot first.";
-    return;
-  }
-
-  selectedSlot.textContent = `Booking request saved for ${selectedAvailability.day} at ${selectedAvailability.time}.`;
+document.querySelector("#bookingRequestForm")?.addEventListener("submit", (event) => {
+  event.currentTarget.querySelector(".form-message").textContent = "Sending your lesson request...";
 });
 
-document.querySelector("#studentForm").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const name = new FormData(form).get("name");
-  form.querySelector(".form-message").textContent = `Thanks ${name}. Your Drive with Niall training profile has been captured in this prototype.`;
-  form.reset();
+webinarRequestForm?.addEventListener("submit", (event) => {
+  event.currentTarget.querySelector(".form-message").textContent = "Sending your webinar request...";
 });
 
 const revealCards = [...document.querySelectorAll(".training-module")];
@@ -109,9 +104,11 @@ if ("IntersectionObserver" in window) {
 }
 
 document
-  .querySelectorAll("button, .primary-button, .secondary-button, .outline-button, .secondary-action, .package-card button, .module-jump-list a")
+  .querySelectorAll("button, .primary-button, .secondary-button, .outline-button, .secondary-action, .module-jump-list a")
   .forEach((element) => {
     element.addEventListener("click", (event) => {
+      if (element.tagName === "A" && element.href && !element.href.includes("#")) return;
+
       const rect = element.getBoundingClientRect();
       const ripple = document.createElement("span");
       const size = Math.max(rect.width, rect.height);

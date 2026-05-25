@@ -269,8 +269,6 @@ body {
 .secondary-button,
 .outline-button,
 .secondary-action,
-.package-card button,
-.slot-button,
 .module-jump-list a {
   position: relative;
   overflow: hidden;
@@ -279,7 +277,6 @@ body {
 }
 
 .primary-button::after,
-.package-card button::after,
 .secondary-action::after {
   content: "";
   position: absolute;
@@ -291,13 +288,11 @@ body {
 }
 
 .primary-button:hover::after,
-.package-card button:hover::after,
 .secondary-action:hover::after {
   left: 115%;
 }
 
 .primary-button:hover,
-.package-card button:hover,
 .secondary-action:hover,
 .outline-button:hover,
 .module-jump-list a:hover {
@@ -308,7 +303,6 @@ body {
 .training-module,
 .resource-grid article,
 .webinar-layout article,
-.package-card,
 .review-card {
   transition: transform 0.28s ease, box-shadow 0.28s ease, opacity 0.55s ease;
 }
@@ -316,7 +310,6 @@ body {
 .training-module:hover,
 .resource-grid article:hover,
 .webinar-layout article:hover,
-.package-card:hover,
 .review-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 22px 56px rgba(29, 43, 83, 0.16);
@@ -388,9 +381,10 @@ body.dark-mode .quick-panel,
 body.dark-mode .training-module,
 body.dark-mode .resource-grid article,
 body.dark-mode .webinar-layout article,
-body.dark-mode .package-card,
 body.dark-mode .review-card,
 body.dark-mode .booking-summary,
+body.dark-mode .covered-areas,
+body.dark-mode .booking-request-form,
 body.dark-mode .intake-form {
   background: #17202f;
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
@@ -399,8 +393,7 @@ body.dark-mode .intake-form {
 body.dark-mode .section-heading h2,
 body.dark-mode .module-content h3,
 body.dark-mode .brand strong,
-body.dark-mode .quick-panel strong,
-body.dark-mode .price {
+body.dark-mode .quick-panel strong {
   color: #f7fbff;
 }
 
@@ -434,8 +427,7 @@ body.dark-mode .module-jump-list a:hover {
 
 body.dark-mode input,
 body.dark-mode select,
-body.dark-mode textarea,
-body.dark-mode .slot-button {
+body.dark-mode textarea {
   color: #f7fbff;
   background: #0f172a;
   border-color: #31405f;
@@ -1338,12 +1330,10 @@ a {
 .brand small,
 .small-note,
 .section-heading p,
-.feature-list,
 .training-module p,
 .training-module li,
 .resource-grid p,
 .webinar-layout p,
-.package-card p,
 .review-card p {
   color: var(--muted);
 }
@@ -1455,8 +1445,7 @@ h3 {
 .primary-button,
 .secondary-button,
 .outline-button,
-.secondary-action,
-.package-card button {
+.secondary-action {
   min-height: 46px;
   border: 0;
   border-radius: 8px;
@@ -1464,8 +1453,7 @@ h3 {
   font-weight: 850;
 }
 
-.primary-button,
-.package-card button {
+.primary-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1647,8 +1635,7 @@ h3 {
   text-transform: uppercase;
 }
 
-.module-columns ul,
-.feature-list {
+.module-columns ul {
   display: grid;
   gap: 9px;
   margin: 0;
@@ -1657,7 +1644,6 @@ h3 {
 }
 
 .resource-grid,
-.package-grid,
 .review-grid {
   display: grid;
   gap: 18px;
@@ -1671,9 +1657,10 @@ h3 {
 
 .resource-grid article,
 .webinar-layout article,
-.package-card,
 .review-card,
 .booking-summary,
+.covered-areas,
+.booking-request-form,
 .intake-form {
   background: var(--paper);
   border: 1px solid var(--line);
@@ -1683,8 +1670,8 @@ h3 {
 
 .resource-grid article,
 .webinar-layout article,
-.package-card,
-.booking-summary {
+.booking-summary,
+.covered-areas {
   padding: 18px;
 }
 
@@ -1716,7 +1703,8 @@ h3 {
   align-items: start;
 }
 
-.intake-form {
+.intake-form,
+.booking-request-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
@@ -1756,91 +1744,82 @@ textarea {
   font-weight: 800;
 }
 
+.form-honeypot {
+  display: none;
+}
+
 .booking-layout {
   align-items: start;
   max-width: 1100px;
   margin: 0 auto;
 }
 
-.availability-list {
-  display: grid;
-  flex: 1;
-  gap: 12px;
-}
-
-.slot-button {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  width: 100%;
-  padding: 17px;
-  text-align: left;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.slot-button strong,
-.slot-button span {
-  display: block;
-}
-
-.slot-button span {
-  color: var(--muted);
-}
-
-.slot-button.is-selected {
-  border-color: var(--green);
-  box-shadow: inset 0 0 0 1px var(--green);
-}
-
-.slot-price {
-  color: var(--green);
-  font-weight: 900;
-}
-
-.booking-summary {
+.covered-areas {
   position: sticky;
   top: 90px;
   width: 340px;
 }
 
-.booking-summary .primary-button {
+.covered-areas h3 {
+  margin-bottom: 8px;
+}
+
+.covered-areas p,
+.covered-areas li {
+  color: var(--muted);
+}
+
+.covered-areas ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 800;
+}
+
+.covered-areas li {
+  padding: 7px 10px;
+  color: var(--navy);
+  background: #f1f7ff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.availability-status {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  background: #e8f7ef;
+  border: 1px solid rgba(47, 125, 98, 0.28);
+  border-radius: 8px;
+}
+
+.availability-status strong {
+  color: var(--green);
+}
+
+.availability-status span {
+  color: var(--muted);
+}
+
+.availability-status[data-status="waiting-list"] {
+  background: #fff6e8;
+  border-color: rgba(242, 173, 75, 0.44);
+}
+
+.availability-status[data-status="waiting-list"] strong {
+  color: #9a5e10;
+}
+
+.booking-request-form {
+  flex: 1;
+}
+
+.booking-request-form .primary-button {
   width: 100%;
   margin-top: 16px;
-}
-
-.package-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.package-card {
-  position: relative;
-  display: grid;
-  gap: 12px;
-}
-
-.package-card.featured {
-  border-color: var(--green);
-  box-shadow: var(--shadow);
-}
-
-.badge {
-  justify-self: start;
-  padding: 6px 10px;
-  color: #30210d;
-  background: var(--amber);
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 850;
-}
-
-.price {
-  margin: 0;
-  color: var(--navy);
-  font-size: 2.3rem;
-  font-weight: 900;
 }
 
 .review-grid {
@@ -1904,6 +1883,29 @@ textarea {
   padding: 26px;
 }
 
+.webinar-request-form {
+  display: none;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  max-width: 960px;
+  margin: 18px auto 0;
+  padding: 22px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(20, 50, 74, 0.06);
+}
+
+.webinar-request-form:target,
+.webinar-request-form.is-visible {
+  display: grid;
+}
+
+.webinar-request-form .eyebrow,
+.webinar-request-form h3 {
+  grid-column: 1 / -1;
+}
+
 .close-button {
   align-self: end;
   width: 38px;
@@ -1921,7 +1923,6 @@ textarea {
   }
 
   .resource-grid,
-  .package-grid,
   .review-grid,
   .training-module,
   .module-columns {
@@ -1939,7 +1940,8 @@ textarea {
     display: grid;
   }
 
-  .booking-summary {
+  .booking-summary,
+  .covered-areas {
     position: static;
     width: auto;
   }
@@ -1989,7 +1991,9 @@ textarea {
     height: 46px;
   }
 
-  .intake-form {
+  .intake-form,
+  .booking-request-form,
+  .webinar-request-form {
     grid-template-columns: 1fr;
   }
 
