@@ -276,6 +276,12 @@ body {
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease, color 0.22s ease;
 }
 
+.secondary-action.is-disabled {
+  color: #5d6875;
+  background: #eef2f6;
+  cursor: default;
+}
+
 .primary-button::after,
 .secondary-action::after {
   content: "";
@@ -288,12 +294,12 @@ body {
 }
 
 .primary-button:hover::after,
-.secondary-action:hover::after {
+.secondary-action:not(.is-disabled):hover::after {
   left: 115%;
 }
 
 .primary-button:hover,
-.secondary-action:hover,
+.secondary-action:not(.is-disabled):hover,
 .outline-button:hover,
 .module-jump-list a:hover {
   transform: translateY(-2px);
