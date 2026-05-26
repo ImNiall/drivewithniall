@@ -1663,6 +1663,15 @@ h3 {
   line-height: 1.5;
 }
 
+.support-points {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .resource-grid,
 .review-grid {
   display: grid;
