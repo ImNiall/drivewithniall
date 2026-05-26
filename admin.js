@@ -1,10 +1,13 @@
 const adminConfig = window.driveAuthConfig || {};
 const adminEmails = (adminConfig.adminEmails || []).map((email) => email.toLowerCase());
+const adminName = adminConfig.adminName || "Admin";
 const adminStatus = document.querySelector("#adminStatus");
 const adminLoginForm = document.querySelector("#adminLoginForm");
 const adminSignedOut = document.querySelector("#adminSignedOut");
 const adminPanel = document.querySelector("#adminPanel");
 const adminEmail = document.querySelector("#adminEmail");
+const adminBrandName = document.querySelector("#adminBrandName");
+const adminDashboardTitle = document.querySelector("#adminDashboardTitle");
 const adminSignOutButton = document.querySelector("#adminSignOutButton");
 
 const hasAdminConfig =
@@ -16,6 +19,14 @@ const hasAdminConfig =
 const adminClient = hasAdminConfig && window.supabase
   ? window.supabase.createClient(adminConfig.supabaseUrl, adminConfig.supabaseAnonKey)
   : null;
+
+if (adminBrandName) {
+  adminBrandName.textContent = adminName;
+}
+
+if (adminDashboardTitle) {
+  adminDashboardTitle.textContent = adminName;
+}
 
 function setAdminStatus(message, type = "info") {
   if (!adminStatus) return;
