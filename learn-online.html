@@ -16,10 +16,9 @@
         </span>
       </a>
       <nav class="desktop-nav" aria-label="Course navigation">
-        <a href="#course">Course</a>
-        <a href="#watch-path">Watch path</a>
-        <a href="#video-library">Lessons</a>
+        <a href="#course">Coming soon</a>
         <a href="index.html#book">Book lessons</a>
+        <a href="index.html#webinars">Personal help</a>
       </nav>
       <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false" aria-label="Switch to dark mode">
         <span class="theme-toggle-icon">☾</span>
@@ -31,34 +30,34 @@
     <main>
       <section class="course-hero" id="course">
         <div class="course-hero-copy">
-          <p class="eyebrow">Learn to drive online</p>
-          <h1>Video lessons that track your progress from first drive to test ready</h1>
+          <p class="eyebrow">Coming soon</p>
+          <h1>The online driving course is being built</h1>
           <p>
-            Watch short videos before your next drive, mark each skill as watched, practised, or confident,
-            and unlock the full path when you are ready to keep going.
+            I am building a clear video course for learner drivers, covering the key skills from first drive to test preparation. It is not available yet.
           </p>
           <div class="hero-actions">
-            <a class="primary-button" href="#video-library">Start free preview</a>
+            <span class="primary-button is-disabled" aria-disabled="true">Coming soon</span>
             <a class="secondary-button" href="index.html#book">Request lessons</a>
+            <a class="secondary-button" href="index.html#webinars">Get Personal Help</a>
           </div>
         </div>
         <aside class="course-progress-panel" aria-label="Course progress">
-          <span class="course-pill">Free Level 01 + paid full course</span>
-          <strong id="progressTitle">0% complete</strong>
+          <span class="course-pill">Not live yet</span>
+          <strong id="progressTitle">Coming soon</strong>
           <div class="progress-track" aria-hidden="true">
             <span id="progressFill"></span>
           </div>
-          <p id="progressDetail">0 of 16 video lessons complete</p>
+          <p id="progressDetail">The course will open once the lesson videos and resources are ready.</p>
           <div class="next-lesson-card" id="nextLessonCard">
-            <span>Up next</span>
-            <strong id="nextLessonTitle">Cockpit drill and safety setup</strong>
-            <a href="#video-library" id="nextLessonLink">Continue learning</a>
+            <span>In the meantime</span>
+            <strong id="nextLessonTitle">Book lessons or request personal driving support.</strong>
+            <a href="index.html#book" id="nextLessonLink">Request lessons</a>
           </div>
-          <button class="secondary-action" id="resetProgress" type="button">Reset progress</button>
+          <button class="secondary-action is-disabled" id="resetProgress" type="button" disabled>Progress unavailable</button>
         </aside>
       </section>
 
-      <section class="course-dashboard" aria-label="Learning dashboard">
+      <section class="course-dashboard" aria-label="Learning dashboard" hidden>
         <article>
           <span class="dashboard-icon">★</span>
           <h2>Badges</h2>
@@ -86,7 +85,7 @@
         </article>
       </section>
 
-      <section class="section course-shell" id="watch-path">
+      <section class="section course-shell" id="watch-path" hidden>
         <aside class="course-sidebar">
           <p class="eyebrow">Course order</p>
           <h2>Your watch path</h2>
@@ -332,8 +331,8 @@
 
     <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
       <a href="index.html">Home</a>
-      <a href="#video-library">Course</a>
-      <a href="#course">Progress</a>
+      <a href="#course">Course soon</a>
+      <a href="index.html#webinars">Personal help</a>
       <a href="index.html#book">Book</a>
     </nav>
 
@@ -377,6 +376,6 @@
       </form>
     </dialog>
 
-    <script src="course.js"></script>
+    <script src="app.js?v=ui-polish-1"></script>
   </body>
 </html>

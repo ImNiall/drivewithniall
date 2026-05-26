@@ -5,7 +5,7 @@ const availabilityStatus = document.querySelector("#availabilityStatus");
 const bookingAvailabilityStatus = document.querySelector("#bookingAvailabilityStatus");
 const bookingSubmitButton = document.querySelector("#bookingSubmitButton");
 const webinarRequestForm = document.querySelector("#webinarRequestForm");
-const webinarType = document.querySelector("#webinarType");
+const supportType = document.querySelector("#supportType");
 
 function updateBookingAvailability() {
   if (!availabilityStatus) return;
@@ -58,10 +58,10 @@ document.querySelectorAll('a[href$=".html"], a[href^="learn-online.html"], a[hre
   link.addEventListener("click", persistVisibleTheme);
 });
 
-document.querySelectorAll("[data-select-webinar]").forEach((button) => {
+document.querySelectorAll("[data-select-support]").forEach((button) => {
   button.addEventListener("click", () => {
-    if (webinarType) {
-      webinarType.value = button.dataset.selectWebinar;
+    if (supportType) {
+      supportType.value = button.dataset.selectSupport;
     }
     webinarRequestForm?.classList.add("is-visible");
     window.setTimeout(() => {
@@ -70,16 +70,12 @@ document.querySelectorAll("[data-select-webinar]").forEach((button) => {
   });
 });
 
-document.querySelector("#studentForm")?.addEventListener("submit", (event) => {
-  event.currentTarget.querySelector(".form-message").textContent = "Sending your enquiry...";
-});
-
 document.querySelector("#bookingRequestForm")?.addEventListener("submit", (event) => {
   event.currentTarget.querySelector(".form-message").textContent = "Sending your lesson request...";
 });
 
 webinarRequestForm?.addEventListener("submit", (event) => {
-  event.currentTarget.querySelector(".form-message").textContent = "Sending your webinar request...";
+  event.currentTarget.querySelector(".form-message").textContent = "Sending your support request...";
 });
 
 const revealCards = [...document.querySelectorAll(".training-module")];

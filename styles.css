@@ -276,10 +276,15 @@ body {
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease, color 0.22s ease;
 }
 
+.primary-button.is-disabled,
+.secondary-button.is-disabled,
+.outline-button.is-disabled,
 .secondary-action.is-disabled {
   color: #5d6875;
   background: #eef2f6;
+  box-shadow: none;
   cursor: default;
+  pointer-events: none;
 }
 
 .primary-button::after,
@@ -293,14 +298,36 @@ body {
   transition: left 0.55s ease;
 }
 
-.primary-button:hover::after,
+.support-cta {
+  justify-self: stretch;
+  margin-top: 12px;
+  min-height: 54px;
+  color: #fff;
+  background: var(--green);
+  box-shadow: 0 16px 34px rgba(47, 125, 98, 0.28);
+  animation: supportCtaPulse 2.8s ease-in-out infinite;
+}
+
+.support-cta::before {
+  content: "→";
+  position: absolute;
+  right: 18px;
+  font-size: 1.15rem;
+  transition: transform 0.22s ease;
+}
+
+.support-cta:hover::before {
+  transform: translateX(4px);
+}
+
+.primary-button:not(.is-disabled):hover::after,
 .secondary-action:not(.is-disabled):hover::after {
   left: 115%;
 }
 
-.primary-button:hover,
+.primary-button:not(.is-disabled):hover,
 .secondary-action:not(.is-disabled):hover,
-.outline-button:hover,
+.outline-button:not(.is-disabled):hover,
 .module-jump-list a:hover {
   transform: translateY(-2px);
   box-shadow: 0 16px 34px rgba(29, 43, 83, 0.18);
@@ -391,7 +418,6 @@ body.dark-mode .review-card,
 body.dark-mode .booking-summary,
 body.dark-mode .covered-areas,
 body.dark-mode .booking-request-form,
-body.dark-mode .intake-form,
 body.dark-mode .webinar-request-form {
   background: #17202f;
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
@@ -442,8 +468,8 @@ body.dark-mode textarea {
 
 body.dark-mode label,
 body.dark-mode .webinar-request-form h3,
-body.dark-mode .intake-form h3,
-body.dark-mode .booking-request-form h3 {
+body.dark-mode .booking-request-form h3,
+body.dark-mode .support-label {
   color: #f7fbff;
 }
 
@@ -471,6 +497,16 @@ body.dark-mode textarea::placeholder {
   }
   50% {
     transform: scale(1.06);
+  }
+}
+
+@keyframes supportCtaPulse {
+  0%,
+  100% {
+    box-shadow: 0 16px 34px rgba(47, 125, 98, 0.25);
+  }
+  50% {
+    box-shadow: 0 20px 44px rgba(47, 125, 98, 0.38);
   }
 }
 
@@ -1672,6 +1708,23 @@ h3 {
   line-height: 1.45;
 }
 
+.support-price {
+  display: inline-flex;
+  width: fit-content;
+  margin: 0 0 12px;
+  padding: 7px 10px;
+  color: #30210d;
+  background: var(--amber);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.support-label {
+  color: var(--navy);
+  font-size: 0.9rem;
+}
+
 .resource-grid,
 .review-grid {
   display: grid;
@@ -1689,8 +1742,7 @@ h3 {
 .review-card,
 .booking-summary,
 .covered-areas,
-.booking-request-form,
-.intake-form {
+.booking-request-form {
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1710,14 +1762,20 @@ h3 {
 }
 
 .webinar-layout article {
+  display: grid;
+  gap: 12px;
   flex: 1;
+  align-content: start;
+}
+
+.webinar-layout article .support-cta {
+  align-self: end;
 }
 
 .icon {
   display: grid;
   width: 44px;
   height: 44px;
-  margin-bottom: 18px;
   place-items: center;
   color: white;
   background: var(--red);
@@ -1732,7 +1790,6 @@ h3 {
   align-items: start;
 }
 
-.intake-form,
 .booking-request-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2026,7 +2083,6 @@ textarea {
     height: 46px;
   }
 
-  .intake-form,
   .booking-request-form,
   .webinar-request-form {
     grid-template-columns: 1fr;

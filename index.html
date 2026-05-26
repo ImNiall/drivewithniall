@@ -16,7 +16,7 @@
         </span>
       </a>
       <nav class="desktop-nav" aria-label="Main navigation">
-        <a href="learn-online.html">Online course</a>
+        <a href="#learn">Online course</a>
         <a href="#resources">Resources</a>
         <a href="#book">Lessons</a>
       </nav>
@@ -24,7 +24,7 @@
         <span class="theme-toggle-icon">☾</span>
         <span class="theme-toggle-text">Dark</span>
       </button>
-      <a class="outline-button" href="learn-online.html">View course</a>
+      <span class="outline-button is-disabled" aria-disabled="true">Course coming soon</span>
     </header>
 
     <main id="home">
@@ -42,9 +42,9 @@
             Learn the road in clear levels, practise between lessons, and track what it takes to get test ready.
           </p>
           <div class="hero-actions">
-            <a class="primary-button" href="learn-online.html">Learn to drive online</a>
+            <span class="primary-button is-disabled" aria-disabled="true">Online course coming soon</span>
             <a class="secondary-button" href="#book">Book a lesson</a>
-            <a class="secondary-button" href="#webinarRequestForm" data-select-webinar="1-1 confidence clinic">Book a 1-1 breakdown</a>
+            <a class="secondary-button" href="#webinars">Get Personal Help</a>
           </div>
         </div>
       </section>
@@ -60,28 +60,27 @@
           <p>Clear stages, quick checks, and what to practise next</p>
         </div>
         <div>
-          <strong>Support when stuck</strong>
-          <p>Confidence clinics, group sessions, and lesson booking</p>
+          <strong>Personal support</strong>
+          <p>Private video help, support calls, and confidence coaching when you need extra clarity between lessons.</p>
         </div>
       </section>
 
       <section class="section course-preview-section" id="learn">
         <div class="section-heading">
-          <p class="eyebrow">Learn to drive online</p>
-          <h2>Video lessons that make every driving lesson easier</h2>
+          <p class="eyebrow">Coming soon</p>
+          <h2>Online driving course is being built</h2>
           <p>
-            Start with the free beginner level, then move through a clear video course that tracks progress,
-            confidence, weak areas, and what to practise next.
+            The online course will include short driving videos, practice steps, progress tracking, and support between lessons. It is not available yet.
           </p>
         </div>
 
         <div class="homepage-course-preview">
           <article class="continue-card">
-            <span class="course-pill">Free preview</span>
+            <span class="course-pill">Coming soon</span>
             <h3>Level 01: First time in the car</h3>
             <p>Watch cockpit drill, safety setup, moving off, stopping, and the first routines before a practical lesson.</p>
             <div class="mini-progress"><span style="width: 18%"></span></div>
-            <a class="primary-button" href="learn-online.html">Start online course</a>
+            <span class="primary-button is-disabled" aria-disabled="true">Coming soon</span>
           </article>
 
           <div class="preview-video-grid">
@@ -136,40 +135,51 @@
 
       <section class="section" id="webinars">
         <div class="section-heading">
-          <p class="eyebrow">Live coaching</p>
-          <h2>Book a private 1-1 driving breakdown</h2>
-          <p>Send over the topics you are struggling with and I will create a private video response that breaks them down clearly, using real driving examples, images, and simple steps you can practise.</p>
+          <p class="eyebrow">Personal support</p>
+          <h2>Personal Driving Support</h2>
+          <p>Extra help when something is not clicking. Choose the support option that fits what you need, then send me the details and I’ll help you understand it clearly.</p>
         </div>
         <div class="webinar-layout">
           <article>
             <span class="icon">1</span>
-            <h3>1-1 confidence clinic</h3>
-            <p>Designed for learners who want personal help without the pressure of a live call. You tell me what is confusing, and I explain it back in a clear private video.</p>
+            <span class="support-price">From £15</span>
+            <h3>Quick Support Call</h3>
+            <p>A 30 minute call for quick reassurance, simple questions, or pre-test nerves.</p>
+            <strong class="support-label">Best for:</strong>
             <ul class="support-points">
-              <li>Break down roundabouts, junctions, manoeuvres, test faults, or theory questions</li>
-              <li>Use real examples and images so the explanation is easier to visualise</li>
-              <li>Give you clear points to practise with your instructor or in a private car</li>
+              <li>One focused driving question</li>
+              <li>Confidence before a lesson or test</li>
+              <li>Talking through something quickly</li>
             </ul>
-            <a class="secondary-action" href="#webinarRequestForm" data-select-webinar="1-1 confidence clinic">Book a 1-1 breakdown</a>
+            <a class="secondary-action support-cta" href="#webinarRequestForm" data-select-support="Quick Support Call">Request a Support Call</a>
           </article>
           <article>
-            <span class="icon">G</span>
-            <h3>Group test-ready workshop</h3>
-            <p>Small group session covering common test faults, local route challenges, and examiner expectations.</p>
-            <span class="secondary-action is-disabled" aria-disabled="true">Coming soon</span>
+            <span class="icon">2</span>
+            <span class="support-price">From £35</span>
+            <h3>Personal Video Breakdown</h3>
+            <p>A private personalised video explaining the exact topic you’re struggling with, using clear examples, visuals, and step-by-step guidance.</p>
+            <strong class="support-label">Best for:</strong>
+            <ul class="support-points">
+              <li>Roundabouts</li>
+              <li>Junctions</li>
+              <li>Manoeuvres</li>
+              <li>Meeting traffic</li>
+              <li>Test faults</li>
+            </ul>
+            <a class="secondary-action support-cta" href="#webinarRequestForm" data-select-support="Personal Video Breakdown">Request a Video Breakdown</a>
           </article>
         </div>
         <form class="webinar-request-form" id="webinarRequestForm" action="https://formsubmit.co/contact@drivewithniall.co.uk" method="POST">
-          <p class="eyebrow">Webinar request</p>
-          <h3>Request live coaching</h3>
-          <input type="hidden" name="_subject" value="New Drive with Niall webinar request" />
+          <p class="eyebrow">Support request</p>
+          <h3>Tell me what you need help with</h3>
+          <input type="hidden" name="_subject" value="New Drive with Niall support request" />
           <input type="hidden" name="_template" value="table" />
           <input type="text" name="_honey" autocomplete="off" tabindex="-1" aria-hidden="true" class="form-honeypot" />
           <label>
-            Webinar type
-            <select name="webinar_type" id="webinarType" required>
-              <option>1-1 confidence clinic</option>
-              <option>Group test-ready workshop</option>
+            Support option
+            <select name="support_option" id="supportType" required>
+              <option>Quick Support Call</option>
+              <option>Personal Video Breakdown</option>
             </select>
           </label>
           <label>Full name <input name="name" type="text" placeholder="Student name" required /></label>
@@ -242,51 +252,10 @@
           </label>
           <label class="full">
             Availability
-            <textarea name="availability" rows="3" placeholder="When would you like to receive your private breakdown?" required></textarea>
+            <textarea name="availability" rows="3" placeholder="When are you usually available, or when would you like to receive your video?" required></textarea>
           </label>
-          <button class="primary-button full" type="submit">Send webinar request</button>
+          <button class="primary-button full" type="submit">Send support request</button>
           <p class="form-message full" role="status"></p>
-        </form>
-      </section>
-
-      <section class="band split" id="apply">
-        <div class="section-heading align-left">
-          <p class="eyebrow">Start learning</p>
-          <h2>Tell me about your driving goals</h2>
-          <p>Share your experience, availability, and what you want help with. I will review your details and get back to you about the best next step.</p>
-        </div>
-        <form class="intake-form" id="studentForm" action="https://formsubmit.co/contact@drivewithniall.co.uk" method="POST">
-          <input type="hidden" name="_subject" value="New Drive with Niall student enquiry" />
-          <input type="hidden" name="_template" value="table" />
-          <input type="text" name="_honey" autocomplete="off" tabindex="-1" aria-hidden="true" class="form-honeypot" />
-          <label>Full name <input name="name" type="text" placeholder="Student name" required /></label>
-          <label>Email <input name="email" type="email" placeholder="name@example.com" required /></label>
-          <label>
-            Current ability
-            <select name="level" required>
-              <option value="">Choose one</option>
-              <option>Complete beginner</option>
-              <option>Can move off and stop</option>
-              <option>Working on junctions</option>
-              <option>Nearly test ready</option>
-              <option>Full licence refresher</option>
-            </select>
-          </label>
-          <label>
-            Theory test status
-            <select name="theory" required>
-              <option value="">Choose one</option>
-              <option>Not booked</option>
-              <option>Booked</option>
-              <option>Passed</option>
-            </select>
-          </label>
-          <label class="full">
-            What do you want help with?
-            <textarea name="goals" rows="4" placeholder="Tell me about your goals, concerns, availability, and test date."></textarea>
-          </label>
-          <button class="primary-button full" type="submit">Submit application</button>
-          <p class="form-message" role="status"></p>
         </form>
       </section>
 
@@ -386,8 +355,8 @@
 
     <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
       <a href="index.html">Home</a>
-      <a href="learn-online.html">Course</a>
-      <a href="learn-online.html#course">Progress</a>
+      <a href="#learn">Course soon</a>
+      <a href="#webinars">Personal help</a>
       <a href="#book">Book</a>
     </nav>
 
