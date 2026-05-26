@@ -33,6 +33,29 @@ function getAuthErrorFromUrl() {
   return params.get("error_description") || params.get("error");
 }
 
+function getFriendlyAuthError(error) {
+  const message = error?.message || String(error || "");
+  const normalisedMessage = message.toLowerCase();
+
+  if (normalisedMessage.includes("email rate limit")) {
+    return "Too many verification emails have been requested. Wait a few minutes, then try again. Also check your inbox and junk folder for the latest verification email.";
+  }
+
+  if (normalisedMessage.includes("invalid login credentials")) {
+    return "Those login details do not match an account. Check the email and password, or create an account first.";
+  }
+
+  if (normalisedMessage.includes("email not confirmed")) {
+    return "Your account exists, but the email has not been verified yet. Open the latest verification email from Supabase.";
+  }
+
+  if (normalisedMessage.includes("expired") || normalisedMessage.includes("invalid")) {
+    return "That verification link is invalid or has expired. Request a fresh email and use the newest link.";
+  }
+
+  return message;
+}
+
 function setAccountStatus(message, type = "info") {
   if (!accountStatus) return;
   accountStatus.textContent = message;
@@ -91,7 +114,7 @@ if (!authClient) {
 } else {
   const authError = getAuthErrorFromUrl();
   if (authError) {
-    setAccountStatus(`The sign-in link could not be used: ${authError}. Please request a new verification email.`, "error");
+    setAccountStatus(getFriendlyAuthError(authError), "error");
   }
 
   authClient.auth.getSession().then(({ data, error }) => {
@@ -128,7 +151,7 @@ signInForm?.addEventListener("submit", async (event) => {
   setLoading(signInForm, false);
 
   if (error) {
-    setAccountStatus(error.message, "error");
+    setAccountStatus(getFriendlyAuthError(error), "error");
     return;
   }
 
@@ -161,14 +184,14 @@ signUpForm?.addEventListener("submit", async (event) => {
   setLoading(signUpForm, false);
 
   if (error) {
-    setAccountStatus(error.message, "error");
+    setAccountStatus(getFriendlyAuthError(error), "error");
     return;
   }
 
   if (data.session) {
     setAccountStatus("Account created and signed in.", "success");
   } else {
-    setAccountStatus("Check your email to confirm your account.", "success");
+    setAccountStatus("Check your email to confirm your account. Use the newest verification email if you requested more than one.", "success");
   }
 });
 
@@ -177,7 +200,7 @@ signOutButton?.addEventListener("click", async () => {
 
   const { error } = await authClient.auth.signOut();
   if (error) {
-    setAccountStatus(error.message, "error");
+    setAccountStatus(getFriendlyAuthError(error), "error");
     return;
   }
 

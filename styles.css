@@ -2100,6 +2100,66 @@ body.dark-mode .account-status[data-type="error"] {
   border-color: #7c2d12;
 }
 
+.admin-login-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 32px 18px;
+  background: linear-gradient(180deg, #f7fbff 0%, #eef6f9 100%);
+}
+
+.admin-login-card {
+  display: grid;
+  gap: 22px;
+  width: min(100%, 560px);
+  padding: clamp(24px, 5vw, 42px);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.admin-login-card h1,
+.admin-login-card p {
+  margin: 0;
+}
+
+.admin-login-card h1 {
+  margin: 8px 0 10px;
+  color: var(--navy);
+  font-size: clamp(2rem, 7vw, 3.4rem);
+  line-height: 0.96;
+}
+
+.admin-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-panel[hidden],
+#adminSignedOut[hidden] {
+  display: none;
+}
+
+.admin-actions {
+  display: grid;
+  gap: 12px;
+}
+
+body.dark-mode .admin-login-page {
+  background: #0b1120;
+}
+
+body.dark-mode .admin-login-card {
+  color: #f7fbff;
+  background: #17202f;
+  border-color: #31405f;
+}
+
+body.dark-mode .admin-login-card h1 {
+  color: #f7fbff;
+}
+
 .webinar-request-form {
   display: none;
   grid-template-columns: repeat(2, minmax(0, 1fr));
