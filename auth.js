@@ -18,6 +18,21 @@ const accountSignedIn = document.querySelector("#accountSignedIn");
 const accountEmail = document.querySelector("#accountEmail");
 const authTabs = document.querySelectorAll("[data-auth-panel]");
 
+function getAuthRedirectUrl() {
+  const configuredSiteUrl = authConfig.siteUrl || "https://drivewithniall.co.uk/";
+
+  if (window.location.protocol === "http:" || window.location.protocol === "https:") {
+    return new URL("/", window.location.origin).toString();
+  }
+
+  return configuredSiteUrl;
+}
+
+function getAuthErrorFromUrl() {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, "") || window.location.search);
+  return params.get("error_description") || params.get("error");
+}
+
 function setAccountStatus(message, type = "info") {
   if (!accountStatus) return;
   accountStatus.textContent = message;
@@ -74,6 +89,11 @@ authTabs.forEach((tab) => {
 if (!authClient) {
   setAccountStatus("Student accounts are ready to connect. Add your Supabase project URL and public anon key in auth-config.js.", "info");
 } else {
+  const authError = getAuthErrorFromUrl();
+  if (authError) {
+    setAccountStatus(`The sign-in link could not be used: ${authError}. Please request a new verification email.`, "error");
+  }
+
   authClient.auth.getSession().then(({ data, error }) => {
     if (error) {
       setAccountStatus(error.message, "error");
@@ -131,6 +151,7 @@ signUpForm?.addEventListener("submit", async (event) => {
     email: formData.get("email"),
     password: formData.get("password"),
     options: {
+      emailRedirectTo: getAuthRedirectUrl(),
       data: {
         full_name: formData.get("name"),
       },
