@@ -6,6 +6,9 @@ const bookingAvailabilityStatus = document.querySelector("#bookingAvailabilitySt
 const bookingSubmitButton = document.querySelector("#bookingSubmitButton");
 const webinarRequestForm = document.querySelector("#webinarRequestForm");
 const supportType = document.querySelector("#supportType");
+const accountModal = document.querySelector("#accountModal");
+const accountButton = document.querySelector("#accountButton");
+const closeAccountModal = document.querySelector("#closeAccountModal");
 
 function updateBookingAvailability() {
   if (!availabilityStatus) return;
@@ -52,6 +55,17 @@ setTheme(savedTheme || (prefersDark ? "dark" : "light"));
 
 themeToggle?.addEventListener("click", () => {
   setTheme(document.body.classList.contains("dark-mode") ? "light" : "dark");
+});
+
+function openAccountModal() {
+  accountModal?.showModal();
+}
+
+accountButton?.addEventListener("click", openAccountModal);
+document.querySelector("[data-open-account]")?.addEventListener("click", openAccountModal);
+closeAccountModal?.addEventListener("click", () => accountModal?.close());
+accountModal?.addEventListener("click", (event) => {
+  if (event.target === accountModal) accountModal.close();
 });
 
 document.querySelectorAll('a[href$=".html"], a[href^="learn-online.html"], a[href^="index.html"]').forEach((link) => {

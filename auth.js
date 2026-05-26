@@ -1,0 +1,165 @@
+const authConfig = window.driveAuthConfig || {};
+const hasSupabaseConfig =
+  authConfig.supabaseUrl &&
+  authConfig.supabaseAnonKey &&
+  !authConfig.supabaseUrl.includes("PASTE_") &&
+  !authConfig.supabaseAnonKey.includes("PASTE_");
+
+const authClient = hasSupabaseConfig && window.supabase
+  ? window.supabase.createClient(authConfig.supabaseUrl, authConfig.supabaseAnonKey)
+  : null;
+
+const accountStatus = document.querySelector("#accountStatus");
+const accountButtonLabel = document.querySelector("#accountButton");
+const signInForm = document.querySelector("#signInForm");
+const signUpForm = document.querySelector("#signUpForm");
+const signOutButton = document.querySelector("#signOutButton");
+const accountSignedIn = document.querySelector("#accountSignedIn");
+const accountEmail = document.querySelector("#accountEmail");
+const authTabs = document.querySelectorAll("[data-auth-panel]");
+
+function setAccountStatus(message, type = "info") {
+  if (!accountStatus) return;
+  accountStatus.textContent = message;
+  accountStatus.dataset.type = type;
+  accountStatus.hidden = !message;
+}
+
+function showAuthPanel(panelName) {
+  authTabs.forEach((tab) => {
+    tab.classList.toggle("is-active", tab.dataset.authPanel === panelName);
+  });
+
+  signInForm?.classList.toggle("is-active", panelName === "signin");
+  signUpForm?.classList.toggle("is-active", panelName === "signup");
+}
+
+function setLoading(form, isLoading, label) {
+  const button = form?.querySelector("button[type='submit']");
+  if (!button) return;
+
+  if (!button.dataset.originalText) {
+    button.dataset.originalText = button.textContent;
+  }
+
+  button.disabled = isLoading;
+  button.textContent = isLoading ? label : button.dataset.originalText;
+}
+
+function setSignedInState(session) {
+  const userEmail = session?.user?.email;
+  const isSignedIn = Boolean(userEmail);
+
+  signInForm?.toggleAttribute("hidden", isSignedIn);
+  signUpForm?.toggleAttribute("hidden", isSignedIn);
+  document.querySelector(".account-actions")?.toggleAttribute("hidden", isSignedIn);
+  accountSignedIn?.toggleAttribute("hidden", !isSignedIn);
+
+  if (accountEmail) {
+    accountEmail.textContent = userEmail || "Signed in";
+  }
+
+  if (accountButtonLabel) {
+    accountButtonLabel.textContent = isSignedIn ? "Account" : "Student login";
+  }
+}
+
+authTabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    showAuthPanel(tab.dataset.authPanel);
+    setAccountStatus("");
+  });
+});
+
+if (!authClient) {
+  setAccountStatus("Student accounts are ready to connect. Add your Supabase project URL and public anon key in auth-config.js.", "info");
+} else {
+  authClient.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      setAccountStatus(error.message, "error");
+      return;
+    }
+
+    setSignedInState(data.session);
+  });
+
+  authClient.auth.onAuthStateChange((_event, session) => {
+    setSignedInState(session);
+  });
+}
+
+signInForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  if (!authClient) {
+    setAccountStatus("Student accounts need the Supabase project details before sign in can work.", "error");
+    return;
+  }
+
+  const formData = new FormData(signInForm);
+  setLoading(signInForm, true, "Signing in...");
+  setAccountStatus("");
+
+  const { error } = await authClient.auth.signInWithPassword({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+
+  setLoading(signInForm, false);
+
+  if (error) {
+    setAccountStatus(error.message, "error");
+    return;
+  }
+
+  setAccountStatus("Signed in successfully.", "success");
+});
+
+signUpForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  if (!authClient) {
+    setAccountStatus("Student accounts need the Supabase project details before sign up can work.", "error");
+    return;
+  }
+
+  const formData = new FormData(signUpForm);
+  setLoading(signUpForm, true, "Creating account...");
+  setAccountStatus("");
+
+  const { data, error } = await authClient.auth.signUp({
+    email: formData.get("email"),
+    password: formData.get("password"),
+    options: {
+      data: {
+        full_name: formData.get("name"),
+      },
+    },
+  });
+
+  setLoading(signUpForm, false);
+
+  if (error) {
+    setAccountStatus(error.message, "error");
+    return;
+  }
+
+  if (data.session) {
+    setAccountStatus("Account created and signed in.", "success");
+  } else {
+    setAccountStatus("Check your email to confirm your account.", "success");
+  }
+});
+
+signOutButton?.addEventListener("click", async () => {
+  if (!authClient) return;
+
+  const { error } = await authClient.auth.signOut();
+  if (error) {
+    setAccountStatus(error.message, "error");
+    return;
+  }
+
+  setAccountStatus("Signed out.", "success");
+  showAuthPanel("signin");
+});

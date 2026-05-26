@@ -1282,7 +1282,7 @@ body.dark-mode .course-path a:hover {
   left: 12px;
   z-index: 30;
   display: none;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
   padding: 8px;
   background: rgba(255, 255, 255, 0.9);
@@ -1292,13 +1292,17 @@ body.dark-mode .course-path a:hover {
   backdrop-filter: blur(14px);
 }
 
-.mobile-bottom-nav a {
+.mobile-bottom-nav a,
+.mobile-bottom-nav button {
   display: grid;
   min-height: 42px;
   place-items: center;
   color: #17202f;
   background: #eef6ff;
+  border: 0;
   border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
   font-size: 0.84rem;
   font-weight: 950;
 }
@@ -1308,7 +1312,8 @@ body.dark-mode .mobile-bottom-nav {
   border-color: #31405f;
 }
 
-body.dark-mode .mobile-bottom-nav a {
+body.dark-mode .mobile-bottom-nav a,
+body.dark-mode .mobile-bottom-nav button {
   color: #f7fbff;
   background: #17202f;
 }
@@ -1973,6 +1978,126 @@ textarea {
 .modal-card {
   flex-direction: column;
   padding: 26px;
+}
+
+.account-card {
+  display: grid;
+  gap: 16px;
+}
+
+.account-card h2,
+.account-card p {
+  margin: 0;
+}
+
+.account-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.account-actions button {
+  display: grid;
+  min-height: 44px;
+  place-items: center;
+  color: var(--navy);
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.account-actions button.is-active {
+  color: white;
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.auth-form {
+  display: none;
+  gap: 12px;
+}
+
+.auth-form.is-active {
+  display: grid;
+}
+
+.auth-form[hidden] {
+  display: none;
+}
+
+.account-status {
+  display: block;
+  padding: 12px 14px;
+  color: var(--muted);
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 750;
+}
+
+.account-status:empty,
+.account-status[hidden] {
+  display: none;
+}
+
+.account-status[data-type="success"] {
+  color: #1f6b4a;
+  background: #e9f7ef;
+  border-color: #b9e4ca;
+}
+
+.account-status[data-type="error"] {
+  color: #9a3412;
+  background: #fff1e9;
+  border-color: #fed7aa;
+}
+
+.account-signed-in {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.account-signed-in[hidden] {
+  display: none;
+}
+
+.small-note {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+body.dark-mode .account-card,
+body.dark-mode .account-actions button,
+body.dark-mode .account-status,
+body.dark-mode .account-signed-in {
+  color: #f7fbff;
+  background: #17202f;
+  border-color: #31405f;
+}
+
+body.dark-mode .account-actions button.is-active {
+  color: white;
+  background: #4b8f70;
+  border-color: #4b8f70;
+}
+
+body.dark-mode .account-status[data-type="success"] {
+  color: #bff2d6;
+  background: #173426;
+  border-color: #285d42;
+}
+
+body.dark-mode .account-status[data-type="error"] {
+  color: #fed7aa;
+  background: #3a2118;
+  border-color: #7c2d12;
 }
 
 .webinar-request-form {

@@ -24,6 +24,7 @@
         <span class="theme-toggle-icon">☾</span>
         <span class="theme-toggle-text">Dark</span>
       </button>
+      <button class="outline-button" id="accountButton" type="button">Student login</button>
       <span class="outline-button is-disabled" aria-disabled="true">Course coming soon</span>
     </header>
 
@@ -358,8 +359,42 @@
       <a href="#learn">Course soon</a>
       <a href="#webinars">Personal help</a>
       <a href="#book">Book</a>
+      <button type="button" data-open-account>Login</button>
     </nav>
 
+    <dialog class="modal account-modal" id="accountModal">
+      <div class="modal-card account-card">
+        <button class="close-button" type="button" id="closeAccountModal" aria-label="Close">×</button>
+        <p class="eyebrow">Student account</p>
+        <h2>Access your Drive with Niall account</h2>
+        <p>Sign in or create an account for online course access, saved progress, private support, and lesson resources.</p>
+        <div class="account-status" id="accountStatus" role="status"></div>
+        <div class="account-actions" aria-label="Account options">
+          <button type="button" class="is-active" data-auth-panel="signin">Sign in</button>
+          <button type="button" data-auth-panel="signup">Sign up</button>
+        </div>
+        <form class="auth-form is-active" id="signInForm">
+          <label>Email <input name="email" type="email" placeholder="name@example.com" autocomplete="email" required /></label>
+          <label>Password <input name="password" type="password" placeholder="Your password" autocomplete="current-password" required /></label>
+          <button class="primary-button full" type="submit">Sign in</button>
+        </form>
+        <form class="auth-form" id="signUpForm">
+          <label>Full name <input name="name" type="text" placeholder="Student name" autocomplete="name" required /></label>
+          <label>Email <input name="email" type="email" placeholder="name@example.com" autocomplete="email" required /></label>
+          <label>Password <input name="password" type="password" placeholder="Create a password" autocomplete="new-password" minlength="8" required /></label>
+          <button class="primary-button full" type="submit">Create account</button>
+        </form>
+        <div class="account-signed-in" id="accountSignedIn" hidden>
+          <strong id="accountEmail">Signed in</strong>
+          <button class="secondary-action" type="button" id="signOutButton">Sign out</button>
+        </div>
+        <p class="small-note">Use this for saved course progress and private student resources once your account is active.</p>
+      </div>
+    </dialog>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="auth-config.js"></script>
     <script src="app.js?v=ui-polish-1"></script>
+    <script src="auth.js"></script>
   </body>
 </html>
