@@ -1,6 +1,8 @@
 const adminConfig = window.driveAuthConfig || {};
 const adminEmails = (adminConfig.adminEmails || []).map((email) => email.toLowerCase());
 const adminName = adminConfig.adminName || "Admin";
+const adminUsername = adminConfig.adminUsername || adminName;
+const adminUsernameEmail = String(adminConfig.adminUsernameEmail || adminEmails[0] || "").toLowerCase();
 const adminStatus = document.querySelector("#adminStatus");
 const adminLoginForm = document.querySelector("#adminLoginForm");
 const adminSignedOut = document.querySelector("#adminSignedOut");
@@ -93,10 +95,13 @@ adminLoginForm?.addEventListener("submit", async (event) => {
 
   const button = adminLoginForm.querySelector("button[type='submit']");
   const formData = new FormData(adminLoginForm);
-  const email = String(formData.get("email") || "").toLowerCase();
+  const username = String(formData.get("username") || "").trim();
+  const normalisedUsername = username.toLowerCase();
+  const normalisedAdminUsername = adminUsername.toLowerCase();
+  const email = normalisedUsername === normalisedAdminUsername ? adminUsernameEmail : normalisedUsername;
 
   if (!adminEmails.includes(email)) {
-    setAdminStatus("This email is not approved for admin access.", "error");
+    setAdminStatus(`Use the admin username "${adminUsername}" or an approved admin email address.`, "error");
     return;
   }
 

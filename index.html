@@ -264,12 +264,12 @@
         <div class="section-heading">
           <p class="eyebrow">Practical lessons</p>
           <h2>Request driving lessons</h2>
-          <p>Tell me where you are, what stage you are at, and when you can usually do lessons. I will reply with availability or waiting list options.</p>
+          <p>I currently offer practical lessons in Birmingham only. Tell me where you are, what stage you are at, and when you can usually do lessons.</p>
         </div>
         <div class="booking-layout">
           <aside class="covered-areas">
             <h3>Areas covered</h3>
-            <p>I currently cover these postcode areas:</p>
+            <p>I cover Birmingham learners in these postcode areas:</p>
             <ul>
               <li>B29</li>
               <li>B30</li>
@@ -298,8 +298,11 @@
             <label>Full name <input name="name" type="text" placeholder="Student name" required /></label>
             <label>Email <input name="email" type="email" placeholder="name@example.com" required /></label>
             <label>Phone <input name="phone" type="tel" placeholder="Mobile number" required /></label>
-            <label>Address <input name="address" type="text" placeholder="Where would lessons start?" required /></label>
-            <label>Postcode <input name="postcode" type="text" placeholder="Example: B31" required /></label>
+            <label class="full">
+              Address or pickup points
+              <textarea name="addresses" rows="3" placeholder="Add one or more addresses where lessons could start, including postcodes if you know them." required></textarea>
+            </label>
+            <label>Postcode <input name="postcode" type="text" placeholder="Main postcode, example: B31" required /></label>
             <label>
               Lesson type
               <select name="lesson_type" required>
