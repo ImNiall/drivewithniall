@@ -1884,6 +1884,26 @@ textarea {
   border-radius: 8px;
 }
 
+.covered-areas li a,
+.covered-areas li span {
+  display: block;
+  color: inherit;
+}
+
+.covered-areas li:has(a) {
+  background: #eef6ff;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.covered-areas li:has(a):hover {
+  background: #dff0ff;
+  border-color: #bcd9f4;
+  transform: translateY(-1px);
+}
+
 .area-list {
   margin-top: 18px;
   padding-top: 18px;
