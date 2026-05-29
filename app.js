@@ -136,7 +136,6 @@ function openAccountModal() {
 }
 
 accountButton?.addEventListener("click", openAccountModal);
-document.querySelector("[data-open-account]")?.addEventListener("click", openAccountModal);
 closeAccountModal?.addEventListener("click", () => accountModal?.close());
 accountModal?.addEventListener("click", (event) => {
   if (event.target === accountModal) accountModal.close();
