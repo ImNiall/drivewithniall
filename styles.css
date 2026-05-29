@@ -414,6 +414,7 @@ body.dark-mode .quick-panel,
 body.dark-mode .training-module,
 body.dark-mode .resource-grid article,
 body.dark-mode .webinar-layout article,
+body.dark-mode .reviews-trust,
 body.dark-mode .review-card,
 body.dark-mode .booking-summary,
 body.dark-mode .covered-areas,
@@ -424,6 +425,8 @@ body.dark-mode .webinar-request-form {
 }
 
 body.dark-mode .section-heading h2,
+body.dark-mode .reviews-trust h3,
+body.dark-mode .review-card footer strong,
 body.dark-mode .module-content h3,
 body.dark-mode .brand strong,
 body.dark-mode .quick-panel strong {
@@ -1851,6 +1854,87 @@ textarea {
   margin: 0 auto;
 }
 
+.reviews-section {
+  display: grid;
+  gap: 16px;
+  max-width: 1100px;
+  margin: 0 auto 28px;
+}
+
+.reviews-trust {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.reviews-trust h3 {
+  margin: 6px 0 8px;
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
+}
+
+.reviews-trust p:last-child {
+  max-width: 760px;
+  color: var(--muted);
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.review-card {
+  display: flex;
+  min-height: 220px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.review-card-top,
+.review-card footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.star-rating {
+  color: #f3b84e;
+  font-size: 1.05rem;
+  letter-spacing: 0;
+}
+
+.review-area,
+.review-card footer span {
+  padding: 5px 8px;
+  color: var(--green);
+  background: #eaf7f0;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.review-card p {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.review-card footer strong {
+  color: var(--navy);
+}
+
 .covered-areas {
   position: sticky;
   top: 90px;
@@ -2315,7 +2399,19 @@ body.dark-mode .area-content p {
 }
 
 @media (max-width: 980px) {
+  .site-header {
+    gap: 14px;
+  }
+
+  .brand {
+    min-width: 0;
+  }
+
   .desktop-nav {
+    display: none;
+  }
+
+  .site-header > .is-disabled {
     display: none;
   }
 
@@ -2346,33 +2442,161 @@ body.dark-mode .area-content p {
 }
 
 @media (max-width: 680px) {
+  html {
+    scroll-padding-top: 84px;
+  }
+
+  body {
+    padding-bottom: 92px;
+  }
+
   .site-header {
-    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+
+  .brand {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .brand-mark {
+    width: 42px;
+    height: 42px;
   }
 
   .brand small {
     display: none;
   }
 
+  .brand strong {
+    font-size: 1rem;
+    line-height: 1.05;
+  }
+
+  .site-header > .outline-button,
+  .site-header > .is-disabled {
+    display: none;
+  }
+
+  .theme-toggle {
+    min-height: 42px;
+    padding-right: 12px;
+    padding-left: 54px;
+    flex: 0 0 auto;
+  }
+
   .hero {
-    min-height: 84vh;
-    padding-top: 94px;
+    min-height: auto;
+    padding: 96px 18px 44px;
+    align-items: end;
   }
 
   .hero-overlay {
     background: linear-gradient(180deg, rgba(12, 26, 37, 0.28), rgba(12, 26, 37, 0.91));
   }
 
+  .hero-content {
+    max-width: none;
+  }
+
+  h1 {
+    font-size: clamp(2.45rem, 13vw, 3.35rem);
+    line-height: 0.98;
+  }
+
+  h2 {
+    font-size: clamp(2rem, 10vw, 2.7rem);
+    line-height: 1.04;
+  }
+
+  .hero-content > p:not(.eyebrow),
+  .section-heading p {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
   .hero-actions,
   .area-hero .hero-actions,
+  .reviews-trust,
   .quick-panel,
   .webinar-layout,
   .footer {
     flex-direction: column;
   }
 
+  .hero-actions {
+    align-items: stretch;
+  }
+
+  .hero-actions .primary-button,
+  .hero-actions .secondary-button,
+  .hero-actions .is-disabled,
+  .reviews-trust .outline-button {
+    width: 100%;
+  }
+
+  .quick-panel {
+    width: calc(100% - 28px);
+    margin-top: -18px;
+    padding: 16px;
+  }
+
+  .quick-panel > div {
+    padding: 10px 12px;
+  }
+
+  .section,
+  .band {
+    padding: 58px 16px;
+  }
+
+  .section-heading {
+    margin-bottom: 24px;
+    text-align: left;
+  }
+
+  .course-preview-card,
+  .resource-grid article,
+  .webinar-layout article,
+  .reviews-trust,
+  .review-card,
+  .covered-areas,
+  .booking-request-form,
+  .webinar-request-form,
+  .area-content article {
+    padding: 18px;
+  }
+
+  .reviews-trust {
+    align-items: stretch;
+  }
+
+  .review-grid {
+    gap: 12px;
+  }
+
+  .review-card {
+    min-height: 0;
+  }
+
+  .review-card-top,
+  .review-card footer {
+    width: 100%;
+  }
+
+  .covered-areas ul {
+    gap: 7px;
+  }
+
+  .covered-areas li {
+    padding: 8px 9px;
+    font-size: 0.9rem;
+  }
+
   .module-jump-list {
     justify-content: stretch;
+    position: static;
   }
 
   .module-jump-list a {
@@ -2393,13 +2617,84 @@ body.dark-mode .area-content p {
   .booking-request-form,
   .webinar-request-form {
     grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 18px;
+  }
+
+  input,
+  select,
+  textarea {
+    min-height: 48px;
+    font-size: 0.98rem;
+  }
+
+  textarea {
+    min-height: 112px;
   }
 
   .full {
     grid-column: auto;
   }
 
-  .review-card {
-    align-items: flex-start;
+  .area-hero {
+    min-height: auto;
+    padding: 96px 18px 48px;
+  }
+
+  .area-hero h1 {
+    font-size: clamp(2.5rem, 13vw, 3.4rem);
+    line-height: 0.98;
+  }
+
+  .footer {
+    align-items: stretch;
+    gap: 18px;
+  }
+
+  .footer .outline-button {
+    width: 100%;
+  }
+
+  .footer-links {
+    gap: 7px;
+  }
+
+  .mobile-bottom-nav {
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    padding: 7px;
+  }
+
+  .mobile-bottom-nav a,
+  .mobile-bottom-nav button {
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 4px;
+    font-size: 0.72rem;
+    line-height: 1.05;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  .modal {
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+  }
+
+  .modal-card {
+    padding: 20px;
+  }
+
+  .account-card h2 {
+    font-size: clamp(2rem, 12vw, 3rem);
+    line-height: 0.98;
+  }
+
+  .account-actions {
+    grid-template-columns: 1fr;
   }
 }
