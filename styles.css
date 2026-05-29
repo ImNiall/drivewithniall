@@ -27,9 +27,52 @@ body {
   box-shadow: 0 10px 30px rgba(29, 43, 83, 0.08);
 }
 
-.brand-mark {
-  background: #17202f;
-  box-shadow: inset 0 -4px 0 rgba(255, 255, 255, 0.14);
+.brand-wordmark {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding-bottom: 7px;
+  color: var(--navy);
+  white-space: nowrap;
+}
+
+.brand-wordmark::after {
+  content: "";
+  position: absolute;
+  left: 1px;
+  bottom: 0;
+  width: 38px;
+  height: 4px;
+  background: var(--amber);
+  border-radius: 999px;
+}
+
+.brand-drive {
+  color: var(--navy);
+  font-size: clamp(1.25rem, 2vw, 1.55rem);
+  font-weight: 950;
+  line-height: 1;
+}
+
+.brand-with {
+  color: var(--green);
+  font-size: clamp(0.94rem, 1.5vw, 1.05rem);
+  font-weight: 850;
+  line-height: 1;
+}
+
+.brand-niall {
+  color: var(--navy);
+  font-size: clamp(1.05rem, 1.7vw, 1.22rem);
+  font-weight: 760;
+  line-height: 1;
+}
+
+.brand-bang {
+  color: var(--amber);
+  font-weight: 950;
 }
 
 .desktop-nav {
@@ -384,9 +427,14 @@ body.dark-mode .site-header {
   border-bottom-color: #263653;
 }
 
-body.dark-mode .brand-mark {
-  color: #17202f;
-  background: var(--amber);
+body.dark-mode .brand-wordmark,
+body.dark-mode .brand-drive,
+body.dark-mode .brand-niall {
+  color: #f7fbff;
+}
+
+body.dark-mode .brand-with {
+  color: #9ee6bf;
 }
 
 body.dark-mode .outline-button,
@@ -1267,18 +1315,6 @@ a {
   min-width: 220px;
 }
 
-.brand-mark {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  color: white;
-  background: var(--green);
-  border-radius: 8px;
-  font-size: 0.82rem;
-  font-weight: 800;
-}
-
 .brand small,
 .small-note,
 .section-heading p,
@@ -1290,9 +1326,19 @@ a {
   color: var(--muted);
 }
 
-.brand strong,
 .brand small {
   display: block;
+}
+
+.brand-copy strong {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .desktop-nav {
@@ -2344,18 +2390,24 @@ body.dark-mode .area-content p {
     flex: 1;
   }
 
-  .brand-mark {
-    width: 42px;
-    height: 42px;
-  }
-
   .brand small {
     display: none;
   }
 
-  .brand strong {
+  .brand-wordmark {
+    gap: 3px;
+  }
+
+  .brand-drive {
+    font-size: 1.16rem;
+  }
+
+  .brand-with {
+    font-size: 0.86rem;
+  }
+
+  .brand-niall {
     font-size: 1rem;
-    line-height: 1.05;
   }
 
   .site-header > .outline-button,
