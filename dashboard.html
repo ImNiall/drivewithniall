@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Dashboard | Drive with Niall</title>
+    <meta name="description" content="Student dashboard for Drive with Niall learners." />
+    <meta name="robots" content="noindex" />
+    <link rel="stylesheet" href="styles.css?v=dashboard-1" />
+  </head>
+  <body class="dashboard-page">
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="Drive with Niall home">
+        <span class="brand-wordmark" aria-hidden="true">
+          <span class="brand-drive">Drive</span>
+          <span class="brand-with">with</span>
+          <span class="brand-niall">Niall<span class="brand-bang">!</span></span>
+        </span>
+        <span class="brand-copy">
+          <strong>Drive with Niall</strong>
+          <small>Student dashboard</small>
+        </span>
+      </a>
+      <nav class="desktop-nav" aria-label="Dashboard navigation">
+        <a href="index.html#book">Book lessons</a>
+        <a href="index.html#webinars">1 - 1 coaching</a>
+      </nav>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false" aria-label="Switch to dark mode">
+        <span class="theme-toggle-icon">☾</span>
+        <span class="theme-toggle-text">Dark</span>
+      </button>
+      <a class="outline-button" href="index.html">Home</a>
+    </header>
+
+    <main class="dashboard-shell">
+      <section class="dashboard-hero">
+        <p class="eyebrow">Student account</p>
+        <h1>Your Drive with Niall dashboard</h1>
+        <p id="dashboardIntro">Sign in to view lesson requests, support options, and course access updates.</p>
+      </section>
+
+      <section class="dashboard-grid" id="signedOutDashboard">
+        <article class="dashboard-card dashboard-card-wide">
+          <h2>Sign in required</h2>
+          <p>Use your student account to access your dashboard. If you have just created an account, verify your email first.</p>
+          <div class="dashboard-actions">
+            <a class="primary-button" href="index.html">Go to student login</a>
+            <a class="secondary-button" href="index.html#book">Request lessons</a>
+          </div>
+        </article>
+      </section>
+
+      <section class="dashboard-grid" id="signedInDashboard" hidden>
+        <article class="dashboard-card dashboard-card-wide">
+          <span class="dashboard-kicker">Account</span>
+          <h2>Welcome back</h2>
+          <p>You are signed in as <strong id="dashboardEmail">your account</strong>.</p>
+          <div class="dashboard-actions">
+            <a class="primary-button" href="index.html#book">Request driving lessons</a>
+            <a class="secondary-button" href="index.html#webinars">Request 1 - 1 coaching</a>
+            <button class="outline-button" id="dashboardSignOut" type="button">Sign out</button>
+          </div>
+        </article>
+
+        <article class="dashboard-card">
+          <span class="dashboard-kicker">Lesson requests</span>
+          <h2>Current status</h2>
+          <p id="lessonRequestStatus">Checking your lesson requests...</p>
+          <ul class="dashboard-list" id="lessonRequestList"></ul>
+        </article>
+
+        <article class="dashboard-card">
+          <span class="dashboard-kicker">Next step</span>
+          <h2>What happens after you request lessons?</h2>
+          <p>I’ll review your area, availability, current stage, and lesson goals, then reply with availability or waiting-list options.</p>
+        </article>
+
+        <article class="dashboard-card">
+          <span class="dashboard-kicker">Online course</span>
+          <h2>Course access</h2>
+          <p>The online course is being built. Once live, this dashboard will be where your course access and progress appear.</p>
+          <a class="secondary-action" href="learn-online.html">View course plan</a>
+        </article>
+
+        <article class="dashboard-card">
+          <span class="dashboard-kicker">Personal support</span>
+          <h2>Need help before your next lesson?</h2>
+          <p>Use 1 - 1 coaching for a support call or private video breakdown of a driving topic that is not clicking yet.</p>
+          <a class="secondary-action" href="index.html#webinars">Get personal help</a>
+        </article>
+      </section>
+
+      <p class="dashboard-status" id="dashboardStatus" role="status"></p>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="auth-config.js"></script>
+    <script src="dashboard.js"></script>
+  </body>
+</html>

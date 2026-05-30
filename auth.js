@@ -98,7 +98,8 @@ function setSignedInState(session) {
   }
 
   if (accountButtonLabel) {
-    accountButtonLabel.textContent = isSignedIn ? "Account" : "Student login";
+    accountButtonLabel.textContent = isSignedIn ? "Dashboard" : "Student login";
+    accountButtonLabel.dataset.destination = isSignedIn ? "dashboard" : "login";
   }
 }
 

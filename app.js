@@ -4,85 +4,21 @@ const themeToggle = document.querySelector("#themeToggle");
 const availabilityStatus = document.querySelector("#availabilityStatus");
 const bookingAvailabilityStatus = document.querySelector("#bookingAvailabilityStatus");
 const bookingSubmitButton = document.querySelector("#bookingSubmitButton");
+const bookingRequestForm = document.querySelector("#bookingRequestForm");
 const webinarRequestForm = document.querySelector("#webinarRequestForm");
 const supportType = document.querySelector("#supportType");
 const accountModal = document.querySelector("#accountModal");
 const accountButton = document.querySelector("#accountButton");
 const closeAccountModal = document.querySelector("#closeAccountModal");
-const reviewsSection = document.querySelector("[data-reviews-section]");
-
-const googleReviewsLink = "https://www.google.com/search?q=Drive+with+Niall+Google+reviews"; // Replace with your live Google Business Profile reviews link.
-const featuredGoogleReviews = [
-  {
-    reviewer: "Placeholder",
-    area: "Bromsgrove",
-    text: "Placeholder review - replace this with genuine Google review text before relying on it as social proof.",
-    isPlaceholder: true,
-  },
-  {
-    reviewer: "Placeholder",
-    area: "Longbridge",
-    text: "Placeholder review - paste a real Google review here, keeping only the reviewer's first name.",
-    isPlaceholder: true,
-  },
-  {
-    reviewer: "Placeholder",
-    area: "Redditch",
-    text: "Placeholder review - use real review wording from your Google Business Profile only.",
-    isPlaceholder: true,
-  },
-];
-
-function escapeHtml(value = "") {
-  return value.replace(/[&<>"']/g, (character) => {
-    const replacements = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;",
-    };
-    return replacements[character];
-  });
-}
-
-function renderGoogleReviews() {
-  if (!reviewsSection) return;
-
-  const reviewCards = featuredGoogleReviews
-    .map(
-      (review) => `
-        <article class="review-card">
-          <div class="review-card-top">
-            <span class="star-rating" aria-label="5 out of 5 stars">★★★★★</span>
-            ${review.area ? `<span class="review-area">${escapeHtml(review.area)}</span>` : ""}
-          </div>
-          <p>${escapeHtml(review.text)}</p>
-          <footer>
-            <strong>${escapeHtml(review.reviewer)}</strong>
-            ${review.isPlaceholder ? `<span>Placeholder</span>` : ""}
-          </footer>
-        </article>
-      `,
-    )
-    .join("");
-
-  reviewsSection.innerHTML = `
-    <div class="reviews-trust">
-      <div>
-        <p class="eyebrow">Learner reviews</p>
-        <h3>Rated 5.0 on Google</h3>
-        <p>Trusted by learners across South Birmingham, Bromsgrove, Longbridge, Rubery and Redditch.</p>
-      </div>
-      <a class="outline-button" href="${escapeHtml(googleReviewsLink)}" target="_blank" rel="noopener">Read all Google reviews</a>
-    </div>
-    <div class="review-grid">
-      ${reviewCards}
-    </div>
-  `;
-}
-
-renderGoogleReviews();
+const appAuthConfig = window.driveAuthConfig || {};
+const appHasSupabaseConfig =
+  appAuthConfig.supabaseUrl &&
+  appAuthConfig.supabaseAnonKey &&
+  !appAuthConfig.supabaseUrl.includes("PASTE_") &&
+  !appAuthConfig.supabaseAnonKey.includes("PASTE_");
+const appSupabaseClient = appHasSupabaseConfig && window.supabase
+  ? window.supabase.createClient(appAuthConfig.supabaseUrl, appAuthConfig.supabaseAnonKey)
+  : null;
 
 function updateBookingAvailability() {
   if (!availabilityStatus) return;
@@ -132,6 +68,11 @@ themeToggle?.addEventListener("click", () => {
 });
 
 function openAccountModal() {
+  if (accountButton?.dataset.destination === "dashboard") {
+    window.location.href = "dashboard.html";
+    return;
+  }
+
   accountModal?.showModal();
 }
 
@@ -157,8 +98,53 @@ document.querySelectorAll("[data-select-support]").forEach((button) => {
   });
 });
 
-document.querySelector("#bookingRequestForm")?.addEventListener("submit", (event) => {
-  event.currentTarget.querySelector(".form-message").textContent = "Sending your lesson request...";
+bookingRequestForm?.addEventListener("submit", async (event) => {
+  const form = event.currentTarget;
+  const message = form.querySelector(".form-message");
+
+  if (!appSupabaseClient) {
+    if (message) message.textContent = "Sending your lesson request...";
+    return;
+  }
+
+  event.preventDefault();
+  if (message) message.textContent = "Checking your student account...";
+
+  const { data, error: sessionError } = await appSupabaseClient.auth.getSession();
+  const session = data?.session;
+
+  if (sessionError || !session?.user) {
+    if (message) message.textContent = "Sending your lesson request by email...";
+    form.submit();
+    return;
+  }
+
+  const formData = new FormData(form);
+  if (message) message.textContent = "Saving your request to your dashboard...";
+
+  const { error } = await appSupabaseClient.from("lesson_requests").insert({
+    student_id: session.user.id,
+    name: formData.get("name"),
+    email: formData.get("email"),
+    phone: formData.get("phone"),
+    addresses: formData.get("addresses"),
+    postcode: formData.get("postcode"),
+    lesson_type: formData.get("lesson_type"),
+    current_stage: formData.get("current_stage"),
+    theory_status: formData.get("theory_status"),
+    practical_test_date: formData.get("practical_test_date"),
+    availability: formData.get("availability"),
+    notes: formData.get("notes"),
+    availability_status: formData.get("availability_status"),
+  });
+
+  if (error && message) {
+    message.textContent = "Could not save to the dashboard, but your email request is still being sent...";
+  } else if (message) {
+    message.textContent = "Saved to your dashboard. Sending your email request...";
+  }
+
+  form.submit();
 });
 
 webinarRequestForm?.addEventListener("submit", (event) => {
