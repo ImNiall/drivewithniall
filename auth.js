@@ -16,16 +16,13 @@ const signUpForm = document.querySelector("#signUpForm");
 const signOutButton = document.querySelector("#signOutButton");
 const accountSignedIn = document.querySelector("#accountSignedIn");
 const accountEmail = document.querySelector("#accountEmail");
+const accountTitle = document.querySelector("#accountTitle");
+const accountIntro = document.querySelector("#accountIntro");
+const accountNote = document.querySelector("#accountNote");
 const authTabs = document.querySelectorAll("[data-auth-panel]");
 
 function getAuthRedirectUrl() {
-  const configuredSiteUrl = authConfig.siteUrl || "https://drivewithniall.co.uk/";
-
-  if (window.location.protocol === "http:" || window.location.protocol === "https:") {
-    return new URL("/", window.location.origin).toString();
-  }
-
-  return configuredSiteUrl;
+  return authConfig.siteUrl || "https://drivewithniall.co.uk/";
 }
 
 function getAuthErrorFromUrl() {
@@ -92,6 +89,20 @@ function setSignedInState(session) {
   signUpForm?.toggleAttribute("hidden", isSignedIn);
   document.querySelector(".account-actions")?.toggleAttribute("hidden", isSignedIn);
   accountSignedIn?.toggleAttribute("hidden", !isSignedIn);
+
+  if (accountTitle) {
+    accountTitle.textContent = isSignedIn ? "Your student dashboard is ready" : "Access your account";
+  }
+
+  if (accountIntro) {
+    accountIntro.textContent = isSignedIn
+      ? "Open your dashboard to view lesson requests, course access, and personal support."
+      : "Sign in or create an account for dashboard access, lesson requests, and private student resources.";
+  }
+
+  if (accountNote) {
+    accountNote.hidden = isSignedIn;
+  }
 
   if (accountEmail) {
     accountEmail.textContent = userEmail || "Signed in";
@@ -186,6 +197,14 @@ signUpForm?.addEventListener("submit", async (event) => {
 
   if (error) {
     setAccountStatus(getFriendlyAuthError(error), "error");
+    return;
+  }
+
+  const existingAccount = data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0;
+
+  if (existingAccount) {
+    setAccountStatus("This email may already have an account. Try signing in instead, or use password reset if you cannot remember the password.", "info");
+    showAuthPanel("signin");
     return;
   }
 

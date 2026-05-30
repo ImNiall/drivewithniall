@@ -1557,13 +1557,23 @@ textarea {
 .account-signed-in {
   display: grid;
   gap: 12px;
-  padding: 16px;
+  padding: 18px;
   background: var(--soft);
   border: 1px solid var(--line);
   border-radius: 8px;
 }
 
+.account-signed-in strong {
+  overflow-wrap: anywhere;
+  color: var(--navy);
+  font-size: clamp(1rem, 3vw, 1.2rem);
+}
+
 .account-signed-in[hidden] {
+  display: none;
+}
+
+.small-note[hidden] {
   display: none;
 }
 
@@ -1586,6 +1596,10 @@ body.dark-mode .account-actions button.is-active {
   color: white;
   background: #4b8f70;
   border-color: #4b8f70;
+}
+
+body.dark-mode .account-signed-in strong {
+  color: #f7fbff;
 }
 
 body.dark-mode .account-status[data-type="success"] {
@@ -2118,8 +2132,19 @@ body.dark-mode .area-content p {
   }
 
   .account-card h2 {
-    font-size: clamp(2rem, 12vw, 3rem);
-    line-height: 0.98;
+    font-size: clamp(1.85rem, 9vw, 2.65rem);
+    line-height: 1;
+  }
+
+  .account-card > p:not(.eyebrow),
+  .account-status,
+  .account-actions button,
+  .auth-form label,
+  .auth-form input,
+  .account-signed-in,
+  .account-signed-in .primary-button,
+  .account-signed-in .secondary-action {
+    font-size: 1rem;
   }
 
   .account-actions {
