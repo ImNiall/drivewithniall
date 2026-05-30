@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="160" viewBox="0 0 620 160" role="img" aria-labelledby="title desc">
+  <title id="title">Drive with Niall! logo</title>
+  <desc id="desc">Text wordmark for Drive with Niall with navy lettering, green accent text and amber exclamation mark.</desc>
+  <rect width="620" height="160" fill="none"/>
+  <g transform="translate(36 42)">
+    <text x="0" y="54" fill="#14324a" font-family="Inter, Arial, Helvetica, sans-serif" font-size="68" font-weight="900" letter-spacing="-1">
+      Drive
+    </text>
+    <text x="190" y="54" fill="#2f7d62" font-family="Inter, Arial, Helvetica, sans-serif" font-size="46" font-weight="800">
+      with
+    </text>
+    <text x="300" y="54" fill="#14324a" font-family="Inter, Arial, Helvetica, sans-serif" font-size="56" font-weight="700">
+      Niall
+    </text>
+    <text x="423" y="54" fill="#f2ad4b" font-family="Inter, Arial, Helvetica, sans-serif" font-size="58" font-weight="900">
+      !
+    </text>
+    <rect x="2" y="72" width="92" height="8" rx="4" fill="#f2ad4b"/>
+    <text x="2" y="110" fill="#5d6875" font-family="Inter, Arial, Helvetica, sans-serif" font-size="22" font-weight="700">
+      Learn, practise, pass
+    </text>
+  </g>
+</svg>
