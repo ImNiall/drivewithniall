@@ -89,28 +89,6 @@ body {
   background: #eef6ff;
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: auto;
-}
-
-.header-cta {
-  min-height: 44px;
-  padding: 0 16px;
-  white-space: nowrap;
-}
-
-.header-actions .primary-button {
-  box-shadow: 0 14px 28px rgba(47, 125, 98, 0.22);
-}
-
-.header-actions .secondary-button {
-  border: 1px solid rgba(20, 50, 74, 0.16);
-  box-shadow: 0 10px 24px rgba(20, 50, 74, 0.1);
-}
-
 .account-button {
   min-height: 44px;
   white-space: nowrap;
@@ -480,7 +458,6 @@ body.dark-mode .secondary-button.is-disabled {
   border-color: #334155;
 }
 
-body.dark-mode .header-actions .primary-button,
 body.dark-mode .hero-actions .primary-button {
   color: #ffffff;
   background: linear-gradient(135deg, #2f7d62, #256b55);
@@ -1901,17 +1878,6 @@ body.dark-mode .area-content p {
     display: none;
   }
 
-  .header-actions {
-    order: 4;
-    width: 100%;
-    justify-content: flex-end;
-    margin-left: 0;
-  }
-
-  .header-actions .is-disabled {
-    display: none;
-  }
-
   .account-button {
     order: 3;
   }
@@ -1977,21 +1943,9 @@ body.dark-mode .area-content p {
     font-size: 1rem;
   }
 
-  .site-header > .outline-button,
+  .site-header > .outline-button:not(.account-button),
   .site-header > .is-disabled {
     display: none;
-  }
-
-  .header-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
-  .header-cta {
-    min-height: 40px;
-    padding: 0 10px;
-    font-size: 0.86rem;
   }
 
   .theme-toggle {
