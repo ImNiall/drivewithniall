@@ -1672,6 +1672,12 @@ body.dark-mode .account-status[data-type="error"] {
   grid-column: 1 / -1;
 }
 
+.dashboard-welcome-card,
+.dashboard-action-panel {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
 .dashboard-card h2 {
   margin: 0;
   font-size: clamp(1.55rem, 3vw, 2.3rem);
@@ -1706,6 +1712,18 @@ body.dark-mode .account-status[data-type="error"] {
   min-height: 46px;
 }
 
+.status-pill {
+  justify-self: end;
+  padding: 9px 12px;
+  color: #1f684f;
+  background: #e8f7ef;
+  border: 1px solid #c7ead6;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .dashboard-list {
   display: grid;
   gap: 10px;
@@ -1730,6 +1748,30 @@ body.dark-mode .account-status[data-type="error"] {
 .dashboard-list span {
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.dashboard-timeline {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-timeline li {
+  display: grid;
+  gap: 4px;
+  padding-left: 18px;
+  border-left: 4px solid var(--green);
+}
+
+.dashboard-timeline strong {
+  color: var(--ink);
+}
+
+.dashboard-timeline span {
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .dashboard-status {
@@ -1764,10 +1806,21 @@ body.dark-mode .dashboard-status {
   border-color: #31405f;
 }
 
+body.dark-mode .status-pill {
+  color: #bbf7d0;
+  background: #143527;
+  border-color: #2f7d62;
+}
+
 body.dark-mode .dashboard-hero p:not(.eyebrow),
 body.dark-mode .dashboard-card p,
-body.dark-mode .dashboard-list span {
+body.dark-mode .dashboard-list span,
+body.dark-mode .dashboard-timeline span {
   color: #cbd5e1;
+}
+
+body.dark-mode .dashboard-timeline strong {
+  color: #f7fbff;
 }
 
 .admin-login-page {
@@ -1924,17 +1977,21 @@ body.dark-mode .area-content p {
 
 @media (max-width: 680px) {
   html {
-    scroll-padding-top: 84px;
+    scroll-padding-top: 116px;
   }
 
   .site-header {
-    gap: 10px;
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 10px 12px;
     padding: 10px 14px;
+    justify-content: stretch;
   }
 
   .brand {
+    grid-column: 1 / -1;
     min-width: 0;
-    flex: 1;
+    width: 100%;
   }
 
   .brand small {
@@ -1963,10 +2020,33 @@ body.dark-mode .area-content p {
   }
 
   .theme-toggle {
+    justify-self: start;
+    width: 54px;
     min-height: 42px;
-    padding-right: 12px;
-    padding-left: 54px;
-    flex: 0 0 auto;
+    padding: 0;
+  }
+
+  .theme-toggle::before {
+    left: 7px;
+    width: 38px;
+    height: 23px;
+  }
+
+  .theme-toggle::after {
+    left: 11px;
+    width: 17px;
+    height: 17px;
+  }
+
+  .theme-toggle-icon,
+  .theme-toggle-text {
+    display: none;
+  }
+
+  .account-button {
+    justify-self: end;
+    min-height: 42px;
+    padding: 0 16px;
   }
 
   .hero {
@@ -2158,6 +2238,15 @@ body.dark-mode .area-content p {
 
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-welcome-card,
+  .dashboard-action-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .status-pill {
+    justify-self: start;
   }
 
   .dashboard-actions {

@@ -36,7 +36,7 @@
       <section class="dashboard-hero">
         <p class="eyebrow">Student account</p>
         <h1>Your Drive with Niall dashboard</h1>
-        <p id="dashboardIntro">Sign in to view lesson requests, support options, and course access updates.</p>
+        <p id="dashboardIntro">Sign in to view lesson requests, support options, and course updates.</p>
       </section>
 
       <section class="dashboard-grid" id="signedOutDashboard">
@@ -44,20 +44,31 @@
           <h2>Sign in required</h2>
           <p>Use your student account to access your dashboard. If you have just created an account, verify your email first.</p>
           <div class="dashboard-actions">
-            <a class="primary-button" href="index.html">Go to student login</a>
+            <a class="primary-button" href="index.html">Go to log in</a>
             <a class="secondary-button" href="index.html#book">Request lessons</a>
           </div>
         </article>
       </section>
 
       <section class="dashboard-grid" id="signedInDashboard" hidden>
-        <article class="dashboard-card dashboard-card-wide">
-          <span class="dashboard-kicker">Account</span>
-          <h2>Welcome back</h2>
-          <p>You are signed in as <strong id="dashboardEmail">your account</strong>.</p>
+        <article class="dashboard-card dashboard-card-wide dashboard-welcome-card">
+          <div>
+            <span class="dashboard-kicker">Account</span>
+            <h2>Welcome back</h2>
+            <p>You are signed in as <strong id="dashboardEmail">your account</strong>.</p>
+          </div>
+          <span class="status-pill">Active account</span>
+        </article>
+
+        <article class="dashboard-card dashboard-card-wide dashboard-action-panel">
+          <div>
+            <span class="dashboard-kicker">Start here</span>
+            <h2>What do you need today?</h2>
+            <p>Use the dashboard to request lessons, get personal support, or check what is coming next.</p>
+          </div>
           <div class="dashboard-actions">
             <a class="primary-button" href="index.html#book">Request driving lessons</a>
-            <a class="secondary-button" href="index.html#webinars">Request 1 - 1 coaching</a>
+            <a class="secondary-button" href="index.html#webinars">Request 1 - 1 online coaching</a>
             <button class="outline-button" id="dashboardSignOut" type="button">Sign out</button>
           </div>
         </article>
@@ -71,22 +82,35 @@
 
         <article class="dashboard-card">
           <span class="dashboard-kicker">Next step</span>
-          <h2>What happens after you request lessons?</h2>
-          <p>I’ll review your area, availability, current stage, and lesson goals, then reply with availability or waiting-list options.</p>
+          <h2>After you request lessons</h2>
+          <ol class="dashboard-timeline">
+            <li>
+              <strong>I check your area</strong>
+              <span>I review your address, postcode, and whether it fits my current lesson route.</span>
+            </li>
+            <li>
+              <strong>I check availability</strong>
+              <span>I compare your preferred days and times against open spaces or waiting-list options.</span>
+            </li>
+            <li>
+              <strong>You get a reply</strong>
+              <span>I’ll contact you with the best next step for lessons or online support.</span>
+            </li>
+          </ol>
         </article>
 
         <article class="dashboard-card">
           <span class="dashboard-kicker">Online course</span>
-          <h2>Course access</h2>
-          <p>The online course is being built. Once live, this dashboard will be where your course access and progress appear.</p>
+          <h2>Course coming soon</h2>
+          <p>The online video course is being built to explain learner driving topics clearly, step by step. When it is ready, course access and progress will appear here.</p>
           <a class="secondary-action" href="learn-online.html">View course plan</a>
         </article>
 
         <article class="dashboard-card">
           <span class="dashboard-kicker">Personal support</span>
           <h2>Need help before your next lesson?</h2>
-          <p>Use 1 - 1 coaching for a support call or private video breakdown of a driving topic that is not clicking yet.</p>
-          <a class="secondary-action" href="index.html#webinars">Get personal help</a>
+          <p>Use 1 - 1 online coaching for a support call or private video breakdown of a driving topic that is not clicking yet.</p>
+          <a class="secondary-action" href="index.html#webinars">Request coaching</a>
         </article>
       </section>
 

@@ -109,7 +109,7 @@ function setSignedInState(session) {
   }
 
   if (accountButtonLabel) {
-    accountButtonLabel.textContent = isSignedIn ? "Dashboard" : "Student login";
+    accountButtonLabel.textContent = isSignedIn ? "Dashboard" : "Log in";
     accountButtonLabel.dataset.destination = isSignedIn ? "dashboard" : "login";
   }
 }
@@ -167,7 +167,7 @@ signInForm?.addEventListener("submit", async (event) => {
     return;
   }
 
-  setAccountStatus("Signed in successfully.", "success");
+  window.location.href = "dashboard.html";
 });
 
 signUpForm?.addEventListener("submit", async (event) => {

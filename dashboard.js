@@ -65,7 +65,7 @@ function showSignedIn(session) {
   }
 
   if (dashboardIntro) {
-    dashboardIntro.textContent = "A simple home for your lesson requests, support options, and course access updates.";
+    dashboardIntro.textContent = "A simple home for your lesson requests, support options, and course updates.";
   }
 
   setDashboardStatus("");
@@ -80,7 +80,8 @@ function renderLessonRequests(requests) {
     const date = request.created_at ? new Date(request.created_at).toLocaleDateString("en-GB") : "Recent";
     const status = request.status || "Submitted";
     const label = request.lesson_type || request.postcode || "Lesson request";
-    item.innerHTML = `<strong>${label}</strong><span>${status} · ${date}</span>`;
+    const area = request.postcode ? ` · ${request.postcode}` : "";
+    item.innerHTML = `<strong>${label}</strong><span>${status}${area} · ${date}</span>`;
     lessonRequestList.append(item);
   });
 }
@@ -99,12 +100,12 @@ async function loadLessonRequests(userId) {
     .limit(5);
 
   if (error) {
-    setLessonStatus("Lesson request syncing is not connected yet. For now, lesson requests are still sent to your email.");
+    setLessonStatus("Lesson request syncing is not fully connected yet. Your lesson requests are still safely sent by email.");
     return;
   }
 
   if (!data?.length) {
-    setLessonStatus("No lesson requests are linked to this account yet.");
+    setLessonStatus("No lesson requests are linked to this account yet. Use the request button when you are ready.");
     return;
   }
 
