@@ -13,6 +13,14 @@ create table if not exists public.student_profiles (
   updated_at timestamptz not null default now()
 );
 
+alter table public.student_profiles add column if not exists student_id uuid references auth.users(id) on delete cascade;
+alter table public.student_profiles add column if not exists email text;
+alter table public.student_profiles add column if not exists name text;
+alter table public.student_profiles add column if not exists full_name text;
+alter table public.student_profiles add column if not exists lesson_status text not null default 'Pending';
+alter table public.student_profiles add column if not exists created_at timestamptz not null default now();
+alter table public.student_profiles add column if not exists updated_at timestamptz not null default now();
+
 create table if not exists public.lesson_requests (
   id uuid primary key default gen_random_uuid(),
   student_id uuid references auth.users(id) on delete set null,
@@ -32,6 +40,22 @@ create table if not exists public.lesson_requests (
   created_at timestamptz not null default now()
 );
 
+alter table public.lesson_requests add column if not exists student_id uuid references auth.users(id) on delete set null;
+alter table public.lesson_requests add column if not exists name text;
+alter table public.lesson_requests add column if not exists email text;
+alter table public.lesson_requests add column if not exists phone text;
+alter table public.lesson_requests add column if not exists addresses text;
+alter table public.lesson_requests add column if not exists postcode text;
+alter table public.lesson_requests add column if not exists lesson_type text;
+alter table public.lesson_requests add column if not exists current_stage text;
+alter table public.lesson_requests add column if not exists theory_status text;
+alter table public.lesson_requests add column if not exists practical_test_date text;
+alter table public.lesson_requests add column if not exists availability text;
+alter table public.lesson_requests add column if not exists notes text;
+alter table public.lesson_requests add column if not exists availability_status text;
+alter table public.lesson_requests add column if not exists status text not null default 'Submitted';
+alter table public.lesson_requests add column if not exists created_at timestamptz not null default now();
+
 create table if not exists public.lesson_slot_requests (
   id uuid primary key default gen_random_uuid(),
   student_id uuid references auth.users(id) on delete set null,
@@ -41,6 +65,13 @@ create table if not exists public.lesson_slot_requests (
   status text not null default 'Requested',
   created_at timestamptz not null default now()
 );
+
+alter table public.lesson_slot_requests add column if not exists student_id uuid references auth.users(id) on delete set null;
+alter table public.lesson_slot_requests add column if not exists student_email text;
+alter table public.lesson_slot_requests add column if not exists requested_slot text;
+alter table public.lesson_slot_requests add column if not exists requested_label text;
+alter table public.lesson_slot_requests add column if not exists status text not null default 'Requested';
+alter table public.lesson_slot_requests add column if not exists created_at timestamptz not null default now();
 
 create table if not exists public.support_requests (
   id uuid primary key default gen_random_uuid(),
@@ -61,6 +92,22 @@ create table if not exists public.support_requests (
   created_at timestamptz not null default now()
 );
 
+alter table public.support_requests add column if not exists student_id uuid references auth.users(id) on delete set null;
+alter table public.support_requests add column if not exists support_option text;
+alter table public.support_requests add column if not exists name text;
+alter table public.support_requests add column if not exists email text;
+alter table public.support_requests add column if not exists phone text;
+alter table public.support_requests add column if not exists current_stage text;
+alter table public.support_requests add column if not exists recent_test_fail text;
+alter table public.support_requests add column if not exists regular_instructor_lessons text;
+alter table public.support_requests add column if not exists private_practice text;
+alter table public.support_requests add column if not exists theory_test_status text;
+alter table public.support_requests add column if not exists practical_test_status text;
+alter table public.support_requests add column if not exists topic text;
+alter table public.support_requests add column if not exists availability text;
+alter table public.support_requests add column if not exists status text not null default 'Submitted';
+alter table public.support_requests add column if not exists created_at timestamptz not null default now();
+
 create table if not exists public.lessons (
   id uuid primary key default gen_random_uuid(),
   student_id uuid references auth.users(id) on delete set null,
@@ -77,6 +124,20 @@ create table if not exists public.lessons (
   status text not null default 'Confirmed',
   created_at timestamptz not null default now()
 );
+
+alter table public.lessons add column if not exists student_id uuid references auth.users(id) on delete set null;
+alter table public.lessons add column if not exists student_email text;
+alter table public.lessons add column if not exists starts_at text;
+alter table public.lessons add column if not exists lesson_date text;
+alter table public.lessons add column if not exists hours numeric not null default 2;
+alter table public.lessons add column if not exists duration_hours numeric;
+alter table public.lessons add column if not exists topic text;
+alter table public.lessons add column if not exists focus text;
+alter table public.lessons add column if not exists lesson_type text;
+alter table public.lessons add column if not exists notes text;
+alter table public.lessons add column if not exists summary text;
+alter table public.lessons add column if not exists status text not null default 'Confirmed';
+alter table public.lessons add column if not exists created_at timestamptz not null default now();
 
 alter table public.student_profiles enable row level security;
 alter table public.lesson_requests enable row level security;
@@ -177,3 +238,11 @@ on public.lessons for all
 to authenticated
 using (public.is_drive_admin())
 with check (public.is_drive_admin());
+
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.student_profiles to authenticated;
+grant select, insert, update, delete on public.lesson_requests to authenticated;
+grant select, insert, update, delete on public.lesson_slot_requests to authenticated;
+grant select, insert, update, delete on public.support_requests to authenticated;
+grant select, insert, update, delete on public.lessons to authenticated;
+grant execute on function public.is_drive_admin() to authenticated;

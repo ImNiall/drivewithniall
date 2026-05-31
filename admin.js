@@ -472,10 +472,11 @@ function renderSupportRequests(requests) {
 async function loadTable(table, queryBuilder) {
   const { data, error } = await queryBuilder(adminClient.from(table));
   if (error) {
-    return { data: [], error };
+    console.warn(`Admin table failed to load: ${table}`, error);
+    return { table, data: [], error };
   }
 
-  return { data: data || [], error: null };
+  return { table, data: data || [], error: null };
 }
 
 async function loadAdminData() {
@@ -535,7 +536,10 @@ async function loadAdminData() {
 
   const errors = [lessonRequests, studentProfiles, slotRequests, supportRequests, lessons].filter((result) => result.error);
   if (errors.length) {
-    setAdminDataStatus("Some admin data could not load yet. This usually means the Supabase tables or permissions still need finishing.", "error");
+    const errorSummary = errors
+      .map((result) => `${result.table}: ${result.error.message || "could not load"}`)
+      .join(" | ");
+    setAdminDataStatus(`Some admin data could not load yet. ${errorSummary}`, "error");
     return;
   }
 
