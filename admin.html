@@ -33,6 +33,10 @@
             <label>Password <input name="password" type="password" placeholder="Your password" autocomplete="current-password" required /></label>
             <button class="primary-button full" type="submit">Sign in</button>
           </form>
+          <div class="admin-login-help">
+            <p>If the password sign-in fails, send a secure admin login link to the approved admin email instead.</p>
+            <button class="secondary-button full" id="adminMagicLinkButton" type="button">Email me an admin login link</button>
+          </div>
         </div>
 
         <div class="admin-panel" id="adminPanel" hidden>
@@ -45,6 +49,84 @@
             <a class="secondary-action" href="https://supabase.com/dashboard/project/antykaonrraerlmwpmqp/auth/users" target="_blank" rel="noreferrer">Manage student accounts</a>
             <a class="secondary-action" href="https://vercel.com/dashboard" target="_blank" rel="noreferrer">Open Vercel</a>
           </div>
+
+          <div class="admin-toolbar">
+            <div>
+              <span class="dashboard-kicker">Control centre</span>
+              <h2>Student and lesson management</h2>
+              <p>Approve practical students, review diary requests, and manage confirmed lessons from one place.</p>
+            </div>
+            <button class="primary-button" id="adminRefreshButton" type="button">Refresh data</button>
+          </div>
+
+          <div class="account-status" id="adminDataStatus" role="status"></div>
+
+          <section class="admin-stat-grid" aria-label="Admin summary">
+            <article>
+              <strong id="pendingRequestCount">0</strong>
+              <span>Pending lesson requests</span>
+            </article>
+            <article>
+              <strong id="approvedStudentCount">0</strong>
+              <span>Approved students</span>
+            </article>
+            <article>
+              <strong id="slotRequestCount">0</strong>
+              <span>Diary requests</span>
+            </article>
+            <article>
+              <strong id="confirmedLessonCount">0</strong>
+              <span>Confirmed lessons</span>
+            </article>
+          </section>
+
+          <section class="admin-board" aria-label="Admin workflow">
+            <article class="admin-board-card">
+              <div class="admin-card-heading">
+                <div>
+                  <span class="dashboard-kicker">Step 1</span>
+                  <h2>Pending lesson requests</h2>
+                </div>
+                <span class="status-pill">Approve first</span>
+              </div>
+              <p>These students have requested practical lessons. Approving them unlocks the diary area in their dashboard.</p>
+              <div class="admin-list" id="pendingLessonRequests"></div>
+            </article>
+
+            <article class="admin-board-card">
+              <div class="admin-card-heading">
+                <div>
+                  <span class="dashboard-kicker">Step 2</span>
+                  <h2>Diary requests</h2>
+                </div>
+                <span class="status-pill">Needs reply</span>
+              </div>
+              <p>Students can request a time, but you still confirm the lesson before it appears as booked.</p>
+              <div class="admin-list" id="slotRequestList"></div>
+            </article>
+
+            <article class="admin-board-card">
+              <div class="admin-card-heading">
+                <div>
+                  <span class="dashboard-kicker">Students</span>
+                  <h2>Approved practical students</h2>
+                </div>
+              </div>
+              <p>These accounts should have access to the practical lesson diary and lesson history.</p>
+              <div class="admin-list compact" id="approvedStudentList"></div>
+            </article>
+
+            <article class="admin-board-card">
+              <div class="admin-card-heading">
+                <div>
+                  <span class="dashboard-kicker">Lessons</span>
+                  <h2>Confirmed lessons</h2>
+                </div>
+              </div>
+              <p>Use this to see what is booked and mark lessons complete after they happen.</p>
+              <div class="admin-list compact" id="confirmedLessonList"></div>
+            </article>
+          </section>
 
           <button class="outline-button" id="adminSignOutButton" type="button">Sign out</button>
         </div>

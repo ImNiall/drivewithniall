@@ -1657,6 +1657,11 @@ body.dark-mode .account-status[data-type="error"] {
   display: none;
 }
 
+.lesson-student-only[hidden],
+.lesson-access-card[hidden] {
+  display: none;
+}
+
 .dashboard-card {
   display: grid;
   align-content: start;
@@ -1750,6 +1755,190 @@ body.dark-mode .account-status[data-type="error"] {
   font-size: 0.92rem;
 }
 
+.lesson-diary-card {
+  gap: 22px;
+}
+
+.diary-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 18px;
+}
+
+.diary-pill {
+  margin-top: 2px;
+}
+
+.diary-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.diary-slot {
+  display: grid;
+  gap: 6px;
+  min-height: 92px;
+  padding: 14px;
+  color: var(--ink);
+  text-align: left;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.18s ease, background 0.2s ease;
+}
+
+.diary-slot strong {
+  font-size: 1rem;
+}
+
+.diary-slot span {
+  color: var(--green);
+  font-size: 1.15rem;
+  font-weight: 950;
+}
+
+.diary-slot:hover,
+.diary-slot.is-selected {
+  background: #ffffff;
+  border-color: var(--green);
+  box-shadow: 0 12px 30px rgba(47, 125, 98, 0.14);
+  transform: translateY(-2px);
+}
+
+.diary-slot.is-selected {
+  outline: 3px solid rgba(47, 125, 98, 0.16);
+}
+
+.diary-request-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.diary-request-form .primary-button {
+  min-height: 48px;
+}
+
+.diary-request-form .form-message {
+  margin: 0;
+  color: var(--muted);
+}
+
+.lesson-progress-card {
+  gap: 22px;
+}
+
+.course-access-card,
+.lesson-access-card {
+  align-content: start;
+}
+
+.lesson-access-card {
+  border-color: #c7ead6;
+  background: linear-gradient(135deg, #ffffff, #f2fbf6);
+}
+
+.lesson-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.lesson-stats div {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.lesson-stats span {
+  color: var(--green);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 950;
+  line-height: 1;
+}
+
+.lesson-stats strong {
+  color: var(--ink);
+}
+
+.lesson-record-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.lesson-record-panel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.lesson-record-panel h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.lesson-record-panel > p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.lesson-record-panel > p[hidden] {
+  display: none;
+}
+
+.lesson-record-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lesson-record-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  padding: 13px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.lesson-record-list strong,
+.lesson-record-list span {
+  display: block;
+}
+
+.lesson-record-list span,
+.lesson-record-list p {
+  color: var(--muted);
+}
+
+.lesson-record-list p {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.lesson-record-list em {
+  align-self: start;
+  color: var(--green);
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .dashboard-timeline {
   display: grid;
   gap: 12px;
@@ -1800,10 +1989,19 @@ body.dark-mode.dashboard-page {
 
 body.dark-mode .dashboard-card,
 body.dark-mode .dashboard-list li,
+body.dark-mode .diary-slot,
+body.dark-mode .lesson-stats div,
+body.dark-mode .lesson-record-panel,
+body.dark-mode .lesson-record-list li,
 body.dark-mode .dashboard-status {
   color: #f7fbff;
   background: #17202f;
   border-color: #31405f;
+}
+
+body.dark-mode .lesson-access-card {
+  background: linear-gradient(135deg, #17202f, #152b22);
+  border-color: #2f7d62;
 }
 
 body.dark-mode .status-pill {
@@ -1815,7 +2013,28 @@ body.dark-mode .status-pill {
 body.dark-mode .dashboard-hero p:not(.eyebrow),
 body.dark-mode .dashboard-card p,
 body.dark-mode .dashboard-list span,
+body.dark-mode .diary-request-form .form-message,
 body.dark-mode .dashboard-timeline span {
+  color: #cbd5e1;
+}
+
+body.dark-mode .diary-slot:hover,
+body.dark-mode .diary-slot.is-selected {
+  background: #1f2a3c;
+  border-color: #9ee6bf;
+}
+
+body.dark-mode .diary-slot span {
+  color: #9ee6bf;
+}
+
+body.dark-mode .lesson-stats strong,
+body.dark-mode .lesson-record-panel h3 {
+  color: #f7fbff;
+}
+
+body.dark-mode .lesson-record-list span,
+body.dark-mode .lesson-record-list p {
   color: #cbd5e1;
 }
 
@@ -1842,6 +2061,10 @@ body.dark-mode .dashboard-timeline strong {
   box-shadow: var(--shadow);
 }
 
+.admin-login-card.is-admin-dashboard {
+  width: min(100%, 1180px);
+}
+
 .admin-login-card h1,
 .admin-login-card p {
   margin: 0;
@@ -1856,7 +2079,7 @@ body.dark-mode .dashboard-timeline strong {
 
 .admin-panel {
   display: grid;
-  gap: 18px;
+  gap: 22px;
 }
 
 .admin-panel[hidden],
@@ -1865,8 +2088,187 @@ body.dark-mode .dashboard-timeline strong {
 }
 
 .admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-login-help {
   display: grid;
   gap: 12px;
+  padding-top: 4px;
+}
+
+.admin-login-help p {
+  color: var(--muted);
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+.admin-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 18px;
+  padding: clamp(20px, 3vw, 28px);
+  background: linear-gradient(135deg, #f7fbff, #eef7f3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.admin-toolbar h2,
+.admin-toolbar p {
+  margin: 0;
+}
+
+.admin-toolbar h2 {
+  margin-top: 6px;
+  color: var(--navy);
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+  line-height: 1.05;
+}
+
+.admin-toolbar p {
+  max-width: 720px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.admin-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-stat-grid article {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.admin-stat-grid strong {
+  color: var(--green);
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.admin-stat-grid span {
+  color: var(--ink);
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.admin-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.admin-board-card {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: clamp(20px, 3vw, 28px);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 16px 38px rgba(20, 50, 74, 0.08);
+}
+
+.admin-card-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+}
+
+.admin-card-heading h2,
+.admin-board-card p {
+  margin: 0;
+}
+
+.admin-card-heading h2 {
+  margin-top: 5px;
+  color: var(--navy);
+  font-size: clamp(1.35rem, 2.5vw, 2rem);
+  line-height: 1.08;
+}
+
+.admin-board-card > p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.admin-list {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-list-item {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.admin-list.compact .admin-list-item {
+  gap: 8px;
+}
+
+.admin-list-content {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-list-content h3,
+.admin-list-content p,
+.admin-list-content ul {
+  margin: 0;
+}
+
+.admin-list-content h3 {
+  color: var(--ink);
+  font-size: 1.1rem;
+  line-height: 1.2;
+}
+
+.admin-list-content p,
+.admin-list-content li {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.admin-list-content ul {
+  display: grid;
+  gap: 4px;
+  padding-left: 18px;
+}
+
+.admin-list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-list-actions .primary-button,
+.admin-list-actions .secondary-button {
+  min-height: 42px;
+  padding: 10px 14px;
+  font-size: 0.92rem;
+}
+
+.admin-empty-state {
+  margin: 0;
+  padding: 16px;
+  color: var(--muted);
+  background: var(--soft);
+  border: 1px dashed var(--line);
+  border-radius: 8px;
 }
 
 body.dark-mode .admin-login-page {
@@ -1879,8 +2281,29 @@ body.dark-mode .admin-login-card {
   border-color: #31405f;
 }
 
-body.dark-mode .admin-login-card h1 {
+body.dark-mode .admin-login-card h1,
+body.dark-mode .admin-toolbar h2,
+body.dark-mode .admin-card-heading h2,
+body.dark-mode .admin-list-content h3,
+body.dark-mode .admin-stat-grid span {
   color: #f7fbff;
+}
+
+body.dark-mode .admin-toolbar,
+body.dark-mode .admin-board-card,
+body.dark-mode .admin-list-item,
+body.dark-mode .admin-stat-grid article,
+body.dark-mode .admin-empty-state {
+  background: #17202f;
+  border-color: #31405f;
+}
+
+body.dark-mode .admin-toolbar p,
+body.dark-mode .admin-board-card > p,
+body.dark-mode .admin-list-content p,
+body.dark-mode .admin-list-content li,
+body.dark-mode .admin-empty-state {
+  color: #cbd5e1;
 }
 
 body.dark-mode .area-content article {
@@ -2241,12 +2664,52 @@ body.dark-mode .area-content p {
   }
 
   .dashboard-welcome-card,
-  .dashboard-action-panel {
+  .dashboard-action-panel,
+  .diary-heading,
+  .admin-toolbar,
+  .admin-card-heading {
     grid-template-columns: 1fr;
   }
 
   .status-pill {
     justify-self: start;
+  }
+
+  .admin-login-page {
+    place-items: start stretch;
+    padding: 16px;
+  }
+
+  .admin-login-card {
+    padding: 20px;
+  }
+
+  .admin-stat-grid,
+  .admin-board {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-actions,
+  .admin-list-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-actions .secondary-action,
+  .admin-list-actions .primary-button,
+  .admin-list-actions .secondary-button,
+  .admin-toolbar .primary-button {
+    width: 100%;
+  }
+
+  .diary-slot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lesson-stats,
+  .lesson-record-grid,
+  .lesson-record-list li {
+    grid-template-columns: 1fr;
   }
 
   .dashboard-actions {

@@ -62,9 +62,9 @@
 
         <article class="dashboard-card dashboard-card-wide dashboard-action-panel">
           <div>
-            <span class="dashboard-kicker">Start here</span>
-            <h2>What do you need today?</h2>
-            <p>Use the dashboard to request lessons, get personal support, or check what is coming next.</p>
+            <span class="dashboard-kicker">Dashboard</span>
+            <h2>Your learning hub</h2>
+            <p>Use your account for course access, lesson requests, and personal support.</p>
           </div>
           <div class="dashboard-actions">
             <a class="primary-button" href="index.html#book">Request driving lessons</a>
@@ -73,37 +73,83 @@
           </div>
         </article>
 
+        <article class="dashboard-card dashboard-card-wide course-access-card">
+          <span class="dashboard-kicker">Online course</span>
+          <h2>Course coming soon</h2>
+          <p>The online video course is being built to explain learner driving topics clearly, step by step. When it is ready, course access and progress will appear here.</p>
+          <a class="secondary-action" href="learn-online.html">View course plan</a>
+        </article>
+
+        <article class="dashboard-card dashboard-card-wide lesson-access-card" id="lessonAccessNotice">
+          <span class="dashboard-kicker">Practical lessons</span>
+          <h2>Lesson student area</h2>
+          <p id="lessonAccessMessage">Your lesson request is being reviewed. Once you are accepted as a practical lesson student, your diary, upcoming lessons, lesson history and completed hours will appear here.</p>
+          <a class="primary-button" href="index.html#book">Request driving lessons</a>
+        </article>
+
+        <article class="dashboard-card dashboard-card-wide lesson-diary-card lesson-student-only" hidden>
+          <div class="diary-heading">
+            <div>
+              <span class="dashboard-kicker">Lesson diary</span>
+              <h2>Request a lesson slot</h2>
+              <p>Pick a time that works for you. I will check the route and confirm it before the lesson is fully booked.</p>
+            </div>
+            <span class="status-pill diary-pill">Confirmation needed</span>
+          </div>
+          <div class="diary-slot-grid" id="diarySlotList" aria-label="Available lesson times"></div>
+          <form class="diary-request-form" id="diaryRequestForm" action="https://formsubmit.co/contact@drivewithniall.co.uk" method="POST">
+            <input type="hidden" name="_subject" value="New Drive with Niall diary request" />
+            <input type="hidden" name="_template" value="table" />
+            <input type="hidden" name="_next" value="https://drivewithniall.co.uk/dashboard.html" />
+            <input type="hidden" name="student_email" id="diaryStudentEmail" />
+            <input type="hidden" name="requested_lesson_time" id="diarySelectedSlot" />
+            <button class="primary-button" type="submit" id="diarySubmitButton" disabled>Request selected time</button>
+            <p class="form-message" id="diaryStatus" role="status">Select a lesson time to continue.</p>
+          </form>
+        </article>
+
+        <article class="dashboard-card dashboard-card-wide lesson-progress-card lesson-student-only" hidden>
+          <div class="diary-heading">
+            <div>
+              <span class="dashboard-kicker">Your lessons</span>
+              <h2>Progress and lesson record</h2>
+              <p>Track upcoming lessons, completed lesson history, and total driving hours in one place.</p>
+            </div>
+            <span class="status-pill">Learner progress</span>
+          </div>
+          <div class="lesson-stats" aria-label="Lesson progress summary">
+            <div>
+              <span id="totalLessonHours">0</span>
+              <strong>Hours completed</strong>
+            </div>
+            <div>
+              <span id="upcomingLessonCount">0</span>
+              <strong>Upcoming lessons</strong>
+            </div>
+            <div>
+              <span id="completedLessonCount">0</span>
+              <strong>Lessons completed</strong>
+            </div>
+          </div>
+          <div class="lesson-record-grid">
+            <section class="lesson-record-panel" aria-labelledby="upcomingLessonsTitle">
+              <h3 id="upcomingLessonsTitle">Upcoming lessons</h3>
+              <p id="upcomingLessonsEmpty">Confirmed lessons will appear here once they have been added.</p>
+              <ul class="lesson-record-list" id="upcomingLessonsList"></ul>
+            </section>
+            <section class="lesson-record-panel" aria-labelledby="lessonHistoryTitle">
+              <h3 id="lessonHistoryTitle">Lesson history</h3>
+              <p id="lessonHistoryEmpty">Completed lessons and notes will appear here after your first lesson.</p>
+              <ul class="lesson-record-list" id="lessonHistoryList"></ul>
+            </section>
+          </div>
+        </article>
+
         <article class="dashboard-card">
           <span class="dashboard-kicker">Lesson requests</span>
           <h2>Current status</h2>
           <p id="lessonRequestStatus">Checking your lesson requests...</p>
           <ul class="dashboard-list" id="lessonRequestList"></ul>
-        </article>
-
-        <article class="dashboard-card">
-          <span class="dashboard-kicker">Next step</span>
-          <h2>After you request lessons</h2>
-          <ol class="dashboard-timeline">
-            <li>
-              <strong>I check your area</strong>
-              <span>I review your address, postcode, and whether it fits my current lesson route.</span>
-            </li>
-            <li>
-              <strong>I check availability</strong>
-              <span>I compare your preferred days and times against open spaces or waiting-list options.</span>
-            </li>
-            <li>
-              <strong>You get a reply</strong>
-              <span>I’ll contact you with the best next step for lessons or online support.</span>
-            </li>
-          </ol>
-        </article>
-
-        <article class="dashboard-card">
-          <span class="dashboard-kicker">Online course</span>
-          <h2>Course coming soon</h2>
-          <p>The online video course is being built to explain learner driving topics clearly, step by step. When it is ready, course access and progress will appear here.</p>
-          <a class="secondary-action" href="learn-online.html">View course plan</a>
         </article>
 
         <article class="dashboard-card">
