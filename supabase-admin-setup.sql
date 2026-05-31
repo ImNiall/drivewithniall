@@ -42,6 +42,25 @@ create table if not exists public.lesson_slot_requests (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.support_requests (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid references auth.users(id) on delete set null,
+  support_option text,
+  name text,
+  email text,
+  phone text,
+  current_stage text,
+  recent_test_fail text,
+  regular_instructor_lessons text,
+  private_practice text,
+  theory_test_status text,
+  practical_test_status text,
+  topic text,
+  availability text,
+  status text not null default 'Submitted',
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.lessons (
   id uuid primary key default gen_random_uuid(),
   student_id uuid references auth.users(id) on delete set null,
@@ -62,6 +81,7 @@ create table if not exists public.lessons (
 alter table public.student_profiles enable row level security;
 alter table public.lesson_requests enable row level security;
 alter table public.lesson_slot_requests enable row level security;
+alter table public.support_requests enable row level security;
 alter table public.lessons enable row level security;
 
 create or replace function public.is_drive_admin()
@@ -122,6 +142,25 @@ using (student_id = auth.uid() or public.is_drive_admin());
 drop policy if exists "Admins can manage slot requests" on public.lesson_slot_requests;
 create policy "Admins can manage slot requests"
 on public.lesson_slot_requests for all
+to authenticated
+using (public.is_drive_admin())
+with check (public.is_drive_admin());
+
+drop policy if exists "Students can create own support requests" on public.support_requests;
+create policy "Students can create own support requests"
+on public.support_requests for insert
+to authenticated
+with check (student_id = auth.uid());
+
+drop policy if exists "Students can view own support requests" on public.support_requests;
+create policy "Students can view own support requests"
+on public.support_requests for select
+to authenticated
+using (student_id = auth.uid() or public.is_drive_admin());
+
+drop policy if exists "Admins can manage support requests" on public.support_requests;
+create policy "Admins can manage support requests"
+on public.support_requests for all
 to authenticated
 using (public.is_drive_admin())
 with check (public.is_drive_admin());

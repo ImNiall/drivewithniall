@@ -401,7 +401,8 @@ diaryRequestForm?.addEventListener("submit", async (event) => {
   }
 
   if (!dashboardClient) {
-    setDiaryStatus("Sending your diary request...");
+    event.preventDefault();
+    setDiaryStatus("Diary requests are temporarily unavailable. Please message me directly.");
     return;
   }
 
@@ -411,18 +412,25 @@ diaryRequestForm?.addEventListener("submit", async (event) => {
   const { data } = await dashboardClient.auth.getSession();
   const session = data?.session;
 
-  if (session?.user) {
-    await dashboardClient.from("lesson_slot_requests").insert({
-      student_id: session.user.id,
-      student_email: session.user.email,
-      requested_slot: selectedDiarySlot.value,
-      requested_label: selectedDiarySlot.label,
-      status: "Requested",
-    });
+  if (!session?.user) {
+    setDiaryStatus("Please sign in again before requesting a lesson time.");
+    return;
+  }
+
+  const { error } = await dashboardClient.from("lesson_slot_requests").insert({
+    student_id: session.user.id,
+    student_email: session.user.email,
+    requested_slot: selectedDiarySlot.value,
+    requested_label: selectedDiarySlot.label,
+    status: "Requested",
+  });
+
+  if (error) {
+    setDiaryStatus("I couldn't save that diary request yet. Please try again.");
+    return;
   }
 
   setDiaryStatus("Request sent. I will confirm the time before it is booked.");
-  diaryRequestForm.submit();
 });
 
 initialiseDashboard();

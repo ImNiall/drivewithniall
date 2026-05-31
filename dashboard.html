@@ -97,10 +97,7 @@
             <span class="status-pill diary-pill">Confirmation needed</span>
           </div>
           <div class="diary-slot-grid" id="diarySlotList" aria-label="Available lesson times"></div>
-          <form class="diary-request-form" id="diaryRequestForm" action="https://formsubmit.co/contact@drivewithniall.co.uk" method="POST">
-            <input type="hidden" name="_subject" value="New Drive with Niall diary request" />
-            <input type="hidden" name="_template" value="table" />
-            <input type="hidden" name="_next" value="https://drivewithniall.co.uk/dashboard.html" />
+          <form class="diary-request-form" id="diaryRequestForm" method="POST">
             <input type="hidden" name="student_email" id="diaryStudentEmail" />
             <input type="hidden" name="requested_lesson_time" id="diarySelectedSlot" />
             <button class="primary-button" type="submit" id="diarySubmitButton" disabled>Request selected time</button>

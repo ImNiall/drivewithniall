@@ -19,10 +19,12 @@ const pendingLessonRequests = document.querySelector("#pendingLessonRequests");
 const slotRequestList = document.querySelector("#slotRequestList");
 const approvedStudentList = document.querySelector("#approvedStudentList");
 const confirmedLessonList = document.querySelector("#confirmedLessonList");
+const supportRequestList = document.querySelector("#supportRequestList");
 const pendingRequestCount = document.querySelector("#pendingRequestCount");
 const approvedStudentCount = document.querySelector("#approvedStudentCount");
 const slotRequestCount = document.querySelector("#slotRequestCount");
 const confirmedLessonCount = document.querySelector("#confirmedLessonCount");
+const supportRequestCount = document.querySelector("#supportRequestCount");
 const studentManageDialog = document.querySelector("#studentManageDialog");
 const studentManageForm = document.querySelector("#studentManageForm");
 const closeStudentDialog = document.querySelector("#closeStudentDialog");
@@ -37,6 +39,7 @@ let adminData = {
   lessonRequests: [],
   studentProfiles: [],
   slotRequests: [],
+  supportRequests: [],
   lessons: [],
 };
 let activeStudent = null;
@@ -431,6 +434,41 @@ function renderConfirmedLessons(lessons) {
   });
 }
 
+function renderSupportRequests(requests) {
+  clearElement(supportRequestList);
+
+  const activeRequests = (requests || []).filter((request) => isPendingStatus(request.status));
+  setCount(supportRequestCount, activeRequests.length);
+
+  if (!activeRequests.length) {
+    supportRequestList?.append(createEmptyState("No support requests waiting for reply."));
+    return;
+  }
+
+  activeRequests.forEach((request) => {
+    const item = buildAdminItem(
+      request.name || request.email || request.support_option || "Support request",
+      `${request.support_option || "Support"} · ${formatAdminDate(request.created_at)}`,
+      [
+        request.email ? `Email: ${request.email}` : "",
+        request.phone ? `Phone: ${request.phone}` : "",
+        request.topic ? `Topic: ${request.topic}` : "",
+        request.availability ? `Availability: ${request.availability}` : "",
+        request.current_stage ? `Stage: ${request.current_stage}` : "",
+      ],
+    );
+
+    addItemActions(item, [
+      {
+        label: "Mark replied",
+        onClick: () => updateSupportRequestStatus(request.id, "Replied"),
+      },
+    ]);
+
+    supportRequestList?.append(item);
+  });
+}
+
 async function loadTable(table, queryBuilder) {
   const { data, error } = await queryBuilder(adminClient.from(table));
   if (error) {
@@ -448,7 +486,7 @@ async function loadAdminData() {
 
   setAdminDataStatus("Loading admin data...");
 
-  const [lessonRequests, studentProfiles, slotRequests, lessons] = await Promise.all([
+  const [lessonRequests, studentProfiles, slotRequests, supportRequests, lessons] = await Promise.all([
     loadTable("lesson_requests", (query) =>
       query
         .select("id,student_id,name,email,phone,addresses,postcode,lesson_type,current_stage,availability,status,created_at")
@@ -467,6 +505,12 @@ async function loadAdminData() {
         .order("created_at", { ascending: false })
         .limit(50),
     ),
+    loadTable("support_requests", (query) =>
+      query
+        .select("id,student_id,support_option,name,email,phone,current_stage,recent_test_fail,regular_instructor_lessons,private_practice,theory_test_status,practical_test_status,topic,availability,status,created_at")
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ),
     loadTable("lessons", (query) =>
       query
         .select("id,student_id,student_email,starts_at,lesson_date,hours,duration_hours,topic,status,notes,created_at")
@@ -479,15 +523,17 @@ async function loadAdminData() {
     lessonRequests: lessonRequests.data,
     studentProfiles: studentProfiles.data,
     slotRequests: slotRequests.data,
+    supportRequests: supportRequests.data,
     lessons: lessons.data,
   };
 
   renderPendingLessonRequests(lessonRequests.data);
   renderApprovedStudents(studentProfiles.data, lessonRequests.data, lessons.data);
   renderSlotRequests(slotRequests.data);
+  renderSupportRequests(supportRequests.data);
   renderConfirmedLessons(lessons.data);
 
-  const errors = [lessonRequests, studentProfiles, slotRequests, lessons].filter((result) => result.error);
+  const errors = [lessonRequests, studentProfiles, slotRequests, supportRequests, lessons].filter((result) => result.error);
   if (errors.length) {
     setAdminDataStatus("Some admin data could not load yet. This usually means the Supabase tables or permissions still need finishing.", "error");
     return;
@@ -637,6 +683,23 @@ async function updateSlotRequestStatus(id, status) {
 
   const { error } = await adminClient
     .from("lesson_slot_requests")
+    .update({ status })
+    .eq("id", id);
+
+  if (error) {
+    setAdminDataStatus(getAdminError(error), "error");
+    return;
+  }
+
+  await loadAdminData();
+}
+
+async function updateSupportRequestStatus(id, status) {
+  if (!id) return;
+  setAdminDataStatus(`Updating support request to ${status}...`);
+
+  const { error } = await adminClient
+    .from("support_requests")
     .update({ status })
     .eq("id", id);
 

@@ -187,8 +187,86 @@ bookingRequestForm?.addEventListener("submit", async (event) => {
   );
 });
 
-webinarRequestForm?.addEventListener("submit", (event) => {
-  event.currentTarget.querySelector(".form-message").textContent = "Sending your support request...";
+webinarRequestForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const form = event.currentTarget;
+  const message = form.querySelector(".form-message");
+  const submitButton = form.querySelector("button[type='submit']");
+  const originalButtonText = submitButton?.textContent || "Send support request";
+
+  if (!appSupabaseClient) {
+    setFormMessage(
+      message,
+      "Support requests are temporarily unavailable. Please email contact@drivewithniall.co.uk.",
+      "error",
+    );
+    return;
+  }
+
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Checking account...";
+  }
+  setFormMessage(message, "Checking your student account...");
+
+  const { data, error: sessionError } = await appSupabaseClient.auth.getSession();
+  const session = data?.session;
+
+  if (sessionError || !session?.user) {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = originalButtonText;
+    }
+    setFormMessage(
+      message,
+      "Please log in first so your support request can be linked to your dashboard.",
+      "error",
+    );
+    accountModal?.showModal();
+    return;
+  }
+
+  const formData = new FormData(form);
+  if (submitButton) submitButton.textContent = "Sending request...";
+  setFormMessage(message, "Sending your support request...");
+
+  const { error } = await appSupabaseClient.from("support_requests").insert({
+    student_id: session.user.id,
+    support_option: formData.get("support_option"),
+    name: formData.get("name"),
+    email: formData.get("email"),
+    phone: formData.get("phone"),
+    current_stage: formData.get("current_stage"),
+    recent_test_fail: formData.get("recent_test_fail"),
+    regular_instructor_lessons: formData.get("regular_instructor_lessons"),
+    private_practice: formData.get("private_practice"),
+    theory_test_status: formData.get("theory_test_status"),
+    practical_test_status: formData.get("practical_test_status"),
+    topic: formData.get("topic"),
+    availability: formData.get("availability"),
+  });
+
+  if (submitButton) {
+    submitButton.disabled = false;
+    submitButton.textContent = originalButtonText;
+  }
+
+  if (error) {
+    setFormMessage(
+      message,
+      "I couldn't save that support request yet. Please try again, or email contact@drivewithniall.co.uk.",
+      "error",
+    );
+    return;
+  }
+
+  form.reset();
+  setFormMessage(
+    message,
+    "Support request sent. I'll review it and get back to you.",
+    "success",
+  );
 });
 
 const revealCards = [...document.querySelectorAll(".training-module")];
