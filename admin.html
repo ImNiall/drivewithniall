@@ -130,6 +130,42 @@
 
           <button class="outline-button" id="adminSignOutButton" type="button">Sign out</button>
         </div>
+
+        <dialog class="admin-student-dialog" id="studentManageDialog">
+          <form class="admin-student-form" id="studentManageForm" method="dialog">
+            <div class="admin-card-heading">
+              <div>
+                <span class="dashboard-kicker">Student details</span>
+                <h2 id="studentDialogTitle">Manage student</h2>
+              </div>
+              <button class="modal-close" id="closeStudentDialog" type="button" aria-label="Close student details">×</button>
+            </div>
+
+            <div class="admin-edit-grid">
+              <label>Full name <input id="studentEditName" name="name" type="text" /></label>
+              <label>Email <input id="studentEditEmail" name="email" type="email" /></label>
+              <label>
+                Practical access
+                <select id="studentEditStatus" name="lesson_status">
+                  <option>Approved</option>
+                  <option>Waiting list</option>
+                  <option>Paused</option>
+                  <option>Removed</option>
+                </select>
+              </label>
+            </div>
+
+            <section class="admin-history-panel">
+              <h3>Booking history</h3>
+              <div class="admin-history-list" id="studentHistoryList"></div>
+            </section>
+
+            <div class="admin-dialog-actions">
+              <button class="secondary-button" id="removeStudentButton" type="button">Remove practical access</button>
+              <button class="primary-button" type="submit">Save details</button>
+            </div>
+          </form>
+        </dialog>
       </section>
     </main>
 

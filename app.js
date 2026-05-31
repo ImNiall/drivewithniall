@@ -20,6 +20,12 @@ const appSupabaseClient = appHasSupabaseConfig && window.supabase
   ? window.supabase.createClient(appAuthConfig.supabaseUrl, appAuthConfig.supabaseAnonKey)
   : null;
 
+function setFormMessage(message, text, type = "info") {
+  if (!message) return;
+  message.textContent = text;
+  message.dataset.type = type;
+}
+
 function updateBookingAvailability() {
   if (!availabilityStatus) return;
 
@@ -99,28 +105,48 @@ document.querySelectorAll("[data-select-support]").forEach((button) => {
 });
 
 bookingRequestForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
   const form = event.currentTarget;
   const message = form.querySelector(".form-message");
+  const submitButton = form.querySelector("button[type='submit']");
+  const originalButtonText = submitButton?.textContent || "Send lesson request";
 
   if (!appSupabaseClient) {
-    if (message) message.textContent = "Sending your lesson request...";
+    setFormMessage(
+      message,
+      "Lesson requests are temporarily unavailable. Please email contact@drivewithniall.co.uk.",
+      "error",
+    );
     return;
   }
 
-  event.preventDefault();
-  if (message) message.textContent = "Checking your student account...";
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Checking account...";
+  }
+  setFormMessage(message, "Checking your student account...");
 
   const { data, error: sessionError } = await appSupabaseClient.auth.getSession();
   const session = data?.session;
 
   if (sessionError || !session?.user) {
-    if (message) message.textContent = "Sending your lesson request by email...";
-    form.submit();
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = originalButtonText;
+    }
+    setFormMessage(
+      message,
+      "Please log in first so your lesson request can be linked to your dashboard.",
+      "error",
+    );
+    accountModal?.showModal();
     return;
   }
 
   const formData = new FormData(form);
-  if (message) message.textContent = "Saving your request to your dashboard...";
+  if (submitButton) submitButton.textContent = "Sending request...";
+  setFormMessage(message, "Sending your lesson request...");
 
   const { error } = await appSupabaseClient.from("lesson_requests").insert({
     student_id: session.user.id,
@@ -138,13 +164,27 @@ bookingRequestForm?.addEventListener("submit", async (event) => {
     availability_status: formData.get("availability_status"),
   });
 
-  if (error && message) {
-    message.textContent = "Could not save to the dashboard, but your email request is still being sent...";
-  } else if (message) {
-    message.textContent = "Saved to your dashboard. Sending your email request...";
+  if (submitButton) {
+    submitButton.disabled = false;
+    submitButton.textContent = originalButtonText;
   }
 
-  form.submit();
+  if (error) {
+    setFormMessage(
+      message,
+      "I couldn't save that request yet. Please try again, or email contact@drivewithniall.co.uk.",
+      "error",
+    );
+    return;
+  }
+
+  form.reset();
+  updateBookingAvailability();
+  setFormMessage(
+    message,
+    "Lesson request sent. I'll review it and reply with availability or waiting list options.",
+    "success",
+  );
 });
 
 webinarRequestForm?.addEventListener("submit", (event) => {

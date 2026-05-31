@@ -1258,6 +1258,14 @@ textarea {
   font-weight: 800;
 }
 
+.form-message[data-type="error"] {
+  color: var(--red);
+}
+
+.form-message[data-type="success"] {
+  color: var(--green);
+}
+
 .form-honeypot {
   display: none;
 }
@@ -2271,6 +2279,58 @@ body.dark-mode .dashboard-timeline strong {
   border-radius: 8px;
 }
 
+.admin-student-dialog {
+  width: min(920px, calc(100vw - 28px));
+  max-height: calc(100vh - 28px);
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.admin-student-dialog::backdrop {
+  background: rgba(10, 17, 32, 0.54);
+}
+
+.admin-student-form {
+  display: grid;
+  gap: 20px;
+  padding: clamp(20px, 4vw, 32px);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.admin-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-history-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-history-panel h3 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 1.2rem;
+}
+
+.admin-history-list {
+  display: grid;
+  max-height: 340px;
+  gap: 10px;
+  overflow: auto;
+}
+
+.admin-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
 body.dark-mode .admin-login-page {
   background: #0b1120;
 }
@@ -2281,9 +2341,16 @@ body.dark-mode .admin-login-card {
   border-color: #31405f;
 }
 
+body.dark-mode .admin-student-form {
+  color: #f7fbff;
+  background: #17202f;
+  border-color: #31405f;
+}
+
 body.dark-mode .admin-login-card h1,
 body.dark-mode .admin-toolbar h2,
 body.dark-mode .admin-card-heading h2,
+body.dark-mode .admin-history-panel h3,
 body.dark-mode .admin-list-content h3,
 body.dark-mode .admin-stat-grid span {
   color: #f7fbff;
@@ -2690,14 +2757,21 @@ body.dark-mode .area-content p {
   }
 
   .admin-actions,
-  .admin-list-actions {
+  .admin-list-actions,
+  .admin-dialog-actions {
     display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-edit-grid {
     grid-template-columns: 1fr;
   }
 
   .admin-actions .secondary-action,
   .admin-list-actions .primary-button,
   .admin-list-actions .secondary-button,
+  .admin-dialog-actions .primary-button,
+  .admin-dialog-actions .secondary-button,
   .admin-toolbar .primary-button {
     width: 100%;
   }

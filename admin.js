@@ -23,6 +23,23 @@ const pendingRequestCount = document.querySelector("#pendingRequestCount");
 const approvedStudentCount = document.querySelector("#approvedStudentCount");
 const slotRequestCount = document.querySelector("#slotRequestCount");
 const confirmedLessonCount = document.querySelector("#confirmedLessonCount");
+const studentManageDialog = document.querySelector("#studentManageDialog");
+const studentManageForm = document.querySelector("#studentManageForm");
+const closeStudentDialog = document.querySelector("#closeStudentDialog");
+const studentDialogTitle = document.querySelector("#studentDialogTitle");
+const studentEditName = document.querySelector("#studentEditName");
+const studentEditEmail = document.querySelector("#studentEditEmail");
+const studentEditStatus = document.querySelector("#studentEditStatus");
+const studentHistoryList = document.querySelector("#studentHistoryList");
+const removeStudentButton = document.querySelector("#removeStudentButton");
+
+let adminData = {
+  lessonRequests: [],
+  studentProfiles: [],
+  slotRequests: [],
+  lessons: [],
+};
+let activeStudent = null;
 
 const hasAdminConfig =
   adminConfig.supabaseUrl &&
@@ -119,6 +136,22 @@ function isPendingStatus(status) {
 function isApprovedStatus(status) {
   const value = String(status || "").toLowerCase();
   return ["approved", "accepted", "active", "confirmed"].some((word) => value.includes(word));
+}
+
+function sameStudent(record, student) {
+  if (!record || !student) return false;
+  const studentId = student.student_id;
+  const studentEmail = String(student.email || "").toLowerCase();
+  const recordEmail = String(record.email || record.student_email || "").toLowerCase();
+
+  return Boolean(
+    (studentId && record.student_id === studentId) ||
+      (studentEmail && recordEmail && recordEmail === studentEmail),
+  );
+}
+
+function getStudentName(student) {
+  return student?.name || student?.full_name || student?.email || "Approved student";
 }
 
 function buildAdminItem(title, meta, details = []) {
@@ -230,7 +263,14 @@ function renderApprovedStudents(students, requests, lessons) {
     if (key && !merged.has(key)) merged.set(key, student);
   });
 
-  const approved = [...merged.values()];
+  const approved = [...merged.values()].map((student) => {
+    const latestRequest = (requests || []).find((request) => sameStudent(request, student));
+    return {
+      ...latestRequest,
+      ...student,
+      latest_request_id: latestRequest?.id,
+    };
+  });
   setCount(approvedStudentCount, approved.length);
 
   if (!approved.length) {
@@ -239,22 +279,89 @@ function renderApprovedStudents(students, requests, lessons) {
   }
 
   approved.forEach((student) => {
-    const studentLessons = (lessons || []).filter((lesson) => lesson.student_id === student.student_id);
+    const studentLessons = (lessons || []).filter((lesson) => sameStudent(lesson, student));
     const completedHours = studentLessons
       .filter((lesson) => String(lesson.status || "").toLowerCase().includes("complete"))
       .reduce((total, lesson) => total + Number(lesson.hours || lesson.duration_hours || 2), 0);
 
     const item = buildAdminItem(
-      student.name || student.full_name || student.email || "Approved student",
+      getStudentName(student),
       student.email || "No email saved",
       [
         `Status: ${student.lesson_status || "Approved"}`,
         `Completed hours: ${completedHours}`,
+        `Bookings: ${studentLessons.length}`,
       ],
     );
 
+    addItemActions(item, [
+      {
+        label: "View / edit",
+        className: "primary-button",
+        onClick: () => openStudentManager(student),
+      },
+      {
+        label: "Remove",
+        onClick: () => removeStudentAccess(student),
+      },
+    ]);
+
     approvedStudentList?.append(item);
   });
+}
+
+function renderStudentHistory(student) {
+  clearElement(studentHistoryList);
+
+  const lessons = adminData.lessons
+    .filter((lesson) => sameStudent(lesson, student))
+    .sort((a, b) => new Date(b.starts_at || b.lesson_date || b.created_at) - new Date(a.starts_at || a.lesson_date || a.created_at));
+  const requests = adminData.lessonRequests
+    .filter((request) => sameStudent(request, student))
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  if (!lessons.length && !requests.length) {
+    studentHistoryList?.append(createEmptyState("No booking history found for this student yet."));
+    return;
+  }
+
+  lessons.forEach((lesson) => {
+    const item = buildAdminItem(
+      lesson.topic || "Driving lesson",
+      formatAdminDate(lesson.starts_at || lesson.lesson_date),
+      [
+        `Status: ${lesson.status || "Confirmed"}`,
+        `Hours: ${lesson.hours || lesson.duration_hours || 2}`,
+        lesson.notes ? `Notes: ${lesson.notes}` : "",
+      ],
+    );
+    studentHistoryList?.append(item);
+  });
+
+  requests.forEach((request) => {
+    const item = buildAdminItem(
+      "Lesson request",
+      `${request.status || "Submitted"} · ${formatAdminDate(request.created_at)}`,
+      [
+        request.lesson_type ? `Type: ${request.lesson_type}` : "",
+        request.postcode ? `Postcode: ${request.postcode}` : "",
+        request.addresses ? `Address: ${request.addresses}` : "",
+      ],
+    );
+    studentHistoryList?.append(item);
+  });
+}
+
+function openStudentManager(student) {
+  activeStudent = student;
+
+  if (studentDialogTitle) studentDialogTitle.textContent = getStudentName(student);
+  if (studentEditName) studentEditName.value = student.name || student.full_name || "";
+  if (studentEditEmail) studentEditEmail.value = student.email || "";
+  if (studentEditStatus) studentEditStatus.value = student.lesson_status || "Approved";
+
+  renderStudentHistory(student);
+  studentManageDialog?.showModal();
 }
 
 function renderSlotRequests(slotRequests) {
@@ -368,6 +475,13 @@ async function loadAdminData() {
     ),
   ]);
 
+  adminData = {
+    lessonRequests: lessonRequests.data,
+    studentProfiles: studentProfiles.data,
+    slotRequests: slotRequests.data,
+    lessons: lessons.data,
+  };
+
   renderPendingLessonRequests(lessonRequests.data);
   renderApprovedStudents(studentProfiles.data, lessonRequests.data, lessons.data);
   renderSlotRequests(slotRequests.data);
@@ -421,6 +535,100 @@ async function approveLessonRequest(request) {
   }
 
   await updateLessonRequestStatus(request.id, "Approved");
+}
+
+async function saveStudentDetails(event) {
+  event.preventDefault();
+
+  if (!activeStudent) return;
+
+  const name = String(studentEditName?.value || "").trim();
+  const email = String(studentEditEmail?.value || "").trim();
+  const lessonStatus = String(studentEditStatus?.value || "Approved").trim();
+  const studentId = activeStudent.student_id;
+  const originalEmail = activeStudent.email;
+
+  setAdminDataStatus("Saving student details...");
+
+  if (studentId) {
+    const { error: profileError } = await adminClient.from("student_profiles").upsert({
+      student_id: studentId,
+      email,
+      name,
+      full_name: name,
+      lesson_status: lessonStatus,
+      updated_at: new Date().toISOString(),
+    }, {
+      onConflict: "student_id",
+    });
+
+    if (profileError) {
+      setAdminDataStatus(getAdminError(profileError), "error");
+      return;
+    }
+
+    await adminClient
+      .from("lesson_requests")
+      .update({ name, email, status: lessonStatus })
+      .eq("student_id", studentId);
+  } else if (originalEmail) {
+    const { error: requestError } = await adminClient
+      .from("lesson_requests")
+      .update({ name, email, status: lessonStatus })
+      .eq("email", originalEmail);
+
+    if (requestError) {
+      setAdminDataStatus(getAdminError(requestError), "error");
+      return;
+    }
+  }
+
+  studentManageDialog?.close();
+  await loadAdminData();
+  setAdminDataStatus("Student details saved.", "success");
+}
+
+async function removeStudentAccess(student = activeStudent) {
+  if (!student) return;
+
+  const confirmed = window.confirm(`Remove practical lesson access for ${getStudentName(student)}? Their account and lesson history will stay saved.`);
+  if (!confirmed) return;
+
+  setAdminDataStatus("Removing practical lesson access...");
+
+  if (student.student_id) {
+    const { error: profileError } = await adminClient
+      .from("student_profiles")
+      .update({
+        lesson_status: "Removed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("student_id", student.student_id);
+
+    if (profileError) {
+      setAdminDataStatus(getAdminError(profileError), "error");
+      return;
+    }
+
+    await adminClient
+      .from("lesson_requests")
+      .update({ status: "Removed" })
+      .eq("student_id", student.student_id);
+  } else if (student.email) {
+    const { error: requestError } = await adminClient
+      .from("lesson_requests")
+      .update({ status: "Removed" })
+      .eq("email", student.email);
+
+    if (requestError) {
+      setAdminDataStatus(getAdminError(requestError), "error");
+      return;
+    }
+  }
+
+  studentManageDialog?.close();
+  await loadAdminData();
+  setAdminDataStatus("Student practical access removed. Their history has been kept.", "success");
 }
 
 async function updateSlotRequestStatus(id, status) {
@@ -595,3 +803,14 @@ adminSignOutButton?.addEventListener("click", async () => {
 adminRefreshButton?.addEventListener("click", () => {
   loadAdminData();
 });
+
+closeStudentDialog?.addEventListener("click", () => {
+  studentManageDialog?.close();
+});
+
+studentManageDialog?.addEventListener("click", (event) => {
+  if (event.target === studentManageDialog) studentManageDialog.close();
+});
+
+studentManageForm?.addEventListener("submit", saveStudentDetails);
+removeStudentButton?.addEventListener("click", () => removeStudentAccess());

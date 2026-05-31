@@ -323,10 +323,6 @@ async function loadLessonProgress(userId) {
     return;
   }
 
-  if (data.length > 0) {
-    setLessonStudentAccess(true);
-  }
-
   updateLessonProgress(data);
 }
 
