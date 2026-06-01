@@ -153,8 +153,20 @@ function sameStudent(record, student) {
   );
 }
 
+function normaliseEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function getStudentMergeKey(student) {
+  return normaliseEmail(student?.email) || student?.student_id || student?.id;
+}
+
 function getStudentName(student) {
   return student?.name || student?.full_name || student?.email || "Approved student";
+}
+
+function findStudentForLesson(lesson, students = [], requests = []) {
+  return [...students, ...requests].find((student) => sameStudent(lesson, student));
 }
 
 function buildAdminItem(title, meta, details = []) {
@@ -262,8 +274,17 @@ function renderApprovedStudents(students, requests, lessons) {
 
   const merged = new Map();
   [...approvedProfiles, ...approvedFromRequests].forEach((student) => {
-    const key = student.student_id || student.email || student.id;
-    if (key && !merged.has(key)) merged.set(key, student);
+    const key = getStudentMergeKey(student);
+    if (!key) return;
+    const existing = merged.get(key) || {};
+    merged.set(key, {
+      ...existing,
+      ...student,
+      student_id: existing.student_id || student.student_id,
+      name: existing.name || existing.full_name || student.name || student.full_name,
+      full_name: existing.full_name || existing.name || student.full_name || student.name,
+      email: existing.email || student.email,
+    });
   });
 
   const approved = [...merged.values()].map((student) => {
@@ -401,7 +422,7 @@ function renderSlotRequests(slotRequests) {
   });
 }
 
-function renderConfirmedLessons(lessons) {
+function renderConfirmedLessons(lessons, students = [], requests = []) {
   clearElement(confirmedLessonList);
 
   const confirmed = (lessons || []).filter((lesson) => !String(lesson.status || "").toLowerCase().includes("complete"));
@@ -413,10 +434,12 @@ function renderConfirmedLessons(lessons) {
   }
 
   confirmed.forEach((lesson) => {
+    const student = findStudentForLesson(lesson, students, requests);
     const item = buildAdminItem(
-      lesson.student_email || lesson.topic || "Driving lesson",
+      student ? getStudentName(student) : lesson.student_email || lesson.topic || "Driving lesson",
       formatAdminDate(lesson.starts_at || lesson.lesson_date),
       [
+        lesson.student_email ? `Email: ${lesson.student_email}` : "",
         `Status: ${lesson.status || "Confirmed"}`,
         `Hours: ${lesson.hours || lesson.duration_hours || 2}`,
         lesson.topic ? `Focus: ${lesson.topic}` : "",
@@ -532,7 +555,7 @@ async function loadAdminData() {
   renderApprovedStudents(studentProfiles.data, lessonRequests.data, lessons.data);
   renderSlotRequests(slotRequests.data);
   renderSupportRequests(supportRequests.data);
-  renderConfirmedLessons(lessons.data);
+  renderConfirmedLessons(lessons.data, studentProfiles.data, lessonRequests.data);
 
   const errors = [lessonRequests, studentProfiles, slotRequests, supportRequests, lessons].filter((result) => result.error);
   if (errors.length) {

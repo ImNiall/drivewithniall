@@ -5,6 +5,10 @@ const availabilityStatus = document.querySelector("#availabilityStatus");
 const bookingAvailabilityStatus = document.querySelector("#bookingAvailabilityStatus");
 const bookingSubmitButton = document.querySelector("#bookingSubmitButton");
 const bookingRequestForm = document.querySelector("#bookingRequestForm");
+const bookingRequestState = document.querySelector("#bookingRequestState");
+const bookingRequestStateTitle = document.querySelector("#bookingRequestStateTitle");
+const bookingRequestStateText = document.querySelector("#bookingRequestStateText");
+const bookingRequestStateMeta = document.querySelector("#bookingRequestStateMeta");
 const webinarRequestForm = document.querySelector("#webinarRequestForm");
 const supportType = document.querySelector("#supportType");
 const accountModal = document.querySelector("#accountModal");
@@ -46,6 +50,131 @@ function updateBookingAvailability() {
 }
 
 updateBookingAvailability();
+
+function isActiveLessonRequest(status) {
+  const value = String(status || "submitted").toLowerCase();
+  return !["declined", "rejected", "removed", "cancelled", "complete"].some((word) => value.includes(word));
+}
+
+function isApprovedLessonStatus(status) {
+  const value = String(status || "").toLowerCase();
+  return ["approved", "accepted", "active", "confirmed"].some((word) => value.includes(word));
+}
+
+function formatRequestDate(dateValue) {
+  if (!dateValue) return "recently";
+
+  return new Date(dateValue).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function showBookingRequestState(request) {
+  const status = String(request?.status || "Submitted");
+  const normalisedStatus = status.toLowerCase();
+  const isEnrolled = request?.state === "enrolled" || isApprovedLessonStatus(status);
+
+  bookingRequestForm?.toggleAttribute("hidden", true);
+  bookingRequestState?.toggleAttribute("hidden", false);
+
+  if (bookingRequestStateTitle) {
+    bookingRequestStateTitle.textContent = isEnrolled
+      ? "You are enrolled as a student"
+      : normalisedStatus.includes("waiting")
+        ? "You are on the waiting list"
+        : "Pending authorisation";
+  }
+
+  if (bookingRequestStateText) {
+    bookingRequestStateText.textContent = isEnrolled
+      ? "Your lesson access is active. Use your dashboard to request lesson times, view confirmed lessons, and track your driving hours."
+      : normalisedStatus.includes("waiting")
+        ? "Your request has been saved on the waiting list. I will get back to you when a suitable space becomes available."
+        : "Your lesson request has been sent and is waiting for review. I will check your area, availability, and current stage before approving access to the lesson diary.";
+  }
+
+  if (bookingRequestStateMeta) {
+    const sentDate = formatRequestDate(request?.created_at);
+    const requestType = request?.lesson_type || "Driving lesson request";
+    bookingRequestStateMeta.textContent = isEnrolled
+      ? "You do not need to submit the lesson request form again."
+      : `${requestType} sent ${sentDate}. Status: ${status}.`;
+  }
+}
+
+function showBookingRequestForm() {
+  bookingRequestState?.toggleAttribute("hidden", true);
+  bookingRequestForm?.toggleAttribute("hidden", false);
+}
+
+async function loadExistingBookingRequest(session) {
+  if (!appSupabaseClient || !bookingRequestForm || !session?.user) {
+    showBookingRequestForm();
+    return;
+  }
+
+  const { data: profile } = await appSupabaseClient
+    .from("student_profiles")
+    .select("lesson_status,updated_at,created_at")
+    .eq("student_id", session.user.id)
+    .maybeSingle();
+
+  if (isApprovedLessonStatus(profile?.lesson_status)) {
+    showBookingRequestState({
+      state: "enrolled",
+      status: profile.lesson_status,
+      created_at: profile.updated_at || profile.created_at,
+      lesson_type: "Practical lesson access",
+    });
+    return;
+  }
+
+  const { data, error } = await appSupabaseClient
+    .from("lesson_requests")
+    .select("id,status,created_at,lesson_type,postcode")
+    .eq("student_id", session.user.id)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (error) {
+    showBookingRequestForm();
+    return;
+  }
+
+  const activeRequest = (data || []).find((request) => isActiveLessonRequest(request.status));
+  if (activeRequest) {
+    showBookingRequestState(activeRequest);
+    return;
+  }
+
+  showBookingRequestForm();
+}
+
+async function getActiveBookingRequest(userId) {
+  if (!appSupabaseClient || !userId) return null;
+
+  const { data, error } = await appSupabaseClient
+    .from("lesson_requests")
+    .select("id,status,created_at,lesson_type,postcode")
+    .eq("student_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (error) return null;
+  return (data || []).find((request) => isActiveLessonRequest(request.status)) || null;
+}
+
+if (appSupabaseClient && bookingRequestForm) {
+  appSupabaseClient.auth.getSession().then(({ data }) => {
+    loadExistingBookingRequest(data?.session);
+  });
+
+  appSupabaseClient.auth.onAuthStateChange((_event, session) => {
+    loadExistingBookingRequest(session);
+  });
+}
 
 function setTheme(mode) {
   const isDark = mode === "dark";
@@ -144,11 +273,21 @@ bookingRequestForm?.addEventListener("submit", async (event) => {
     return;
   }
 
+  const existingRequest = await getActiveBookingRequest(session.user.id);
+  if (existingRequest) {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = originalButtonText;
+    }
+    showBookingRequestState(existingRequest);
+    return;
+  }
+
   const formData = new FormData(form);
   if (submitButton) submitButton.textContent = "Sending request...";
   setFormMessage(message, "Sending your lesson request...");
 
-  const { error } = await appSupabaseClient.from("lesson_requests").insert({
+  const requestPayload = {
     student_id: session.user.id,
     name: formData.get("name"),
     email: formData.get("email"),
@@ -162,7 +301,13 @@ bookingRequestForm?.addEventListener("submit", async (event) => {
     availability: formData.get("availability"),
     notes: formData.get("notes"),
     availability_status: formData.get("availability_status"),
-  });
+  };
+
+  const { data: savedRequest, error } = await appSupabaseClient
+    .from("lesson_requests")
+    .insert(requestPayload)
+    .select("id,status,created_at,lesson_type,postcode")
+    .single();
 
   if (submitButton) {
     submitButton.disabled = false;
@@ -180,6 +325,7 @@ bookingRequestForm?.addEventListener("submit", async (event) => {
 
   form.reset();
   updateBookingAvailability();
+  showBookingRequestState(savedRequest || requestPayload);
   setFormMessage(
     message,
     "Lesson request sent. I'll review it and reply with availability or waiting list options.",

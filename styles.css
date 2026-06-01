@@ -488,6 +488,7 @@ body.dark-mode .resource-grid article,
 body.dark-mode .webinar-layout article,
 body.dark-mode .booking-summary,
 body.dark-mode .covered-areas,
+body.dark-mode .booking-request-state,
 body.dark-mode .booking-request-form,
 body.dark-mode .webinar-request-form {
   background: #17202f;
@@ -570,6 +571,7 @@ body.dark-mode textarea {
 body.dark-mode label,
 body.dark-mode .webinar-request-form h3,
 body.dark-mode .booking-request-form h3,
+body.dark-mode .booking-request-state h3,
 body.dark-mode .support-label {
   color: #f7fbff;
 }
@@ -1199,6 +1201,7 @@ h3 {
 .webinar-layout article,
 .booking-summary,
 .covered-areas,
+.booking-request-state,
 .booking-request-form {
   background: var(--paper);
   border: 1px solid var(--line);
@@ -1252,6 +1255,40 @@ h3 {
   grid-template-columns: 1fr 1fr;
   gap: 20px 22px;
   padding: 28px;
+}
+
+.booking-request-form[hidden] {
+  display: none;
+}
+
+.booking-request-state {
+  flex: 1;
+  display: grid;
+  gap: 14px;
+  align-content: center;
+  min-height: 360px;
+  padding: 32px;
+}
+
+.booking-request-state[hidden] {
+  display: none;
+}
+
+.booking-request-state h3 {
+  color: var(--navy);
+  font-size: clamp(1.8rem, 4vw, 3.1rem);
+  line-height: 0.98;
+}
+
+.booking-request-state p:not(.eyebrow) {
+  max-width: 680px;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.booking-request-state .primary-button {
+  width: fit-content;
+  margin-top: 8px;
 }
 
 label {

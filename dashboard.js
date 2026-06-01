@@ -195,10 +195,15 @@ function renderLessonRecordList(listElement, lessons) {
 function renderDiaryRequests(requests = []) {
   if (!diaryRequestList) return;
 
-  diaryRequestList.innerHTML = "";
-  diaryRequestsEmpty?.toggleAttribute("hidden", requests.length > 0);
+  const activeRequests = requests.filter((request) => {
+    const status = String(request.status || "Requested").toLowerCase();
+    return !status.includes("confirmed") && !status.includes("complete") && !status.includes("declined");
+  });
 
-  requests.forEach((request) => {
+  diaryRequestList.innerHTML = "";
+  diaryRequestsEmpty?.toggleAttribute("hidden", activeRequests.length > 0);
+
+  activeRequests.forEach((request) => {
     const item = document.createElement("li");
     const createdAt = request.created_at
       ? new Date(request.created_at).toLocaleDateString("en-GB", {
