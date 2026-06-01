@@ -34,8 +34,13 @@ body {
   gap: 4px;
   flex: 0 0 auto;
   padding-bottom: 7px;
+  border-top: 0;
   color: var(--navy);
   white-space: nowrap;
+}
+
+.brand-wordmark::before {
+  display: none;
 }
 
 .brand-wordmark::after {
@@ -500,6 +505,36 @@ body.dark-mode .section-heading .eyebrow,
 body.dark-mode .module-columns h4 {
   color: #93c5fd;
   background: #1e293b;
+}
+
+body.dark-mode .course-preview-section,
+body.dark-mode.course-page {
+  background:
+    radial-gradient(circle at 12% 20%, rgba(47, 128, 237, 0.16), transparent 28%),
+    radial-gradient(circle at 90% 18%, rgba(242, 173, 75, 0.1), transparent 28%),
+    #0b1120;
+}
+
+body.dark-mode .course-preview-section .section-heading h2,
+body.dark-mode .course-preview-section .section-heading p,
+body.dark-mode .course-hero h1,
+body.dark-mode .course-hero-copy > p:not(.eyebrow),
+body.dark-mode .continue-card h3,
+body.dark-mode .continue-card p,
+body.dark-mode .course-progress-panel strong,
+body.dark-mode .course-preview-list {
+  color: #f7fbff;
+}
+
+body.dark-mode .continue-card,
+body.dark-mode .course-progress-panel {
+  background: #17202f;
+  border-color: #31405f;
+}
+
+body.dark-mode .course-pill {
+  color: #102033;
+  background: var(--amber);
 }
 
 body.dark-mode .style-note {
