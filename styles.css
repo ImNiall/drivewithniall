@@ -1871,6 +1871,29 @@ body.dark-mode .account-status[data-type="error"] {
   color: var(--muted);
 }
 
+.diary-request-summary {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.diary-request-summary h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.diary-request-summary > p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.diary-request-summary > p[hidden] {
+  display: none;
+}
+
 .lesson-progress-card {
   gap: 22px;
 }
@@ -2036,6 +2059,7 @@ body.dark-mode .diary-slot,
 body.dark-mode .lesson-stats div,
 body.dark-mode .lesson-record-panel,
 body.dark-mode .lesson-record-list li,
+body.dark-mode .diary-request-summary,
 body.dark-mode .dashboard-status {
   color: #f7fbff;
   background: #17202f;
@@ -2057,6 +2081,7 @@ body.dark-mode .dashboard-hero p:not(.eyebrow),
 body.dark-mode .dashboard-card p,
 body.dark-mode .dashboard-list span,
 body.dark-mode .diary-request-form .form-message,
+body.dark-mode .diary-request-summary > p,
 body.dark-mode .dashboard-timeline span {
   color: #cbd5e1;
 }
@@ -2072,7 +2097,8 @@ body.dark-mode .diary-slot span {
 }
 
 body.dark-mode .lesson-stats strong,
-body.dark-mode .lesson-record-panel h3 {
+body.dark-mode .lesson-record-panel h3,
+body.dark-mode .diary-request-summary h3 {
   color: #f7fbff;
 }
 

@@ -24,6 +24,8 @@ const diaryStudentEmail = document.querySelector("#diaryStudentEmail");
 const diarySelectedSlot = document.querySelector("#diarySelectedSlot");
 const diarySubmitButton = document.querySelector("#diarySubmitButton");
 const diaryStatus = document.querySelector("#diaryStatus");
+const diaryRequestList = document.querySelector("#diaryRequestList");
+const diaryRequestsEmpty = document.querySelector("#diaryRequestsEmpty");
 const totalLessonHours = document.querySelector("#totalLessonHours");
 const upcomingLessonCount = document.querySelector("#upcomingLessonCount");
 const completedLessonCount = document.querySelector("#completedLessonCount");
@@ -190,10 +192,42 @@ function renderLessonRecordList(listElement, lessons) {
   });
 }
 
+function renderDiaryRequests(requests = []) {
+  if (!diaryRequestList) return;
+
+  diaryRequestList.innerHTML = "";
+  diaryRequestsEmpty?.toggleAttribute("hidden", requests.length > 0);
+
+  requests.forEach((request) => {
+    const item = document.createElement("li");
+    const createdAt = request.created_at
+      ? new Date(request.created_at).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+        })
+      : "Recently";
+    const label = request.requested_label || request.requested_slot || "Requested lesson time";
+    const status = request.status || "Requested";
+
+    item.innerHTML = `
+      <div>
+        <strong>${label}</strong>
+        <span>Sent ${createdAt}</span>
+      </div>
+      <em>${status}</em>
+    `;
+    diaryRequestList.append(item);
+  });
+}
+
 function updateLessonProgress(lessons = []) {
   const records = lessons.map(normaliseLessonRecord);
-  const upcoming = records.filter((lesson) => !lesson.isCompleted);
-  const completed = records.filter((lesson) => lesson.isCompleted);
+  const upcoming = records
+    .filter((lesson) => !lesson.isCompleted)
+    .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+  const completed = records
+    .filter((lesson) => lesson.isCompleted)
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
   const completedHours = completed.reduce((total, lesson) => total + lesson.hours, 0);
 
   if (totalLessonHours) totalLessonHours.textContent = String(completedHours);
@@ -222,6 +256,11 @@ function setLessonStudentAccess(hasAccess, message) {
 
   if (hasAccess) {
     renderDiarySlots();
+  } else {
+    selectedDiarySlot = null;
+    if (diarySelectedSlot) diarySelectedSlot.value = "";
+    if (diarySubmitButton) diarySubmitButton.disabled = true;
+    renderDiaryRequests([]);
   }
 }
 
@@ -326,6 +365,25 @@ async function loadLessonProgress(userId) {
   updateLessonProgress(data);
 }
 
+async function loadDiaryRequests(userId) {
+  renderDiaryRequests([]);
+
+  if (!dashboardClient) return;
+
+  const { data, error } = await dashboardClient
+    .from("lesson_slot_requests")
+    .select("id,status,requested_slot,requested_label,created_at")
+    .eq("student_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(8);
+
+  if (error || !data) {
+    return;
+  }
+
+  renderDiaryRequests(data);
+}
+
 async function loadLessonStudentAccess(userId) {
   setLessonStudentAccess(false, "Your lesson request is being reviewed. Once you are accepted as a practical lesson student, your diary, upcoming lessons, lesson history and completed hours will appear here.");
 
@@ -369,6 +427,7 @@ async function initialiseDashboard() {
   loadLessonStudentAccess(data.session.user.id);
   loadLessonRequests(data.session.user.id);
   loadLessonProgress(data.session.user.id);
+  loadDiaryRequests(data.session.user.id);
 }
 
 themeToggle?.addEventListener("click", () => {
@@ -430,6 +489,17 @@ diaryRequestForm?.addEventListener("submit", async (event) => {
     return;
   }
 
+  selectedDiarySlot = null;
+  document.querySelectorAll(".diary-slot").forEach((slotButton) => {
+    slotButton.classList.remove("is-selected");
+  });
+  if (diarySelectedSlot) {
+    diarySelectedSlot.value = "";
+  }
+  if (diarySubmitButton) {
+    diarySubmitButton.disabled = true;
+  }
+  await loadDiaryRequests(session.user.id);
   setDiaryStatus("Request sent. I will confirm the time before it is booked.");
 });
 
