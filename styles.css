@@ -2042,6 +2042,26 @@ body.dark-mode .account-status[data-type="error"] {
   white-space: nowrap;
 }
 
+.lesson-record-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.lesson-cancel-button {
+  min-height: 40px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+}
+
+.lesson-action-note {
+  color: var(--green);
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
 .dashboard-timeline {
   display: grid;
   gap: 12px;
@@ -2142,6 +2162,10 @@ body.dark-mode .diary-request-summary h3 {
 body.dark-mode .lesson-record-list span,
 body.dark-mode .lesson-record-list p {
   color: #cbd5e1;
+}
+
+body.dark-mode .lesson-action-note {
+  color: #9ee6bf;
 }
 
 body.dark-mode .dashboard-timeline strong {

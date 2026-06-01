@@ -43,9 +43,13 @@ const lessonDiaryAvailability = [
   { day: 4, times: ["10:00", "15:00"] },
   { day: 5, times: ["09:30", "12:30"] },
 ];
+const diaryBookingWindowDays = 42;
+const maximumDiarySlots = 24;
 
 let selectedDiarySlot = null;
 let lessonStudentAccess = false;
+let currentDashboardUserId = null;
+let cancellationRequestSlots = new Set();
 
 function setTheme(mode) {
   const isDark = mode === "dark";
@@ -93,7 +97,7 @@ function buildDiarySlots() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  for (let offset = 1; offset <= 21 && slots.length < 8; offset += 1) {
+  for (let offset = 1; offset <= diaryBookingWindowDays && slots.length < maximumDiarySlots; offset += 1) {
     const date = new Date(today);
     date.setDate(today.getDate() + offset);
     const availability = lessonDiaryAvailability.find((entry) => entry.day === date.getDay());
@@ -109,7 +113,7 @@ function buildDiarySlots() {
     });
   }
 
-  return slots.slice(0, 8);
+  return slots.slice(0, maximumDiarySlots);
 }
 
 function selectDiarySlot(slot, button) {
@@ -162,8 +166,11 @@ function normaliseLessonRecord(lesson) {
   const hours = Number(lesson.hours || lesson.duration_hours || 2);
   const status = String(lesson.status || "").toLowerCase();
   const isCompleted = status.includes("complete") || status.includes("done") || status.includes("attended");
+  const isCancelled = status.includes("cancel");
+  const hasCancellationRequest = cancellationRequestSlots.has(String(dateValue || ""));
 
   return {
+    id: lesson.id,
     date: dateValue,
     label: formatLessonDate(dateValue),
     hours: Number.isFinite(hours) ? hours : 2,
@@ -171,23 +178,48 @@ function normaliseLessonRecord(lesson) {
     notes: lesson.notes || lesson.summary || "",
     status: lesson.status || (isCompleted ? "Completed" : "Confirmed"),
     isCompleted,
+    isCancelled,
+    hasCancellationRequest,
   };
 }
 
-function renderLessonRecordList(listElement, lessons) {
+function renderLessonRecordList(listElement, lessons, options = {}) {
   if (!listElement) return;
   listElement.innerHTML = "";
 
   lessons.forEach((lesson) => {
     const item = document.createElement("li");
+    const canRequestCancellation = options.allowCancellation && !lesson.hasCancellationRequest;
     item.innerHTML = `
       <div>
         <strong>${lesson.topic}</strong>
         <span>${lesson.label} · ${lesson.hours} hour${lesson.hours === 1 ? "" : "s"}</span>
       </div>
-      <em>${lesson.status}</em>
+      <em>${lesson.hasCancellationRequest ? "Cancellation requested" : lesson.status}</em>
       ${lesson.notes ? `<p>${lesson.notes}</p>` : ""}
     `;
+
+    if (options.allowCancellation) {
+      const actions = document.createElement("div");
+      actions.className = "lesson-record-actions";
+
+      if (canRequestCancellation) {
+        const cancelButton = document.createElement("button");
+        cancelButton.className = "secondary-button lesson-cancel-button";
+        cancelButton.type = "button";
+        cancelButton.textContent = "Request cancellation";
+        cancelButton.addEventListener("click", () => requestLessonCancellation(lesson));
+        actions.append(cancelButton);
+      } else {
+        const note = document.createElement("span");
+        note.className = "lesson-action-note";
+        note.textContent = "Cancellation request sent";
+        actions.append(note);
+      }
+
+      item.append(actions);
+    }
+
     listElement.append(item);
   });
 }
@@ -197,8 +229,14 @@ function renderDiaryRequests(requests = []) {
 
   const activeRequests = requests.filter((request) => {
     const status = String(request.status || "Requested").toLowerCase();
-    return !status.includes("confirmed") && !status.includes("complete") && !status.includes("declined");
+    return !status.includes("confirmed") && !status.includes("complete") && !status.includes("declined") && !status.includes("approved");
   });
+
+  cancellationRequestSlots = new Set(
+    activeRequests
+      .filter((request) => String(request.status || "").toLowerCase().includes("cancel"))
+      .map((request) => String(request.requested_slot || "")),
+  );
 
   diaryRequestList.innerHTML = "";
   diaryRequestsEmpty?.toggleAttribute("hidden", activeRequests.length > 0);
@@ -228,7 +266,7 @@ function renderDiaryRequests(requests = []) {
 function updateLessonProgress(lessons = []) {
   const records = lessons.map(normaliseLessonRecord);
   const upcoming = records
-    .filter((lesson) => !lesson.isCompleted)
+    .filter((lesson) => !lesson.isCompleted && !lesson.isCancelled)
     .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
   const completed = records
     .filter((lesson) => lesson.isCompleted)
@@ -242,7 +280,7 @@ function updateLessonProgress(lessons = []) {
   upcomingLessonsEmpty?.toggleAttribute("hidden", upcoming.length > 0);
   lessonHistoryEmpty?.toggleAttribute("hidden", completed.length > 0);
 
-  renderLessonRecordList(upcomingLessonsList, upcoming);
+  renderLessonRecordList(upcomingLessonsList, upcoming, { allowCancellation: true });
   renderLessonRecordList(lessonHistoryList, completed);
 }
 
@@ -373,20 +411,21 @@ async function loadLessonProgress(userId) {
 async function loadDiaryRequests(userId) {
   renderDiaryRequests([]);
 
-  if (!dashboardClient) return;
+  if (!dashboardClient) return [];
 
   const { data, error } = await dashboardClient
     .from("lesson_slot_requests")
     .select("id,status,requested_slot,requested_label,created_at")
     .eq("student_id", userId)
     .order("created_at", { ascending: false })
-    .limit(8);
+    .limit(50);
 
   if (error || !data) {
-    return;
+    return [];
   }
 
   renderDiaryRequests(data);
+  return data;
 }
 
 async function loadLessonStudentAccess(userId) {
@@ -428,11 +467,12 @@ async function initialiseDashboard() {
     return;
   }
 
+  currentDashboardUserId = data.session.user.id;
   showSignedIn(data.session);
-  loadLessonStudentAccess(data.session.user.id);
-  loadLessonRequests(data.session.user.id);
-  loadLessonProgress(data.session.user.id);
-  loadDiaryRequests(data.session.user.id);
+  await loadLessonStudentAccess(data.session.user.id);
+  await loadLessonRequests(data.session.user.id);
+  await loadDiaryRequests(data.session.user.id);
+  await loadLessonProgress(data.session.user.id);
 }
 
 themeToggle?.addEventListener("click", () => {
@@ -507,5 +547,44 @@ diaryRequestForm?.addEventListener("submit", async (event) => {
   await loadDiaryRequests(session.user.id);
   setDiaryStatus("Request sent. I will confirm the time before it is booked.");
 });
+
+async function requestLessonCancellation(lesson) {
+  if (!lessonStudentAccess || !lesson?.date) return;
+
+  const confirmed = window.confirm(`Request to cancel ${lesson.label}? I will review it before the lesson is removed.`);
+  if (!confirmed) return;
+
+  if (!dashboardClient) {
+    setDiaryStatus("Cancellation requests are temporarily unavailable. Please message me directly.");
+    return;
+  }
+
+  setDiaryStatus("Sending cancellation request...");
+
+  const { data } = await dashboardClient.auth.getSession();
+  const session = data?.session;
+
+  if (!session?.user) {
+    setDiaryStatus("Please sign in again before requesting a cancellation.");
+    return;
+  }
+
+  const { error } = await dashboardClient.from("lesson_slot_requests").insert({
+    student_id: session.user.id,
+    student_email: session.user.email,
+    requested_slot: lesson.date,
+    requested_label: `Cancel lesson: ${lesson.label}`,
+    status: "Cancel requested",
+  });
+
+  if (error) {
+    setDiaryStatus("I couldn't save that cancellation request yet. Please try again.");
+    return;
+  }
+
+  await loadDiaryRequests(currentDashboardUserId || session.user.id);
+  await loadLessonProgress(currentDashboardUserId || session.user.id);
+  setDiaryStatus("Cancellation request sent. I will confirm before changing the booking.");
+}
 
 initialiseDashboard();

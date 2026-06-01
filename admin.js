@@ -141,6 +141,12 @@ function isApprovedStatus(status) {
   return ["approved", "accepted", "active", "confirmed"].some((word) => value.includes(word));
 }
 
+function isCancellationRequest(request) {
+  const status = String(request?.status || "").toLowerCase();
+  const label = String(request?.requested_label || "").toLowerCase();
+  return status.includes("cancel") || label.includes("cancel lesson");
+}
+
 function sameStudent(record, student) {
   if (!record || !student) return false;
   const studentId = student.student_id;
@@ -400,23 +406,41 @@ function renderSlotRequests(slotRequests) {
   }
 
   activeRequests.forEach((request) => {
+    const cancellationRequest = isCancellationRequest(request);
     const item = buildAdminItem(
       request.student_email || "Diary request",
       request.requested_label || formatAdminDate(request.requested_slot),
-      [`Status: ${request.status || "Requested"}`],
+      [
+        `Status: ${request.status || "Requested"}`,
+        cancellationRequest ? "Type: Cancellation request" : "",
+      ],
     );
 
-    addItemActions(item, [
-      {
-        label: "Confirm lesson",
-        className: "primary-button",
-        onClick: () => confirmSlotRequest(request),
-      },
-      {
-        label: "Decline",
-        onClick: () => updateSlotRequestStatus(request.id, "Declined"),
-      },
-    ]);
+    if (cancellationRequest) {
+      addItemActions(item, [
+        {
+          label: "Approve cancellation",
+          className: "primary-button",
+          onClick: () => approveCancellationRequest(request),
+        },
+        {
+          label: "Keep lesson",
+          onClick: () => updateSlotRequestStatus(request.id, "Cancellation declined"),
+        },
+      ]);
+    } else {
+      addItemActions(item, [
+        {
+          label: "Confirm lesson",
+          className: "primary-button",
+          onClick: () => confirmSlotRequest(request),
+        },
+        {
+          label: "Decline",
+          onClick: () => updateSlotRequestStatus(request.id, "Declined"),
+        },
+      ]);
+    }
 
     slotRequestList?.append(item);
   });
@@ -425,7 +449,10 @@ function renderSlotRequests(slotRequests) {
 function renderConfirmedLessons(lessons, students = [], requests = []) {
   clearElement(confirmedLessonList);
 
-  const confirmed = (lessons || []).filter((lesson) => !String(lesson.status || "").toLowerCase().includes("complete"));
+  const confirmed = (lessons || []).filter((lesson) => {
+    const status = String(lesson.status || "").toLowerCase();
+    return !status.includes("complete") && !status.includes("cancel");
+  });
   setCount(confirmedLessonCount, confirmed.length);
 
   if (!confirmed.length) {
@@ -757,6 +784,31 @@ async function confirmSlotRequest(request) {
   }
 
   await updateSlotRequestStatus(request.id, "Confirmed");
+}
+
+async function approveCancellationRequest(request) {
+  if (!request?.id) return;
+  setAdminDataStatus("Approving cancellation...");
+
+  let lessonUpdate = adminClient
+    .from("lessons")
+    .update({ status: "Cancelled" })
+    .eq("starts_at", request.requested_slot);
+
+  if (request.student_id) {
+    lessonUpdate = lessonUpdate.eq("student_id", request.student_id);
+  } else if (request.student_email) {
+    lessonUpdate = lessonUpdate.eq("student_email", request.student_email);
+  }
+
+  const { error: lessonError } = await lessonUpdate;
+
+  if (lessonError) {
+    setAdminDataStatus(getAdminError(lessonError), "error");
+    return;
+  }
+
+  await updateSlotRequestStatus(request.id, "Cancellation approved");
 }
 
 async function markLessonComplete(id) {
