@@ -2350,30 +2350,140 @@ body.dark-mode .dashboard-timeline strong {
   line-height: 1.5;
 }
 
-.admin-availability-form,
-.admin-assign-form {
+.admin-diary-layout {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
-  gap: 12px;
-  align-items: end;
+  grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.65fr);
+  align-items: start;
+  gap: 22px;
+}
+
+.admin-diary-panel {
+  min-height: 100%;
+}
+
+.is-primary-planner {
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbfd 100%);
+}
+
+.admin-week-builder {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.planner-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
   padding: 16px;
-  background: var(--soft);
+  background: #f8fbfd;
   border: 1px solid var(--line);
   border-radius: 8px;
 }
 
-.admin-assign-form {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+.planner-step-number {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: #ffffff;
+  background: var(--green);
+  border-radius: 999px;
+  font-weight: 900;
+  line-height: 1;
 }
 
+.planner-step h3,
+.compact-tool-card h3 {
+  margin: 0 0 12px;
+  color: var(--navy);
+  font-size: 1.05rem;
+  line-height: 1.15;
+}
+
+.planner-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.planner-grid h3,
+.planner-grid .full,
+.planner-grid.is-note {
+  grid-column: 1 / -1;
+}
+
+.admin-week-builder label,
 .admin-availability-form label,
-.admin-assign-form label {
+.admin-assign-form label,
+.weekday-picker {
   display: grid;
   gap: 7px;
+  margin: 0;
   color: var(--ink);
   font-weight: 900;
 }
 
+.weekday-picker {
+  padding: 0;
+  border: 0;
+}
+
+.weekday-picker legend {
+  margin-bottom: 10px;
+  padding: 0;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.weekday-options {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.weekday-options label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.weekday-options label:hover {
+  transform: translateY(-1px);
+  border-color: rgba(71, 132, 103, 0.45);
+}
+
+.weekday-options input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.weekday-options span {
+  color: var(--navy);
+  font-weight: 900;
+}
+
+.weekday-options label:has(input:checked) {
+  background: #e8f5ee;
+  border-color: rgba(71, 132, 103, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(71, 132, 103, 0.2);
+}
+
+.weekday-options label:has(input:checked) span {
+  color: var(--green);
+}
+
+.admin-week-builder input:not([type="checkbox"]),
+.admin-week-builder select,
 .admin-availability-form input,
 .admin-assign-form select {
   width: 100%;
@@ -2387,85 +2497,73 @@ body.dark-mode .dashboard-timeline strong {
   font-weight: 800;
 }
 
+.planner-submit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #fff8ec;
+  border: 1px solid rgba(242, 184, 85, 0.45);
+  border-radius: 8px;
+}
+
+.planner-submit-row p {
+  margin: 0;
+  color: #6b5b3d;
+  line-height: 1.45;
+}
+
+.planner-submit-row .primary-button,
 .admin-availability-form .primary-button,
 .admin-assign-form .secondary-button {
   min-height: 46px;
   white-space: nowrap;
 }
 
-.admin-diary-layout {
+.admin-side-stack {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
-  gap: 18px;
+  gap: 14px;
 }
 
-.admin-diary-panel {
-  min-height: 100%;
-}
-
-.admin-week-builder {
+.compact-tool-card {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   padding: 16px;
-  background: var(--soft);
+  background: #f8fbfd;
   border: 1px solid var(--line);
   border-radius: 8px;
 }
 
-.admin-week-builder label,
-.weekday-picker {
-  display: grid;
-  gap: 7px;
-  margin: 0;
-  color: var(--ink);
+.tool-label {
+  display: inline-block;
+  margin-bottom: 7px;
+  color: var(--green);
+  font-size: 0.78rem;
   font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.weekday-picker {
+.admin-availability-form,
+.admin-assign-form {
+  display: grid;
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-availability-form {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-availability-form .full,
+.admin-availability-form .primary-button,
+.admin-assign-form .secondary-button {
   grid-column: 1 / -1;
-  padding: 0;
-  border: 0;
 }
 
-.weekday-picker legend {
-  padding: 0;
-}
-
-.weekday-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.weekday-options label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 8px 12px;
-  background: #ffffff;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.admin-week-builder input,
-.admin-week-builder select {
-  width: 100%;
-  min-height: 46px;
-  padding: 10px 12px;
-  color: var(--ink);
-  background: #ffffff;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  font: inherit;
-  font-weight: 800;
-}
-
-.admin-week-builder .primary-button {
-  align-self: end;
-  min-height: 46px;
+.admin-assign-form {
+  grid-template-columns: 1fr;
 }
 
 .admin-diary-controls {
@@ -2723,6 +2821,8 @@ body.dark-mode .admin-student-form {
 body.dark-mode .admin-login-card h1,
 body.dark-mode .admin-toolbar h2,
 body.dark-mode .admin-card-heading h2,
+body.dark-mode .planner-step h3,
+body.dark-mode .compact-tool-card h3,
 body.dark-mode .admin-history-panel h3,
 body.dark-mode .admin-list-content h3,
 body.dark-mode .admin-stat-grid span {
@@ -2731,10 +2831,6 @@ body.dark-mode .admin-stat-grid span {
 
 body.dark-mode .admin-toolbar,
 body.dark-mode .admin-board-card,
-body.dark-mode .admin-availability-form,
-body.dark-mode .admin-assign-form,
-body.dark-mode .admin-week-builder,
-body.dark-mode .weekday-options label,
 body.dark-mode .admin-day-column,
 body.dark-mode .admin-slot-card,
 body.dark-mode .admin-list-item,
@@ -2742,6 +2838,22 @@ body.dark-mode .admin-stat-grid article,
 body.dark-mode .admin-empty-state {
   background: #17202f;
   border-color: #31405f;
+}
+
+body.dark-mode .planner-step,
+body.dark-mode .compact-tool-card,
+body.dark-mode .weekday-options label {
+  background: #0f172a;
+  border-color: #31405f;
+}
+
+body.dark-mode .planner-submit-row {
+  background: rgba(242, 184, 85, 0.1);
+  border-color: rgba(242, 184, 85, 0.32);
+}
+
+body.dark-mode .planner-submit-row p {
+  color: #f4d7a2;
 }
 
 body.dark-mode .admin-toolbar p,
@@ -2755,12 +2867,29 @@ body.dark-mode .admin-empty-state {
 body.dark-mode .admin-availability-form label,
 body.dark-mode .admin-assign-form label,
 body.dark-mode .admin-week-builder label,
-body.dark-mode .weekday-picker {
+body.dark-mode .weekday-picker,
+body.dark-mode .weekday-picker legend {
   color: #f7fbff;
 }
 
-body.dark-mode .admin-week-builder input,
-body.dark-mode .admin-week-builder select {
+body.dark-mode .weekday-options span {
+  color: #e5edf7;
+}
+
+body.dark-mode .weekday-options label:has(input:checked) {
+  background: rgba(71, 132, 103, 0.22);
+  border-color: rgba(138, 208, 171, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(138, 208, 171, 0.16);
+}
+
+body.dark-mode .weekday-options label:has(input:checked) span {
+  color: #a7f3d0;
+}
+
+body.dark-mode .admin-week-builder input:not([type="checkbox"]),
+body.dark-mode .admin-week-builder select,
+body.dark-mode .admin-availability-form input,
+body.dark-mode .admin-assign-form select {
   color: #f7fbff;
   background: #0f172a;
   border-color: #405173;
@@ -2956,6 +3085,26 @@ body.dark-mode .area-content p {
     grid-template-columns: 1fr;
   }
 
+  .planner-step,
+  .planner-submit-row {
+    grid-template-columns: 1fr;
+  }
+
+  .planner-step {
+    gap: 12px;
+  }
+
+  .planner-step-number {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+
+  .planner-grid,
+  .admin-availability-form {
+    grid-template-columns: 1fr;
+  }
+
   .weekday-options {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2969,6 +3118,9 @@ body.dark-mode .area-content p {
 
   .admin-diary-controls .secondary-button,
   .admin-week-builder .primary-button,
+  .planner-submit-row .primary-button,
+  .admin-availability-form .primary-button,
+  .admin-assign-form .secondary-button,
   .admin-card-link {
     width: 100%;
   }

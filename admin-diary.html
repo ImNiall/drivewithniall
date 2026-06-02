@@ -85,70 +85,110 @@
           </section>
 
           <section class="admin-diary-layout" aria-label="Diary tools">
-            <article class="admin-board-card admin-diary-panel">
+            <article class="admin-board-card admin-diary-panel is-primary-planner">
               <div class="admin-card-heading">
                 <div>
                   <span class="dashboard-kicker">Weekly availability</span>
-                  <h2>Publish regular slots</h2>
+                  <h2>Build a week of lesson times</h2>
                 </div>
-                <span class="status-pill">Fast setup</span>
+                <span class="status-pill">Best for planning ahead</span>
               </div>
-              <p>Choose the week, working days, lesson length and time window. The planner will create the individual lesson slots for students to request.</p>
+              <p>Set the days and teaching window once, then publish the individual lesson times students can request. Existing slots are skipped automatically.</p>
 
               <form class="admin-week-builder" id="weeklyAvailabilityForm">
-                <label>Week starting <input id="availabilityWeekStart" type="date" required /></label>
-                <fieldset class="weekday-picker">
-                  <legend>Days to publish</legend>
-                  <div class="weekday-options">
-                    <label><input name="availabilityDays" type="checkbox" value="1" checked /> Mon</label>
-                    <label><input name="availabilityDays" type="checkbox" value="2" checked /> Tue</label>
-                    <label><input name="availabilityDays" type="checkbox" value="3" checked /> Wed</label>
-                    <label><input name="availabilityDays" type="checkbox" value="4" checked /> Thu</label>
-                    <label><input name="availabilityDays" type="checkbox" value="5" checked /> Fri</label>
-                    <label><input name="availabilityDays" type="checkbox" value="6" /> Sat</label>
-                    <label><input name="availabilityDays" type="checkbox" value="0" /> Sun</label>
+                <div class="planner-step">
+                  <span class="planner-step-number">1</span>
+                  <div>
+                    <h3>Choose the week</h3>
+                    <label>Week starting <input id="availabilityWeekStart" type="date" required /></label>
                   </div>
-                </fieldset>
-                <label>Start time <input id="availabilityBlockStart" type="time" value="09:00" required /></label>
-                <label>Finish time <input id="availabilityBlockEnd" type="time" value="15:00" required /></label>
-                <label>Lesson length <input id="availabilityBlockHours" type="number" min="1" max="4" step="0.5" value="2" required /></label>
-                <label>
-                  Gap between lessons
-                  <select id="availabilityBlockGap">
-                    <option value="0">No gap</option>
-                    <option value="15">15 minutes</option>
-                    <option value="30">30 minutes</option>
-                    <option value="45">45 minutes</option>
-                    <option value="60">1 hour</option>
-                  </select>
-                </label>
-                <label class="full">Diary note <input id="availabilityBlockNotes" type="text" placeholder="Optional route, area, or reminder" /></label>
-                <button class="primary-button" type="submit">Publish weekly slots</button>
+                </div>
+
+                <div class="planner-step">
+                  <span class="planner-step-number">2</span>
+                  <fieldset class="weekday-picker">
+                    <legend>Teaching days</legend>
+                    <div class="weekday-options">
+                      <label><input name="availabilityDays" type="checkbox" value="1" checked /><span>Mon</span></label>
+                      <label><input name="availabilityDays" type="checkbox" value="2" checked /><span>Tue</span></label>
+                      <label><input name="availabilityDays" type="checkbox" value="3" checked /><span>Wed</span></label>
+                      <label><input name="availabilityDays" type="checkbox" value="4" checked /><span>Thu</span></label>
+                      <label><input name="availabilityDays" type="checkbox" value="5" checked /><span>Fri</span></label>
+                      <label><input name="availabilityDays" type="checkbox" value="6" /><span>Sat</span></label>
+                      <label><input name="availabilityDays" type="checkbox" value="0" /><span>Sun</span></label>
+                    </div>
+                  </fieldset>
+                </div>
+
+                <div class="planner-step">
+                  <span class="planner-step-number">3</span>
+                  <div class="planner-grid">
+                    <h3>Lesson window</h3>
+                    <label>Start time <input id="availabilityBlockStart" type="time" value="09:00" required /></label>
+                    <label>Finish time <input id="availabilityBlockEnd" type="time" value="15:00" required /></label>
+                    <label>Lesson length <input id="availabilityBlockHours" type="number" min="1" max="4" step="0.5" value="2" required /></label>
+                    <label>
+                      Gap between lessons
+                      <select id="availabilityBlockGap">
+                        <option value="0">No gap</option>
+                        <option value="15">15 minutes</option>
+                        <option value="30">30 minutes</option>
+                        <option value="45">45 minutes</option>
+                        <option value="60">1 hour</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="planner-step">
+                  <span class="planner-step-number">4</span>
+                  <div class="planner-grid is-note">
+                    <h3>Optional note</h3>
+                    <label class="full">Diary note <input id="availabilityBlockNotes" type="text" placeholder="Route, area, or reminder" /></label>
+                  </div>
+                </div>
+
+                <div class="planner-submit-row">
+                  <p>Students only see available slots. You still confirm requests before a lesson is fully booked.</p>
+                  <button class="primary-button" type="submit">Publish lesson times</button>
+                </div>
               </form>
             </article>
 
-            <article class="admin-board-card admin-diary-panel">
+            <article class="admin-board-card admin-diary-panel admin-side-stack">
               <div class="admin-card-heading">
                 <div>
-                  <span class="dashboard-kicker">Single lesson</span>
-                  <h2>Add or allocate a slot</h2>
+                  <span class="dashboard-kicker">Quick actions</span>
+                  <h2>One-off diary changes</h2>
                 </div>
               </div>
-              <p>Use this when you want to add one extra time, or book an approved student into an available slot yourself.</p>
+              <p>Use these for exceptions: one extra slot, or manually placing a student into an available time.</p>
 
-              <form class="admin-availability-form" id="availabilityForm">
-                <label>Date <input id="availabilityDate" type="date" required /></label>
-                <label>Time <input id="availabilityTime" type="time" required /></label>
-                <label>Hours <input id="availabilityHours" type="number" min="1" max="4" step="0.5" value="2" required /></label>
-                <label>Note <input id="availabilityNotes" type="text" placeholder="Optional route or reminder" /></label>
-                <button class="primary-button" type="submit">Add slot</button>
-              </form>
+              <div class="compact-tool-card">
+                <div>
+                  <span class="tool-label">Extra time</span>
+                  <h3>Add a single slot</h3>
+                </div>
+                <form class="admin-availability-form" id="availabilityForm">
+                  <label>Date <input id="availabilityDate" type="date" required /></label>
+                  <label>Time <input id="availabilityTime" type="time" required /></label>
+                  <label>Hours <input id="availabilityHours" type="number" min="1" max="4" step="0.5" value="2" required /></label>
+                  <label class="full">Note <input id="availabilityNotes" type="text" placeholder="Optional route or reminder" /></label>
+                  <button class="primary-button" type="submit">Add slot</button>
+                </form>
+              </div>
 
-              <form class="admin-assign-form" id="assignSlotForm">
-                <label>Available slot <select id="assignSlotSelect"></select></label>
-                <label>Student <select id="assignStudentSelect"></select></label>
-                <button class="secondary-button" type="submit">Book student</button>
-              </form>
+              <div class="compact-tool-card">
+                <div>
+                  <span class="tool-label">Manual booking</span>
+                  <h3>Allocate a student</h3>
+                </div>
+                <form class="admin-assign-form" id="assignSlotForm">
+                  <label>Available slot <select id="assignSlotSelect"></select></label>
+                  <label>Student <select id="assignStudentSelect"></select></label>
+                  <button class="secondary-button" type="submit">Book student</button>
+                </form>
+              </div>
             </article>
           </section>
 
