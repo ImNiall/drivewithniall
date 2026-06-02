@@ -34,6 +34,30 @@ const studentEditEmail = document.querySelector("#studentEditEmail");
 const studentEditStatus = document.querySelector("#studentEditStatus");
 const studentHistoryList = document.querySelector("#studentHistoryList");
 const removeStudentButton = document.querySelector("#removeStudentButton");
+const availabilityForm = document.querySelector("#availabilityForm");
+const availabilityDate = document.querySelector("#availabilityDate");
+const availabilityTime = document.querySelector("#availabilityTime");
+const availabilityHours = document.querySelector("#availabilityHours");
+const availabilityNotes = document.querySelector("#availabilityNotes");
+const weeklyAvailabilityForm = document.querySelector("#weeklyAvailabilityForm");
+const availabilityWeekStart = document.querySelector("#availabilityWeekStart");
+const availabilityBlockStart = document.querySelector("#availabilityBlockStart");
+const availabilityBlockEnd = document.querySelector("#availabilityBlockEnd");
+const availabilityBlockHours = document.querySelector("#availabilityBlockHours");
+const availabilityBlockGap = document.querySelector("#availabilityBlockGap");
+const availabilityBlockNotes = document.querySelector("#availabilityBlockNotes");
+const assignSlotForm = document.querySelector("#assignSlotForm");
+const assignSlotSelect = document.querySelector("#assignSlotSelect");
+const assignStudentSelect = document.querySelector("#assignStudentSelect");
+const availabilitySlotList = document.querySelector("#availabilitySlotList");
+const availableSlotCount = document.querySelector("#availableSlotCount");
+const bookedSlotCount = document.querySelector("#bookedSlotCount");
+const hiddenSlotCount = document.querySelector("#hiddenSlotCount");
+const diaryWeekTitle = document.querySelector("#diaryWeekTitle");
+const diaryWeekGrid = document.querySelector("#diaryWeekGrid");
+const previousDiaryWeek = document.querySelector("#previousDiaryWeek");
+const todayDiaryWeek = document.querySelector("#todayDiaryWeek");
+const nextDiaryWeek = document.querySelector("#nextDiaryWeek");
 
 let adminData = {
   lessonRequests: [],
@@ -41,8 +65,10 @@ let adminData = {
   slotRequests: [],
   supportRequests: [],
   lessons: [],
+  availabilitySlots: [],
 };
 let activeStudent = null;
+let currentDiaryWeekStart = getStartOfWeek(new Date());
 
 const hasAdminConfig =
   adminConfig.supabaseUrl &&
@@ -131,6 +157,68 @@ function formatAdminDate(value) {
   }).format(date);
 }
 
+function getStartOfWeek(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return new Date();
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function formatDateInput(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getDateKey(value) {
+  return formatDateInput(value);
+}
+
+function buildLocalDateTime(dateKey, timeValue) {
+  return new Date(`${dateKey}T${timeValue}:00`);
+}
+
+function addMinutes(value, minutes) {
+  const date = new Date(value);
+  date.setMinutes(date.getMinutes() + minutes);
+  return date;
+}
+
+function formatClock(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatDiaryRange(slot) {
+  const startsAt = new Date(slot?.starts_at || slot?.lesson_date || slot?.created_at);
+  if (Number.isNaN(startsAt.getTime())) return "Time not set";
+  const hours = Number(slot?.hours || slot?.duration_hours || 2);
+  const endsAt = addMinutes(startsAt, hours * 60);
+  return `${formatClock(startsAt)}-${formatClock(endsAt)}`;
+}
+
+function getSlotDateKey(slot) {
+  return getDateKey(slot?.starts_at);
+}
+
+function getWeekDays(weekStart = currentDiaryWeekStart) {
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + index);
+    return date;
+  });
+}
+
 function isPendingStatus(status) {
   const value = String(status || "submitted").toLowerCase();
   return !["approved", "accepted", "active", "confirmed", "rejected", "declined", "waiting"].some((word) => value.includes(word));
@@ -169,6 +257,42 @@ function getStudentMergeKey(student) {
 
 function getStudentName(student) {
   return student?.name || student?.full_name || student?.email || "Approved student";
+}
+
+function getApprovedStudentRecords(students = adminData.studentProfiles, requests = adminData.lessonRequests) {
+  const approvedProfiles = (students || []).filter((student) => isApprovedStatus(student.lesson_status));
+  const approvedFromRequests = (requests || [])
+    .filter((request) => isApprovedStatus(request.status))
+    .map((request) => ({
+      student_id: request.student_id,
+      email: request.email,
+      name: request.name,
+      lesson_status: request.status,
+    }));
+
+  const merged = new Map();
+  [...approvedProfiles, ...approvedFromRequests].forEach((student) => {
+    const key = getStudentMergeKey(student);
+    if (!key) return;
+    const existing = merged.get(key) || {};
+    merged.set(key, {
+      ...existing,
+      ...student,
+      student_id: existing.student_id || student.student_id,
+      name: existing.name || existing.full_name || student.name || student.full_name,
+      full_name: existing.full_name || existing.name || student.full_name || student.name,
+      email: existing.email || student.email,
+    });
+  });
+
+  return [...merged.values()].map((student) => {
+    const latestRequest = (requests || []).find((request) => sameStudent(request, student));
+    return {
+      ...latestRequest,
+      ...student,
+      latest_request_id: latestRequest?.id,
+    };
+  });
 }
 
 function findStudentForLesson(lesson, students = [], requests = []) {
@@ -268,39 +392,7 @@ function renderPendingLessonRequests(requests) {
 function renderApprovedStudents(students, requests, lessons) {
   clearElement(approvedStudentList);
 
-  const approvedProfiles = (students || []).filter((student) => isApprovedStatus(student.lesson_status));
-  const approvedFromRequests = (requests || [])
-    .filter((request) => isApprovedStatus(request.status))
-    .map((request) => ({
-      student_id: request.student_id,
-      email: request.email,
-      name: request.name,
-      lesson_status: request.status,
-    }));
-
-  const merged = new Map();
-  [...approvedProfiles, ...approvedFromRequests].forEach((student) => {
-    const key = getStudentMergeKey(student);
-    if (!key) return;
-    const existing = merged.get(key) || {};
-    merged.set(key, {
-      ...existing,
-      ...student,
-      student_id: existing.student_id || student.student_id,
-      name: existing.name || existing.full_name || student.name || student.full_name,
-      full_name: existing.full_name || existing.name || student.full_name || student.name,
-      email: existing.email || student.email,
-    });
-  });
-
-  const approved = [...merged.values()].map((student) => {
-    const latestRequest = (requests || []).find((request) => sameStudent(request, student));
-    return {
-      ...latestRequest,
-      ...student,
-      latest_request_id: latestRequest?.id,
-    };
-  });
+  const approved = getApprovedStudentRecords(students, requests);
   setCount(approvedStudentCount, approved.length);
 
   if (!approved.length) {
@@ -484,6 +576,217 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
   });
 }
 
+function getAvailableSlots(slots = adminData.availabilitySlots) {
+  return (slots || []).filter((slot) => String(slot.status || "").toLowerCase() === "available");
+}
+
+function renderAvailabilityOptions(slots = adminData.availabilitySlots) {
+  if (assignSlotSelect) {
+    const availableSlots = getAvailableSlots(slots);
+    assignSlotSelect.innerHTML = "";
+
+    if (!availableSlots.length) {
+      const option = document.createElement("option");
+      option.textContent = "No available slots";
+      option.value = "";
+      assignSlotSelect.append(option);
+    } else {
+      availableSlots.forEach((slot) => {
+        const option = document.createElement("option");
+        option.value = slot.id;
+        option.textContent = `${formatAdminDate(slot.starts_at)} · ${slot.hours || 2}h`;
+        assignSlotSelect.append(option);
+      });
+    }
+  }
+
+  if (assignStudentSelect) {
+    const approvedStudents = getApprovedStudentRecords();
+    assignStudentSelect.innerHTML = "";
+
+    if (!approvedStudents.length) {
+      const option = document.createElement("option");
+      option.textContent = "No approved students";
+      option.value = "";
+      assignStudentSelect.append(option);
+    } else {
+      approvedStudents.forEach((student) => {
+        const option = document.createElement("option");
+        option.value = getStudentMergeKey(student);
+        option.textContent = `${getStudentName(student)}${student.email ? ` · ${student.email}` : ""}`;
+        assignStudentSelect.append(option);
+      });
+    }
+  }
+}
+
+function renderDiaryStats(slots = adminData.availabilitySlots) {
+  const available = (slots || []).filter((slot) => String(slot.status || "").toLowerCase() === "available");
+  const booked = (slots || []).filter((slot) => String(slot.status || "").toLowerCase() === "booked");
+  const hidden = (slots || []).filter((slot) => String(slot.status || "").toLowerCase() === "hidden");
+
+  setCount(availableSlotCount, available.length);
+  setCount(bookedSlotCount, booked.length);
+  setCount(hiddenSlotCount, hidden.length);
+}
+
+function getSlotStatusClass(status) {
+  const value = String(status || "available").toLowerCase();
+  if (value.includes("book")) return "is-booked";
+  if (value.includes("hidden")) return "is-hidden";
+  return "is-available";
+}
+
+function renderDiaryWeek(slots = adminData.availabilitySlots) {
+  if (!diaryWeekGrid) return;
+
+  clearElement(diaryWeekGrid);
+
+  const days = getWeekDays();
+  const startLabel = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(days[0]);
+  const endLabel = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(days[6]);
+
+  if (diaryWeekTitle) {
+    diaryWeekTitle.textContent = `${startLabel} - ${endLabel}`;
+  }
+
+  days.forEach((day) => {
+    const dayKey = getDateKey(day);
+    const column = document.createElement("article");
+    column.className = "admin-day-column";
+
+    const heading = document.createElement("div");
+    heading.className = "admin-day-heading";
+
+    const dayName = document.createElement("strong");
+    dayName.textContent = new Intl.DateTimeFormat("en-GB", { weekday: "short" }).format(day);
+
+    const dayDate = document.createElement("span");
+    dayDate.textContent = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(day);
+
+    heading.append(dayName, dayDate);
+    column.append(heading);
+
+    const daySlots = (slots || [])
+      .filter((slot) => getSlotDateKey(slot) === dayKey)
+      .sort((a, b) => new Date(a.starts_at || 0) - new Date(b.starts_at || 0));
+
+    if (!daySlots.length) {
+      const empty = document.createElement("p");
+      empty.className = "admin-day-empty";
+      empty.textContent = "No slots";
+      column.append(empty);
+    } else {
+      daySlots.forEach((slot) => {
+        const card = document.createElement("div");
+        card.className = `admin-slot-card ${getSlotStatusClass(slot.status)}`;
+
+        const time = document.createElement("strong");
+        time.className = "admin-slot-time";
+        time.textContent = formatDiaryRange(slot);
+
+        const status = document.createElement("span");
+        status.className = "admin-slot-status";
+        status.textContent = slot.status || "Available";
+
+        const meta = document.createElement("p");
+        meta.textContent = slot.assigned_student_email || slot.notes || `${slot.hours || 2} hour lesson`;
+
+        const actions = document.createElement("div");
+        actions.className = "admin-slot-actions";
+
+        const statusValue = String(slot.status || "").toLowerCase();
+        if (statusValue === "available") {
+          const hideButton = document.createElement("button");
+          hideButton.type = "button";
+          hideButton.className = "secondary-button";
+          hideButton.textContent = "Hide";
+          hideButton.addEventListener("click", () => updateAvailabilitySlot(slot.id, { status: "Hidden" }));
+          actions.append(hideButton);
+        } else if (statusValue === "hidden") {
+          const showButton = document.createElement("button");
+          showButton.type = "button";
+          showButton.className = "primary-button";
+          showButton.textContent = "Publish";
+          showButton.addEventListener("click", () => updateAvailabilitySlot(slot.id, { status: "Available" }));
+          actions.append(showButton);
+        }
+
+        if (statusValue !== "booked") {
+          const deleteButton = document.createElement("button");
+          deleteButton.type = "button";
+          deleteButton.className = "secondary-button";
+          deleteButton.textContent = "Delete";
+          deleteButton.addEventListener("click", () => deleteAvailabilitySlot(slot));
+          actions.append(deleteButton);
+        }
+
+        card.append(time, status, meta);
+        if (actions.children.length) card.append(actions);
+        column.append(card);
+      });
+    }
+
+    diaryWeekGrid.append(column);
+  });
+}
+
+function renderAvailabilitySlots(slots) {
+  clearElement(availabilitySlotList);
+  renderAvailabilityOptions(slots);
+  renderDiaryStats(slots);
+  renderDiaryWeek(slots);
+
+  if (!slots?.length) {
+    availabilitySlotList?.append(createEmptyState("No diary slots have been added yet."));
+    return;
+  }
+
+  const upcomingSlots = [...slots]
+    .sort((a, b) => new Date(a.starts_at || 0) - new Date(b.starts_at || 0))
+    .slice(0, 80);
+
+  upcomingSlots.forEach((slot) => {
+    const status = slot.status || "Available";
+    const item = buildAdminItem(
+      formatAdminDate(slot.starts_at),
+      `${status} · ${slot.hours || 2} hour${Number(slot.hours || 2) === 1 ? "" : "s"}`,
+      [
+        slot.assigned_student_email ? `Student: ${slot.assigned_student_email}` : "",
+        slot.notes ? `Note: ${slot.notes}` : "",
+      ],
+    );
+
+    const statusValue = String(status).toLowerCase();
+    const actions = [];
+
+    if (statusValue === "available") {
+      actions.push(
+        {
+          label: "Hide",
+          onClick: () => updateAvailabilitySlot(slot.id, { status: "Hidden" }),
+        },
+        {
+          label: "Delete",
+          onClick: () => deleteAvailabilitySlot(slot),
+        },
+      );
+    } else if (statusValue === "hidden") {
+      actions.push({
+        label: "Make available",
+        className: "primary-button",
+        onClick: () => updateAvailabilitySlot(slot.id, { status: "Available" }),
+      });
+    }
+
+    if (actions.length) {
+      addItemActions(item, actions);
+    }
+
+    availabilitySlotList?.append(item);
+  });
+}
+
 function renderSupportRequests(requests) {
   clearElement(supportRequestList);
 
@@ -537,7 +840,7 @@ async function loadAdminData() {
 
   setAdminDataStatus("Loading admin data...");
 
-  const [lessonRequests, studentProfiles, slotRequests, supportRequests, lessons] = await Promise.all([
+  const [lessonRequests, studentProfiles, slotRequests, supportRequests, lessons, availabilitySlots] = await Promise.all([
     loadTable("lesson_requests", (query) =>
       query
         .select("id,student_id,name,email,phone,addresses,postcode,lesson_type,current_stage,availability,status,created_at")
@@ -552,7 +855,7 @@ async function loadAdminData() {
     ),
     loadTable("lesson_slot_requests", (query) =>
       query
-        .select("id,student_id,student_email,requested_slot,requested_label,status,created_at")
+        .select("id,student_id,student_email,availability_slot_id,requested_slot,requested_label,status,created_at")
         .order("created_at", { ascending: false })
         .limit(50),
     ),
@@ -564,9 +867,15 @@ async function loadAdminData() {
     ),
     loadTable("lessons", (query) =>
       query
-        .select("id,student_id,student_email,starts_at,lesson_date,hours,duration_hours,topic,status,notes,created_at")
+        .select("id,student_id,student_email,availability_slot_id,starts_at,lesson_date,hours,duration_hours,topic,status,notes,created_at")
         .order("starts_at", { ascending: true })
         .limit(100),
+    ),
+    loadTable("lesson_availability_slots", (query) =>
+      query
+        .select("id,starts_at,label,hours,status,assigned_student_id,assigned_student_email,notes,created_at,updated_at")
+        .order("starts_at", { ascending: true })
+        .limit(120),
     ),
   ]);
 
@@ -576,15 +885,17 @@ async function loadAdminData() {
     slotRequests: slotRequests.data,
     supportRequests: supportRequests.data,
     lessons: lessons.data,
+    availabilitySlots: availabilitySlots.data,
   };
 
   renderPendingLessonRequests(lessonRequests.data);
+  renderAvailabilitySlots(availabilitySlots.data);
   renderApprovedStudents(studentProfiles.data, lessonRequests.data, lessons.data);
   renderSlotRequests(slotRequests.data);
   renderSupportRequests(supportRequests.data);
   renderConfirmedLessons(lessons.data, studentProfiles.data, lessonRequests.data);
 
-  const errors = [lessonRequests, studentProfiles, slotRequests, supportRequests, lessons].filter((result) => result.error);
+  const errors = [lessonRequests, studentProfiles, slotRequests, supportRequests, lessons, availabilitySlots].filter((result) => result.error);
   if (errors.length) {
     const errorSummary = errors
       .map((result) => `${result.table}: ${result.error.message || "could not load"}`)
@@ -765,22 +1076,235 @@ async function updateSupportRequestStatus(id, status) {
   await loadAdminData();
 }
 
-async function confirmSlotRequest(request) {
-  if (!request?.id) return;
-  setAdminDataStatus("Confirming lesson...");
+async function createAvailabilitySlot(event) {
+  event.preventDefault();
+
+  const date = availabilityDate?.value;
+  const time = availabilityTime?.value;
+  const hours = Number(availabilityHours?.value || 2);
+  const notes = String(availabilityNotes?.value || "").trim();
+
+  if (!date || !time) {
+    setAdminDataStatus("Choose a date and time before adding a diary slot.", "error");
+    return;
+  }
+
+  const startsAt = `${date}T${time}:00`;
+  setAdminDataStatus("Adding available diary slot...");
+
+  const { error } = await adminClient.from("lesson_availability_slots").insert({
+    starts_at: startsAt,
+    label: formatAdminDate(startsAt),
+    hours: Number.isFinite(hours) ? hours : 2,
+    status: "Available",
+    notes,
+  });
+
+  if (error) {
+    setAdminDataStatus(getAdminError(error), "error");
+    return;
+  }
+
+  availabilityForm?.reset();
+  if (availabilityHours) availabilityHours.value = "2";
+  await loadAdminData();
+  setAdminDataStatus("Diary slot added. Approved students can now request it.", "success");
+}
+
+async function createWeeklyAvailability(event) {
+  event.preventDefault();
+
+  const weekStartValue = availabilityWeekStart?.value;
+  const startTime = availabilityBlockStart?.value;
+  const endTime = availabilityBlockEnd?.value;
+  const hours = Number(availabilityBlockHours?.value || 2);
+  const gapMinutes = Number(availabilityBlockGap?.value || 0);
+  const notes = String(availabilityBlockNotes?.value || "").trim();
+  const selectedDays = [...document.querySelectorAll('input[name="availabilityDays"]:checked')]
+    .map((input) => Number(input.value));
+
+  if (!weekStartValue || !startTime || !endTime || !selectedDays.length) {
+    setAdminDataStatus("Choose a week, days, start time and finish time before publishing slots.", "error");
+    return;
+  }
+
+  if (!Number.isFinite(hours) || hours <= 0) {
+    setAdminDataStatus("Choose a valid lesson length before publishing slots.", "error");
+    return;
+  }
+
+  const durationMinutes = hours * 60;
+  const weekStart = getStartOfWeek(buildLocalDateTime(weekStartValue, "00:00"));
+  const existingStarts = new Set((adminData.availabilitySlots || []).map((slot) => String(slot.starts_at || "").slice(0, 16)));
+  const newSlots = [];
+
+  selectedDays.forEach((dayValue) => {
+    const dayOffset = dayValue === 0 ? 6 : dayValue - 1;
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + dayOffset);
+
+    const dayKey = getDateKey(day);
+    let cursor = buildLocalDateTime(dayKey, startTime);
+    const finish = buildLocalDateTime(dayKey, endTime);
+
+    while (addMinutes(cursor, durationMinutes) <= finish) {
+      const startsAt = `${getDateKey(cursor)}T${formatClock(cursor)}:00`;
+      const duplicateKey = startsAt.slice(0, 16);
+
+      if (!existingStarts.has(duplicateKey)) {
+        newSlots.push({
+          starts_at: startsAt,
+          label: formatAdminDate(startsAt),
+          hours,
+          status: "Available",
+          notes,
+        });
+        existingStarts.add(duplicateKey);
+      }
+
+      cursor = addMinutes(cursor, durationMinutes + gapMinutes);
+    }
+  });
+
+  if (!newSlots.length) {
+    setAdminDataStatus("No new slots were created. Those times may already exist, or the time window is too short.", "error");
+    return;
+  }
+
+  setAdminDataStatus(`Publishing ${newSlots.length} diary slot${newSlots.length === 1 ? "" : "s"}...`);
+
+  const { error } = await adminClient.from("lesson_availability_slots").insert(newSlots);
+
+  if (error) {
+    setAdminDataStatus(getAdminError(error), "error");
+    return;
+  }
+
+  currentDiaryWeekStart = weekStart;
+  await loadAdminData();
+  setAdminDataStatus(`${newSlots.length} diary slot${newSlots.length === 1 ? "" : "s"} published.`, "success");
+}
+
+async function updateAvailabilitySlot(id, changes) {
+  if (!id) return;
+  setAdminDataStatus("Updating diary slot...");
+
+  const { error } = await adminClient
+    .from("lesson_availability_slots")
+    .update({
+      ...changes,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) {
+    setAdminDataStatus(getAdminError(error), "error");
+    return;
+  }
+
+  await loadAdminData();
+}
+
+async function deleteAvailabilitySlot(slot) {
+  if (!slot?.id) return;
+  const confirmed = window.confirm(`Delete ${formatAdminDate(slot.starts_at)} from the diary? Students will no longer see it.`);
+  if (!confirmed) return;
+
+  setAdminDataStatus("Deleting diary slot...");
+
+  const { error } = await adminClient
+    .from("lesson_availability_slots")
+    .delete()
+    .eq("id", slot.id);
+
+  if (error) {
+    setAdminDataStatus(getAdminError(error), "error");
+    return;
+  }
+
+  await loadAdminData();
+  setAdminDataStatus("Diary slot deleted.", "success");
+}
+
+async function assignSlotToStudent(event) {
+  event.preventDefault();
+
+  const slotId = assignSlotSelect?.value;
+  const studentKey = assignStudentSelect?.value;
+  const slot = adminData.availabilitySlots.find((item) => item.id === slotId);
+  const student = getApprovedStudentRecords().find((item) => getStudentMergeKey(item) === studentKey);
+
+  if (!slot || !student) {
+    setAdminDataStatus("Choose both an available slot and an approved student before booking.", "error");
+    return;
+  }
+
+  setAdminDataStatus("Booking selected student...");
 
   const { error: lessonError } = await adminClient.from("lessons").insert({
-    student_id: request.student_id,
-    student_email: request.student_email,
-    starts_at: request.requested_slot,
+    student_id: student.student_id || null,
+    student_email: student.email,
+    availability_slot_id: slot.id,
+    starts_at: slot.starts_at,
     status: "Confirmed",
-    hours: 2,
+    hours: Number(slot.hours || 2),
     topic: "Driving lesson",
+    notes: slot.notes || "",
   });
 
   if (lessonError) {
     setAdminDataStatus(getAdminError(lessonError), "error");
     return;
+  }
+
+  await updateAvailabilitySlot(slot.id, {
+    status: "Booked",
+    assigned_student_id: student.student_id || null,
+    assigned_student_email: student.email,
+  });
+
+  setAdminDataStatus("Student booked into that diary slot.", "success");
+}
+
+async function confirmSlotRequest(request) {
+  if (!request?.id) return;
+  setAdminDataStatus("Confirming lesson...");
+
+  const availabilitySlot = request.availability_slot_id
+    ? adminData.availabilitySlots.find((slot) => slot.id === request.availability_slot_id)
+    : null;
+
+  const { error: lessonError } = await adminClient.from("lessons").insert({
+    student_id: request.student_id,
+    student_email: request.student_email,
+    availability_slot_id: availabilitySlot?.id || request.availability_slot_id || null,
+    starts_at: availabilitySlot?.starts_at || request.requested_slot,
+    status: "Confirmed",
+    hours: Number(availabilitySlot?.hours || 2),
+    topic: "Driving lesson",
+    notes: availabilitySlot?.notes || "",
+  });
+
+  if (lessonError) {
+    setAdminDataStatus(getAdminError(lessonError), "error");
+    return;
+  }
+
+  if (availabilitySlot?.id) {
+    const { error: slotError } = await adminClient
+      .from("lesson_availability_slots")
+      .update({
+        status: "Booked",
+        assigned_student_id: request.student_id || null,
+        assigned_student_email: request.student_email,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", availabilitySlot.id);
+
+    if (slotError) {
+      setAdminDataStatus(getAdminError(slotError), "error");
+      return;
+    }
   }
 
   await updateSlotRequestStatus(request.id, "Confirmed");
@@ -806,6 +1330,23 @@ async function approveCancellationRequest(request) {
   if (lessonError) {
     setAdminDataStatus(getAdminError(lessonError), "error");
     return;
+  }
+
+  if (request.availability_slot_id) {
+    const { error: slotError } = await adminClient
+      .from("lesson_availability_slots")
+      .update({
+        status: "Available",
+        assigned_student_id: null,
+        assigned_student_email: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", request.availability_slot_id);
+
+    if (slotError) {
+      setAdminDataStatus(getAdminError(slotError), "error");
+      return;
+    }
   }
 
   await updateSlotRequestStatus(request.id, "Cancellation approved");
@@ -956,3 +1497,28 @@ studentManageDialog?.addEventListener("click", (event) => {
 
 studentManageForm?.addEventListener("submit", saveStudentDetails);
 removeStudentButton?.addEventListener("click", () => removeStudentAccess());
+availabilityForm?.addEventListener("submit", createAvailabilitySlot);
+weeklyAvailabilityForm?.addEventListener("submit", createWeeklyAvailability);
+assignSlotForm?.addEventListener("submit", assignSlotToStudent);
+
+if (availabilityWeekStart) {
+  availabilityWeekStart.value = formatDateInput(currentDiaryWeekStart);
+}
+
+previousDiaryWeek?.addEventListener("click", () => {
+  currentDiaryWeekStart.setDate(currentDiaryWeekStart.getDate() - 7);
+  if (availabilityWeekStart) availabilityWeekStart.value = formatDateInput(currentDiaryWeekStart);
+  renderDiaryWeek(adminData.availabilitySlots);
+});
+
+todayDiaryWeek?.addEventListener("click", () => {
+  currentDiaryWeekStart = getStartOfWeek(new Date());
+  if (availabilityWeekStart) availabilityWeekStart.value = formatDateInput(currentDiaryWeekStart);
+  renderDiaryWeek(adminData.availabilitySlots);
+});
+
+nextDiaryWeek?.addEventListener("click", () => {
+  currentDiaryWeekStart.setDate(currentDiaryWeekStart.getDate() + 7);
+  if (availabilityWeekStart) availabilityWeekStart.value = formatDateInput(currentDiaryWeekStart);
+  renderDiaryWeek(adminData.availabilitySlots);
+});

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Diary planner | Drive with Niall</title>
+    <link rel="stylesheet" href="styles.css?v=admin-diary-1" />
+  </head>
+  <body>
+    <main class="admin-login-page">
+      <section class="admin-login-card is-admin-dashboard">
+        <a class="brand" href="index.html" aria-label="Drive with Niall home">
+          <span class="brand-wordmark" aria-hidden="true">
+            <span class="brand-drive">Drive</span>
+            <span class="brand-with">with</span>
+            <span class="brand-niall">Niall<span class="brand-bang">!</span></span>
+          </span>
+          <span class="brand-copy">
+            <strong>Drive with Niall</strong>
+            <small id="adminBrandName">Admin</small>
+          </span>
+        </a>
+
+        <div id="adminSignedOut">
+          <p class="eyebrow">Admin login</p>
+          <h1>Sign in to manage the diary</h1>
+          <p>Use your approved admin account to manage availability and lesson bookings.</p>
+
+          <div class="account-status" id="adminStatus" role="status"></div>
+
+          <form class="auth-form is-active" id="adminLoginForm">
+            <label>Username <input name="username" type="text" placeholder="ImNiall's Project" autocomplete="username" required /></label>
+            <label>Password <input name="password" type="password" placeholder="Your password" autocomplete="current-password" required /></label>
+            <button class="primary-button full" type="submit">Sign in</button>
+          </form>
+          <div class="admin-login-help">
+            <p>If the password sign-in fails, send a secure admin login link to the approved admin email instead.</p>
+            <button class="secondary-button full" id="adminMagicLinkButton" type="button">Email me an admin login link</button>
+          </div>
+        </div>
+
+        <div class="admin-panel" id="adminPanel" hidden>
+          <p class="eyebrow">Instructor diary</p>
+          <h1>Diary planner</h1>
+          <p>Signed in as <strong id="adminEmail">admin</strong>.</p>
+
+          <div class="admin-actions">
+            <a class="secondary-action" href="admin.html">Back to admin dashboard</a>
+            <a class="secondary-action" href="dashboard.html" target="_blank" rel="noreferrer">Preview student dashboard</a>
+            <button class="secondary-button" id="adminRefreshButton" type="button">Refresh data</button>
+          </div>
+
+          <div class="admin-toolbar">
+            <div>
+              <span class="dashboard-kicker">Diary control centre</span>
+              <h2>Plan availability and allocate lessons</h2>
+              <p>Publish the times you want students to request, keep a weekly view of your diary, and assign approved students directly when needed.</p>
+            </div>
+            <a class="primary-button" href="#weekDiary">View week</a>
+          </div>
+
+          <div class="account-status" id="adminDataStatus" role="status"></div>
+
+          <section class="admin-stat-grid" aria-label="Diary summary">
+            <article>
+              <strong id="availableSlotCount">0</strong>
+              <span>Available slots</span>
+            </article>
+            <article>
+              <strong id="bookedSlotCount">0</strong>
+              <span>Booked slots</span>
+            </article>
+            <article>
+              <strong id="hiddenSlotCount">0</strong>
+              <span>Hidden slots</span>
+            </article>
+            <article>
+              <strong id="slotRequestCount">0</strong>
+              <span>Diary requests</span>
+            </article>
+            <article>
+              <strong id="confirmedLessonCount">0</strong>
+              <span>Confirmed lessons</span>
+            </article>
+          </section>
+
+          <section class="admin-diary-layout" aria-label="Diary tools">
+            <article class="admin-board-card admin-diary-panel">
+              <div class="admin-card-heading">
+                <div>
+                  <span class="dashboard-kicker">Weekly availability</span>
+                  <h2>Publish regular slots</h2>
+                </div>
+                <span class="status-pill">Fast setup</span>
+              </div>
+              <p>Choose the week, working days, lesson length and time window. The planner will create the individual lesson slots for students to request.</p>
+
+              <form class="admin-week-builder" id="weeklyAvailabilityForm">
+                <label>Week starting <input id="availabilityWeekStart" type="date" required /></label>
+                <fieldset class="weekday-picker">
+                  <legend>Days to publish</legend>
+                  <div class="weekday-options">
+                    <label><input name="availabilityDays" type="checkbox" value="1" checked /> Mon</label>
+                    <label><input name="availabilityDays" type="checkbox" value="2" checked /> Tue</label>
+                    <label><input name="availabilityDays" type="checkbox" value="3" checked /> Wed</label>
+                    <label><input name="availabilityDays" type="checkbox" value="4" checked /> Thu</label>
+                    <label><input name="availabilityDays" type="checkbox" value="5" checked /> Fri</label>
+                    <label><input name="availabilityDays" type="checkbox" value="6" /> Sat</label>
+                    <label><input name="availabilityDays" type="checkbox" value="0" /> Sun</label>
+                  </div>
+                </fieldset>
+                <label>Start time <input id="availabilityBlockStart" type="time" value="09:00" required /></label>
+                <label>Finish time <input id="availabilityBlockEnd" type="time" value="15:00" required /></label>
+                <label>Lesson length <input id="availabilityBlockHours" type="number" min="1" max="4" step="0.5" value="2" required /></label>
+                <label>
+                  Gap between lessons
+                  <select id="availabilityBlockGap">
+                    <option value="0">No gap</option>
+                    <option value="15">15 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">1 hour</option>
+                  </select>
+                </label>
+                <label class="full">Diary note <input id="availabilityBlockNotes" type="text" placeholder="Optional route, area, or reminder" /></label>
+                <button class="primary-button" type="submit">Publish weekly slots</button>
+              </form>
+            </article>
+
+            <article class="admin-board-card admin-diary-panel">
+              <div class="admin-card-heading">
+                <div>
+                  <span class="dashboard-kicker">Single lesson</span>
+                  <h2>Add or allocate a slot</h2>
+                </div>
+              </div>
+              <p>Use this when you want to add one extra time, or book an approved student into an available slot yourself.</p>
+
+              <form class="admin-availability-form" id="availabilityForm">
+                <label>Date <input id="availabilityDate" type="date" required /></label>
+                <label>Time <input id="availabilityTime" type="time" required /></label>
+                <label>Hours <input id="availabilityHours" type="number" min="1" max="4" step="0.5" value="2" required /></label>
+                <label>Note <input id="availabilityNotes" type="text" placeholder="Optional route or reminder" /></label>
+                <button class="primary-button" type="submit">Add slot</button>
+              </form>
+
+              <form class="admin-assign-form" id="assignSlotForm">
+                <label>Available slot <select id="assignSlotSelect"></select></label>
+                <label>Student <select id="assignStudentSelect"></select></label>
+                <button class="secondary-button" type="submit">Book student</button>
+              </form>
+            </article>
+          </section>
+
+          <section class="admin-board-card admin-board-card-wide" id="weekDiary">
+            <div class="admin-card-heading">
+              <div>
+                <span class="dashboard-kicker">Week view</span>
+                <h2 id="diaryWeekTitle">This week</h2>
+              </div>
+              <div class="admin-diary-controls" aria-label="Diary week controls">
+                <button class="secondary-button" id="previousDiaryWeek" type="button">Previous</button>
+                <button class="secondary-button" id="todayDiaryWeek" type="button">This week</button>
+                <button class="secondary-button" id="nextDiaryWeek" type="button">Next</button>
+              </div>
+            </div>
+            <p>Use this as the working diary. Available slots are shown to approved students; booked slots are reserved for the assigned student.</p>
+            <div class="admin-week-grid" id="diaryWeekGrid"></div>
+          </section>
+
+          <section class="admin-board-card admin-board-card-wide">
+            <div class="admin-card-heading">
+              <div>
+                <span class="dashboard-kicker">Slot list</span>
+                <h2>Upcoming diary slots</h2>
+              </div>
+            </div>
+            <div class="admin-list compact" id="availabilitySlotList"></div>
+          </section>
+
+          <button class="outline-button" id="adminSignOutButton" type="button">Sign out</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="auth-config.js"></script>
+    <script src="admin.js"></script>
+  </body>
+</html>

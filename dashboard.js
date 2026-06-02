@@ -37,19 +37,11 @@ const lessonAccessNotice = document.querySelector("#lessonAccessNotice");
 const lessonAccessMessage = document.querySelector("#lessonAccessMessage");
 const lessonStudentOnlySections = document.querySelectorAll(".lesson-student-only");
 
-const lessonDiaryAvailability = [
-  { day: 1, times: ["10:00", "13:00"] },
-  { day: 2, times: ["11:00", "14:00"] },
-  { day: 4, times: ["10:00", "15:00"] },
-  { day: 5, times: ["09:30", "12:30"] },
-];
-const diaryBookingWindowDays = 42;
-const maximumDiarySlots = 24;
-
 let selectedDiarySlot = null;
 let lessonStudentAccess = false;
 let currentDashboardUserId = null;
 let cancellationRequestSlots = new Set();
+let availableDiarySlots = [];
 
 function setTheme(mode) {
   const isDark = mode === "dark";
@@ -92,30 +84,6 @@ function formatSlotDate(date) {
   }).format(date);
 }
 
-function buildDiarySlots() {
-  const slots = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  for (let offset = 1; offset <= diaryBookingWindowDays && slots.length < maximumDiarySlots; offset += 1) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + offset);
-    const availability = lessonDiaryAvailability.find((entry) => entry.day === date.getDay());
-
-    if (!availability) continue;
-
-    availability.times.forEach((time) => {
-      const label = `${formatSlotDate(date)}, ${time}`;
-      slots.push({
-        label,
-        value: `${date.toISOString().slice(0, 10)} ${time}`,
-      });
-    });
-  }
-
-  return slots.slice(0, maximumDiarySlots);
-}
-
 function selectDiarySlot(slot, button) {
   selectedDiarySlot = slot;
 
@@ -134,17 +102,36 @@ function selectDiarySlot(slot, button) {
   setDiaryStatus(`Selected: ${slot.label}. I will confirm before it is booked.`);
 }
 
-function renderDiarySlots() {
+function normaliseAvailabilitySlot(slot) {
+  const date = new Date(slot.starts_at);
+  const label = slot.label || (Number.isNaN(date.getTime()) ? String(slot.starts_at) : formatLessonDate(slot.starts_at));
+  return {
+    id: slot.id,
+    label,
+    value: slot.starts_at,
+    hours: Number(slot.hours || 2),
+  };
+}
+
+function renderDiarySlots(slots = availableDiarySlots) {
   if (!diarySlotList) return;
 
-  const slots = buildDiarySlots();
   diarySlotList.innerHTML = "";
+
+  if (!slots.length) {
+    const empty = document.createElement("p");
+    empty.className = "diary-empty-note";
+    empty.textContent = "No lesson times are available to request right now. Check back later or message me if you need a specific week.";
+    diarySlotList.append(empty);
+    return;
+  }
 
   slots.forEach((slot) => {
     const button = document.createElement("button");
     button.className = "diary-slot";
     button.type = "button";
-    button.innerHTML = `<strong>${slot.label.split(", ")[0]}</strong><span>${slot.label.split(", ")[1]}</span>`;
+    const [datePart, timePart = "Time to confirm"] = slot.label.split(", ");
+    button.innerHTML = `<strong>${datePart}</strong><span>${timePart}</span>`;
     button.addEventListener("click", () => selectDiarySlot(slot, button));
     diarySlotList.append(button);
   });
@@ -171,6 +158,7 @@ function normaliseLessonRecord(lesson) {
 
   return {
     id: lesson.id,
+    availability_slot_id: lesson.availability_slot_id,
     date: dateValue,
     label: formatLessonDate(dateValue),
     hours: Number.isFinite(hours) ? hours : 2,
@@ -298,9 +286,11 @@ function setLessonStudentAccess(hasAccess, message) {
   }
 
   if (hasAccess) {
-    renderDiarySlots();
+    loadAvailableDiarySlots();
   } else {
     selectedDiarySlot = null;
+    availableDiarySlots = [];
+    renderDiarySlots([]);
     if (diarySelectedSlot) diarySelectedSlot.value = "";
     if (diarySubmitButton) diarySubmitButton.disabled = true;
     renderDiaryRequests([]);
@@ -397,7 +387,7 @@ async function loadLessonProgress(userId) {
 
   const { data, error } = await dashboardClient
     .from("lessons")
-    .select("id,status,starts_at,lesson_date,hours,duration_hours,topic,focus,lesson_type,notes,summary,created_at")
+    .select("id,status,availability_slot_id,starts_at,lesson_date,hours,duration_hours,topic,focus,lesson_type,notes,summary,created_at")
     .eq("student_id", userId)
     .order("starts_at", { ascending: true });
 
@@ -408,6 +398,28 @@ async function loadLessonProgress(userId) {
   updateLessonProgress(data);
 }
 
+async function loadAvailableDiarySlots() {
+  availableDiarySlots = [];
+  renderDiarySlots([]);
+
+  if (!dashboardClient || !lessonStudentAccess) return;
+
+  const { data, error } = await dashboardClient
+    .from("lesson_availability_slots")
+    .select("id,starts_at,label,hours,status")
+    .eq("status", "Available")
+    .order("starts_at", { ascending: true })
+    .limit(60);
+
+  if (error || !data) {
+    setDiaryStatus("I couldn't load the latest available lesson times yet. Please refresh or message me directly.");
+    return;
+  }
+
+  availableDiarySlots = data.map(normaliseAvailabilitySlot);
+  renderDiarySlots(availableDiarySlots);
+}
+
 async function loadDiaryRequests(userId) {
   renderDiaryRequests([]);
 
@@ -415,7 +427,7 @@ async function loadDiaryRequests(userId) {
 
   const { data, error } = await dashboardClient
     .from("lesson_slot_requests")
-    .select("id,status,requested_slot,requested_label,created_at")
+    .select("id,status,requested_slot,requested_label,availability_slot_id,created_at")
     .eq("student_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -524,6 +536,7 @@ diaryRequestForm?.addEventListener("submit", async (event) => {
   const { error } = await dashboardClient.from("lesson_slot_requests").insert({
     student_id: session.user.id,
     student_email: session.user.email,
+    availability_slot_id: selectedDiarySlot.id,
     requested_slot: selectedDiarySlot.value,
     requested_label: selectedDiarySlot.label,
     status: "Requested",
@@ -572,6 +585,7 @@ async function requestLessonCancellation(lesson) {
   const { error } = await dashboardClient.from("lesson_slot_requests").insert({
     student_id: session.user.id,
     student_email: session.user.email,
+    availability_slot_id: lesson.availability_slot_id || null,
     requested_slot: lesson.date,
     requested_label: `Cancel lesson: ${lesson.label}`,
     status: "Cancel requested",

@@ -70,6 +70,7 @@ alter table public.lesson_slot_requests add column if not exists student_id uuid
 alter table public.lesson_slot_requests add column if not exists student_email text;
 alter table public.lesson_slot_requests add column if not exists requested_slot text;
 alter table public.lesson_slot_requests add column if not exists requested_label text;
+alter table public.lesson_slot_requests add column if not exists availability_slot_id uuid;
 alter table public.lesson_slot_requests add column if not exists status text not null default 'Requested';
 alter table public.lesson_slot_requests add column if not exists created_at timestamptz not null default now();
 
@@ -138,12 +139,53 @@ alter table public.lessons add column if not exists notes text;
 alter table public.lessons add column if not exists summary text;
 alter table public.lessons add column if not exists status text not null default 'Confirmed';
 alter table public.lessons add column if not exists created_at timestamptz not null default now();
+alter table public.lessons add column if not exists availability_slot_id uuid;
+
+create table if not exists public.lesson_availability_slots (
+  id uuid primary key default gen_random_uuid(),
+  starts_at text not null,
+  label text,
+  hours numeric not null default 2,
+  status text not null default 'Available',
+  assigned_student_id uuid references auth.users(id) on delete set null,
+  assigned_student_email text,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.lesson_availability_slots add column if not exists starts_at text;
+alter table public.lesson_availability_slots add column if not exists label text;
+alter table public.lesson_availability_slots add column if not exists hours numeric not null default 2;
+alter table public.lesson_availability_slots add column if not exists status text not null default 'Available';
+alter table public.lesson_availability_slots add column if not exists assigned_student_id uuid references auth.users(id) on delete set null;
+alter table public.lesson_availability_slots add column if not exists assigned_student_email text;
+alter table public.lesson_availability_slots add column if not exists notes text;
+alter table public.lesson_availability_slots add column if not exists created_at timestamptz not null default now();
+alter table public.lesson_availability_slots add column if not exists updated_at timestamptz not null default now();
+
+alter table public.lesson_slot_requests
+  drop constraint if exists lesson_slot_requests_availability_slot_id_fkey;
+alter table public.lesson_slot_requests
+  add constraint lesson_slot_requests_availability_slot_id_fkey
+  foreign key (availability_slot_id)
+  references public.lesson_availability_slots(id)
+  on delete set null;
+
+alter table public.lessons
+  drop constraint if exists lessons_availability_slot_id_fkey;
+alter table public.lessons
+  add constraint lessons_availability_slot_id_fkey
+  foreign key (availability_slot_id)
+  references public.lesson_availability_slots(id)
+  on delete set null;
 
 alter table public.student_profiles enable row level security;
 alter table public.lesson_requests enable row level security;
 alter table public.lesson_slot_requests enable row level security;
 alter table public.support_requests enable row level security;
 alter table public.lessons enable row level security;
+alter table public.lesson_availability_slots enable row level security;
 
 create or replace function public.is_drive_admin()
 returns boolean
@@ -207,6 +249,19 @@ to authenticated
 using (public.is_drive_admin())
 with check (public.is_drive_admin());
 
+drop policy if exists "Students can view available lesson slots" on public.lesson_availability_slots;
+create policy "Students can view available lesson slots"
+on public.lesson_availability_slots for select
+to authenticated
+using (status = 'Available' or public.is_drive_admin());
+
+drop policy if exists "Admins can manage lesson availability slots" on public.lesson_availability_slots;
+create policy "Admins can manage lesson availability slots"
+on public.lesson_availability_slots for all
+to authenticated
+using (public.is_drive_admin())
+with check (public.is_drive_admin());
+
 drop policy if exists "Students can create own support requests" on public.support_requests;
 create policy "Students can create own support requests"
 on public.support_requests for insert
@@ -245,4 +300,5 @@ grant select, insert, update, delete on public.lesson_requests to authenticated;
 grant select, insert, update, delete on public.lesson_slot_requests to authenticated;
 grant select, insert, update, delete on public.support_requests to authenticated;
 grant select, insert, update, delete on public.lessons to authenticated;
+grant select, insert, update, delete on public.lesson_availability_slots to authenticated;
 grant execute on function public.is_drive_admin() to authenticated;
