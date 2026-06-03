@@ -524,26 +524,78 @@ diaryRequestForm?.addEventListener("submit", async (event) => {
 
   event.preventDefault();
   setDiaryStatus("Saving your diary request...");
+  if (diarySubmitButton) {
+    diarySubmitButton.disabled = true;
+  }
 
   const { data } = await dashboardClient.auth.getSession();
   const session = data?.session;
 
   if (!session?.user) {
     setDiaryStatus("Please sign in again before requesting a lesson time.");
+    if (diarySubmitButton && selectedDiarySlot) {
+      diarySubmitButton.disabled = false;
+    }
+    return;
+  }
+
+  const slotToRequest = selectedDiarySlot;
+  const now = new Date().toISOString();
+  const { data: heldSlot, error: holdError } = await dashboardClient
+    .from("lesson_availability_slots")
+    .update({
+      status: "Pending",
+      assigned_student_id: session.user.id,
+      assigned_student_email: session.user.email,
+      updated_at: now,
+    })
+    .eq("id", slotToRequest.id)
+    .eq("status", "Available")
+    .select("id")
+    .maybeSingle();
+
+  if (holdError) {
+    setDiaryStatus("I couldn't hold that lesson time yet. Please try again.");
+    if (diarySubmitButton && selectedDiarySlot) {
+      diarySubmitButton.disabled = false;
+    }
+    return;
+  }
+
+  if (!heldSlot) {
+    selectedDiarySlot = null;
+    if (diarySelectedSlot) {
+      diarySelectedSlot.value = "";
+    }
+    await loadAvailableDiarySlots();
+    setDiaryStatus("That lesson time has just been requested. Please choose another slot.");
     return;
   }
 
   const { error } = await dashboardClient.from("lesson_slot_requests").insert({
     student_id: session.user.id,
     student_email: session.user.email,
-    availability_slot_id: selectedDiarySlot.id,
-    requested_slot: selectedDiarySlot.value,
-    requested_label: selectedDiarySlot.label,
+    availability_slot_id: slotToRequest.id,
+    requested_slot: slotToRequest.value,
+    requested_label: slotToRequest.label,
     status: "Requested",
   });
 
   if (error) {
+    await dashboardClient
+      .from("lesson_availability_slots")
+      .update({
+        status: "Available",
+        assigned_student_id: null,
+        assigned_student_email: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", slotToRequest.id)
+      .eq("status", "Pending");
     setDiaryStatus("I couldn't save that diary request yet. Please try again.");
+    if (diarySubmitButton && selectedDiarySlot) {
+      diarySubmitButton.disabled = false;
+    }
     return;
   }
 
@@ -557,8 +609,9 @@ diaryRequestForm?.addEventListener("submit", async (event) => {
   if (diarySubmitButton) {
     diarySubmitButton.disabled = true;
   }
+  await loadAvailableDiarySlots();
   await loadDiaryRequests(session.user.id);
-  setDiaryStatus("Request sent. I will confirm the time before it is booked.");
+  setDiaryStatus("Request sent. I am holding that time until I confirm it.");
 });
 
 async function requestLessonCancellation(lesson) {

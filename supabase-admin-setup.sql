@@ -253,7 +253,7 @@ drop policy if exists "Students can view available lesson slots" on public.lesso
 create policy "Students can view available lesson slots"
 on public.lesson_availability_slots for select
 to authenticated
-using (status = 'Available' or public.is_drive_admin());
+using (status = 'Available' or assigned_student_id = auth.uid() or public.is_drive_admin());
 
 drop policy if exists "Admins can manage lesson availability slots" on public.lesson_availability_slots;
 create policy "Admins can manage lesson availability slots"
@@ -261,6 +261,30 @@ on public.lesson_availability_slots for all
 to authenticated
 using (public.is_drive_admin())
 with check (public.is_drive_admin());
+
+drop policy if exists "Approved students can hold available lesson slots" on public.lesson_availability_slots;
+create policy "Approved students can hold available lesson slots"
+on public.lesson_availability_slots for update
+to authenticated
+using (
+  status = 'Available'
+  and exists (
+    select 1
+    from public.student_profiles
+    where student_profiles.student_id = auth.uid()
+      and lower(coalesce(student_profiles.lesson_status, '')) = 'approved'
+  )
+)
+with check (
+  status = 'Pending'
+  and assigned_student_id = auth.uid()
+  and exists (
+    select 1
+    from public.student_profiles
+    where student_profiles.student_id = auth.uid()
+      and lower(coalesce(student_profiles.lesson_status, '')) = 'approved'
+  )
+);
 
 drop policy if exists "Students can create own support requests" on public.support_requests;
 create policy "Students can create own support requests"

@@ -517,7 +517,7 @@ function renderSlotRequests(slotRequests) {
         },
         {
           label: "Keep lesson",
-          onClick: () => updateSlotRequestStatus(request.id, "Cancellation declined"),
+          onClick: () => updateSlotRequestStatus(request.id, "Cancellation declined", request),
         },
       ]);
     } else {
@@ -529,7 +529,7 @@ function renderSlotRequests(slotRequests) {
         },
         {
           label: "Decline",
-          onClick: () => updateSlotRequestStatus(request.id, "Declined"),
+          onClick: () => updateSlotRequestStatus(request.id, "Declined", request),
         },
       ]);
     }
@@ -1042,7 +1042,31 @@ async function removeStudentAccess(student = activeStudent) {
   setAdminDataStatus("Student practical access removed. Their history has been kept.", "success");
 }
 
-async function updateSlotRequestStatus(id, status) {
+function shouldReleaseHeldSlot(status, request) {
+  const normalisedStatus = String(status || "").toLowerCase();
+  return Boolean(
+    request?.availability_slot_id &&
+      !isCancellationRequest(request) &&
+      (normalisedStatus.includes("declined") || normalisedStatus.includes("rejected")),
+  );
+}
+
+async function releaseHeldSlot(availabilitySlotId) {
+  if (!availabilitySlotId) return null;
+
+  return adminClient
+    .from("lesson_availability_slots")
+    .update({
+      status: "Available",
+      assigned_student_id: null,
+      assigned_student_email: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", availabilitySlotId)
+    .eq("status", "Pending");
+}
+
+async function updateSlotRequestStatus(id, status, request = null) {
   if (!id) return;
   setAdminDataStatus(`Updating diary request to ${status}...`);
 
@@ -1054,6 +1078,15 @@ async function updateSlotRequestStatus(id, status) {
   if (error) {
     setAdminDataStatus(getAdminError(error), "error");
     return;
+  }
+
+  if (shouldReleaseHeldSlot(status, request)) {
+    const { error: releaseError } = await releaseHeldSlot(request.availability_slot_id);
+
+    if (releaseError) {
+      setAdminDataStatus(getAdminError(releaseError), "error");
+      return;
+    }
   }
 
   await loadAdminData();
