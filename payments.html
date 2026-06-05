@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payments | Drive with Niall</title>
+    <meta name="description" content="Student lesson payment options for Drive with Niall." />
+    <meta name="robots" content="noindex" />
+    <link rel="stylesheet" href="styles.css?v=payments-2" />
+  </head>
+  <body class="dashboard-page payments-page">
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="Drive with Niall home">
+        <span class="brand-wordmark" aria-hidden="true">
+          <span class="brand-drive">Drive</span>
+          <span class="brand-with">with</span>
+          <span class="brand-niall">Niall<span class="brand-bang">!</span></span>
+        </span>
+        <span class="brand-copy">
+          <strong>Drive with Niall</strong>
+          <small>Student payments</small>
+        </span>
+      </a>
+      <nav class="desktop-nav" aria-label="Payments navigation">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="index.html#book">Book lessons</a>
+      </nav>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false" aria-label="Switch to dark mode">
+        <span class="theme-toggle-icon">☾</span>
+        <span class="theme-toggle-text">Dark</span>
+      </button>
+      <a class="outline-button" href="dashboard.html">Back</a>
+    </header>
+
+    <main class="dashboard-shell">
+      <section class="dashboard-hero">
+        <p class="eyebrow">Lesson payments</p>
+        <h1>Pay for driving lessons</h1>
+        <p id="paymentsIntro">Choose a single lesson payment or buy a 10 hour package, then track your remaining lesson balance.</p>
+        <p class="dashboard-status payment-return-notice" id="paymentReturnNotice" role="status" hidden></p>
+      </section>
+
+      <section class="dashboard-grid" id="signedOutPayments">
+        <article class="dashboard-card dashboard-card-wide">
+          <h2>Sign in required</h2>
+          <p>Use your student account to view lesson balances and payment options.</p>
+          <div class="dashboard-actions">
+            <a class="primary-button" href="index.html">Go to log in</a>
+            <a class="secondary-button" href="dashboard.html">Student dashboard</a>
+          </div>
+        </article>
+      </section>
+
+      <section class="dashboard-grid" id="signedInPayments" hidden>
+        <article class="dashboard-card dashboard-card-wide payment-balance-card">
+          <div class="diary-heading">
+            <div>
+              <span class="dashboard-kicker">Balance</span>
+              <h2>Your lesson credit</h2>
+              <p id="paymentBalanceMessage">Loading your payment balance...</p>
+            </div>
+            <span class="status-pill" id="paymentAccountStatus">Signed in</span>
+          </div>
+          <div class="lesson-stats payment-stats" aria-label="Payment balance summary">
+            <div>
+              <span id="remainingHours">0</span>
+              <strong>Hours remaining</strong>
+            </div>
+            <div>
+              <span id="purchasedHours">0</span>
+              <strong>Hours purchased</strong>
+            </div>
+            <div>
+              <span id="usedHours">0</span>
+              <strong>Hours used</strong>
+            </div>
+            <div>
+              <span id="accountBalance">£0</span>
+              <strong>Account balance</strong>
+            </div>
+          </div>
+        </article>
+
+        <article class="dashboard-card payment-option-card">
+          <span class="dashboard-kicker">Pay per lesson</span>
+          <h2>£35 per hour</h2>
+          <p>Use this for individual lesson payments when you want to pay as you go.</p>
+          <button class="primary-button stripe-checkout-button" id="payPerLessonLink" type="button" data-plan="payPerLesson">Pay £35</button>
+        </article>
+
+        <article class="dashboard-card payment-option-card payment-option-card-featured">
+          <span class="dashboard-kicker">Package</span>
+          <h2>10 hours for £325</h2>
+          <p>Buy a 10 hour block and track the hours remaining from your dashboard.</p>
+          <button class="primary-button stripe-checkout-button" id="tenHourPackageLink" type="button" data-plan="tenHourPackage">Buy 10 hours</button>
+        </article>
+
+        <article class="dashboard-card dashboard-card-wide">
+          <span class="dashboard-kicker">Stripe setup</span>
+          <h2>Stripe Checkout is ready for setup</h2>
+          <p id="stripeSetupMessage">The buttons create a secure Stripe Checkout session through Supabase. Add Stripe secrets to Supabase and deploy the webhook before switching on live payments.</p>
+          <div class="dashboard-actions">
+            <a class="secondary-button" href="dashboard.html">Return to dashboard</a>
+            <a class="secondary-button" href="index.html#book">Request a lesson</a>
+          </div>
+        </article>
+
+        <article class="dashboard-card dashboard-card-wide payment-history-card">
+          <span class="dashboard-kicker">Payment history</span>
+          <h2>Recent payment activity</h2>
+          <ul class="payment-history-list" id="paymentHistoryList">
+            <li>No payment activity has been recorded yet.</li>
+          </ul>
+        </article>
+      </section>
+
+      <p class="dashboard-status" id="paymentsStatus" role="status"></p>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="auth-config.js"></script>
+    <script src="payments.js"></script>
+  </body>
+</html>

@@ -36,6 +36,10 @@ const lessonHistoryEmpty = document.querySelector("#lessonHistoryEmpty");
 const lessonAccessNotice = document.querySelector("#lessonAccessNotice");
 const lessonAccessMessage = document.querySelector("#lessonAccessMessage");
 const lessonStudentOnlySections = document.querySelectorAll(".lesson-student-only");
+const dashboardPaymentMessage = document.querySelector("#dashboardPaymentMessage");
+const dashboardRemainingHours = document.querySelector("#dashboardRemainingHours");
+const dashboardPurchasedHours = document.querySelector("#dashboardPurchasedHours");
+const dashboardAccountBalance = document.querySelector("#dashboardAccountBalance");
 
 let selectedDiarySlot = null;
 let lessonStudentAccess = false;
@@ -146,6 +150,22 @@ function formatLessonDate(value) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function formatPaymentHours(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return "0";
+  return Number.isInteger(number) ? String(number) : number.toFixed(1);
+}
+
+function formatPoundsFromPence(value) {
+  const pence = Number(value || 0);
+  if (!Number.isFinite(pence)) return "£0";
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    maximumFractionDigits: pence % 100 === 0 ? 0 : 2,
+  }).format(pence / 100);
 }
 
 function normaliseLessonRecord(lesson) {
@@ -270,6 +290,22 @@ function updateLessonProgress(lessons = []) {
 
   renderLessonRecordList(upcomingLessonsList, upcoming, { allowCancellation: true });
   renderLessonRecordList(lessonHistoryList, completed);
+}
+
+function updatePaymentBalance(balance) {
+  const purchased = Number(balance?.purchased_hours || 0);
+  const used = Number(balance?.used_hours || 0);
+  const remaining = Math.max(purchased - used, 0);
+
+  if (dashboardRemainingHours) dashboardRemainingHours.textContent = formatPaymentHours(remaining);
+  if (dashboardPurchasedHours) dashboardPurchasedHours.textContent = formatPaymentHours(purchased);
+  if (dashboardAccountBalance) dashboardAccountBalance.textContent = formatPoundsFromPence(balance?.account_balance_pence || 0);
+
+  if (dashboardPaymentMessage) {
+    dashboardPaymentMessage.textContent = balance
+      ? "Your latest payment balance is shown below."
+      : "No payment balance has been added yet. Use the payments page to pay for lessons, then your balance can be recorded here.";
+  }
 }
 
 function setLessonStudentAccess(hasAccess, message) {
@@ -398,6 +434,27 @@ async function loadLessonProgress(userId) {
   updateLessonProgress(data);
 }
 
+async function loadPaymentBalance(userId) {
+  updatePaymentBalance(null);
+
+  if (!dashboardClient) return;
+
+  const { data, error } = await dashboardClient
+    .from("student_payment_balances")
+    .select("purchased_hours,used_hours,account_balance_pence,last_payment_at,updated_at")
+    .eq("student_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    if (dashboardPaymentMessage) {
+      dashboardPaymentMessage.textContent = "Payment tracking is ready in the dashboard, but the Supabase payment balance table still needs to be added.";
+    }
+    return;
+  }
+
+  updatePaymentBalance(data);
+}
+
 async function loadAvailableDiarySlots() {
   availableDiarySlots = [];
   renderDiarySlots([]);
@@ -485,6 +542,7 @@ async function initialiseDashboard() {
   await loadLessonRequests(data.session.user.id);
   await loadDiaryRequests(data.session.user.id);
   await loadLessonProgress(data.session.user.id);
+  await loadPaymentBalance(data.session.user.id);
 }
 
 themeToggle?.addEventListener("click", () => {

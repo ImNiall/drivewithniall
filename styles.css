@@ -1961,6 +1961,10 @@ body.dark-mode .account-status[data-type="error"] {
   gap: 10px;
 }
 
+.payment-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .lesson-stats div {
   display: grid;
   gap: 6px;
@@ -1985,6 +1989,73 @@ body.dark-mode .account-status[data-type="error"] {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+
+.payment-shortcut-card,
+.payment-balance-card {
+  gap: 22px;
+}
+
+.payment-option-card {
+  min-height: 280px;
+}
+
+.payment-option-card h2 {
+  font-size: clamp(2rem, 4vw, 3.2rem);
+}
+
+.payment-option-card-featured {
+  border-color: #c7ead6;
+  background: linear-gradient(135deg, #ffffff, #f2fbf6);
+}
+
+.stripe-checkout-button {
+  border: 0;
+}
+
+.stripe-checkout-button.is-disabled,
+.stripe-checkout-button:disabled {
+  pointer-events: auto;
+  color: #5d6875;
+  background: #e7edf3;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.stripe-checkout-button.is-loading {
+  opacity: 0.78;
+  cursor: wait;
+}
+
+.payment-return-notice {
+  max-width: 760px;
+  margin: 18px auto 0;
+}
+
+.payment-history-card {
+  align-content: start;
+}
+
+.payment-history-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.payment-history-list li {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  color: var(--muted);
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.payment-history-list strong {
+  color: var(--ink);
 }
 
 .lesson-record-panel {
@@ -2136,6 +2207,20 @@ body.dark-mode .dashboard-status {
 body.dark-mode .lesson-access-card {
   background: linear-gradient(135deg, #17202f, #152b22);
   border-color: #2f7d62;
+}
+
+body.dark-mode .payment-option-card-featured {
+  background: linear-gradient(135deg, #17202f, #152b22);
+  border-color: #2f7d62;
+}
+
+body.dark-mode .payment-history-list li {
+  background: #111827;
+  border-color: #31405f;
+}
+
+body.dark-mode .payment-history-list strong {
+  color: #f7fbff;
 }
 
 body.dark-mode .status-pill {
@@ -2634,6 +2719,10 @@ body.dark-mode .dashboard-timeline strong {
   border-left-color: var(--amber);
 }
 
+.admin-slot-card.is-pending {
+  border-left-color: #3b82f6;
+}
+
 .admin-slot-card.is-hidden {
   opacity: 0.72;
   border-left-color: #94a3b8;
@@ -2654,6 +2743,10 @@ body.dark-mode .dashboard-timeline strong {
 
 .admin-slot-card.is-booked .admin-slot-status {
   color: #9a5a10;
+}
+
+.admin-slot-card.is-pending .admin-slot-status {
+  color: #2563eb;
 }
 
 .admin-slot-card.is-hidden .admin-slot-status {
@@ -3378,6 +3471,7 @@ body.dark-mode .area-content p {
   }
 
   .lesson-stats,
+  .payment-stats,
   .lesson-record-grid,
   .lesson-record-list li {
     grid-template-columns: 1fr;

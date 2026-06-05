@@ -66,6 +66,8 @@ let adminData = {
   supportRequests: [],
   lessons: [],
   availabilitySlots: [],
+  paymentBalances: [],
+  paymentEvents: [],
 };
 let activeStudent = null;
 let currentDiaryWeekStart = getStartOfWeek(new Date());
@@ -207,6 +209,20 @@ function formatDiaryRange(slot) {
   return `${formatClock(startsAt)}-${formatClock(endsAt)}`;
 }
 
+function formatAdminHours(value) {
+  const hours = Number(value || 0);
+  if (!Number.isFinite(hours)) return "0";
+  return Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace(/\.0$/, "");
+}
+
+function formatPoundsFromPence(value) {
+  const amount = Number(value || 0) / 100;
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+  }).format(amount);
+}
+
 function getSlotDateKey(slot) {
   return getDateKey(slot?.starts_at);
 }
@@ -299,6 +315,31 @@ function findStudentForLesson(lesson, students = [], requests = []) {
   return [...students, ...requests].find((student) => sameStudent(lesson, student));
 }
 
+function findPaymentBalanceForStudent(student, balances = adminData.paymentBalances) {
+  if (!student) return null;
+  const studentId = student.student_id;
+  const studentEmail = normaliseEmail(student.email);
+
+  return (balances || []).find((balance) => {
+    const balanceEmail = normaliseEmail(balance.student_email);
+    return Boolean(
+      (studentId && balance.student_id === studentId) ||
+        (studentEmail && balanceEmail && balanceEmail === studentEmail),
+    );
+  }) || null;
+}
+
+function getPaymentEventsForStudent(student, events = adminData.paymentEvents) {
+  return (events || [])
+    .filter((event) => sameStudent(event, student))
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
+function formatPaymentEventTitle(event) {
+  const type = String(event?.event_type || "payment").replaceAll("_", " ");
+  return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
 function buildAdminItem(title, meta, details = []) {
   const item = document.createElement("article");
   item.className = "admin-list-item";
@@ -389,7 +430,7 @@ function renderPendingLessonRequests(requests) {
   });
 }
 
-function renderApprovedStudents(students, requests, lessons) {
+function renderApprovedStudents(students, requests, lessons, paymentBalances = adminData.paymentBalances) {
   clearElement(approvedStudentList);
 
   const approved = getApprovedStudentRecords(students, requests);
@@ -402,9 +443,13 @@ function renderApprovedStudents(students, requests, lessons) {
 
   approved.forEach((student) => {
     const studentLessons = (lessons || []).filter((lesson) => sameStudent(lesson, student));
+    const paymentBalance = findPaymentBalanceForStudent(student, paymentBalances);
     const completedHours = studentLessons
       .filter((lesson) => String(lesson.status || "").toLowerCase().includes("complete"))
       .reduce((total, lesson) => total + Number(lesson.hours || lesson.duration_hours || 2), 0);
+    const purchasedHours = Number(paymentBalance?.purchased_hours || 0);
+    const usedHours = Number(paymentBalance?.used_hours || 0);
+    const remainingHours = Math.max(0, purchasedHours - usedHours);
 
     const item = buildAdminItem(
       getStudentName(student),
@@ -413,6 +458,11 @@ function renderApprovedStudents(students, requests, lessons) {
         `Status: ${student.lesson_status || "Approved"}`,
         `Completed hours: ${completedHours}`,
         `Bookings: ${studentLessons.length}`,
+        paymentBalance
+          ? `Paid remaining: ${formatAdminHours(remainingHours)} hour${remainingHours === 1 ? "" : "s"}`
+          : "Paid remaining: No paid hours recorded",
+        paymentBalance ? `Paid used: ${formatAdminHours(usedHours)} of ${formatAdminHours(purchasedHours)} hours` : "",
+        paymentBalance ? `Account balance: ${formatPoundsFromPence(paymentBalance.account_balance_pence)}` : "",
       ],
     );
 
@@ -441,8 +491,9 @@ function renderStudentHistory(student) {
   const requests = adminData.lessonRequests
     .filter((request) => sameStudent(request, student))
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const paymentEvents = getPaymentEventsForStudent(student);
 
-  if (!lessons.length && !requests.length) {
+  if (!lessons.length && !requests.length && !paymentEvents.length) {
     studentHistoryList?.append(createEmptyState("No booking history found for this student yet."));
     return;
   }
@@ -468,6 +519,21 @@ function renderStudentHistory(student) {
         request.lesson_type ? `Type: ${request.lesson_type}` : "",
         request.postcode ? `Postcode: ${request.postcode}` : "",
         request.addresses ? `Address: ${request.addresses}` : "",
+      ],
+    );
+    studentHistoryList?.append(item);
+  });
+
+  paymentEvents.forEach((event) => {
+    const hours = Number(event.hours_delta || 0);
+    const amount = Number(event.amount_pence || 0);
+    const item = buildAdminItem(
+      formatPaymentEventTitle(event),
+      `${event.event_status || "Recorded"} · ${formatAdminDate(event.created_at)}`,
+      [
+        event.plan_key ? `Plan: ${event.plan_key}` : "",
+        hours ? `Hours: ${formatAdminHours(hours)}` : "",
+        amount ? `Amount: ${formatPoundsFromPence(amount)}` : "",
       ],
     );
     studentHistoryList?.append(item);
@@ -568,7 +634,7 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
     addItemActions(item, [
       {
         label: "Mark complete",
-        onClick: () => markLessonComplete(lesson.id),
+        onClick: () => markLessonComplete(lesson),
       },
     ]);
 
@@ -634,7 +700,48 @@ function getSlotStatusClass(status) {
   const value = String(status || "available").toLowerCase();
   if (value.includes("book")) return "is-booked";
   if (value.includes("hidden")) return "is-hidden";
+  if (value.includes("pending")) return "is-pending";
   return "is-available";
+}
+
+function findPendingRequestForSlot(slot) {
+  if (!slot?.id) return null;
+
+  return (adminData.slotRequests || []).find((request) => {
+    const requestStatus = String(request.status || "").toLowerCase();
+    const isClosed = ["confirmed", "declined", "rejected", "cancel"].some((word) => requestStatus.includes(word));
+    return request.availability_slot_id === slot.id && !isClosed;
+  });
+}
+
+function getPendingSlotActions(slot) {
+  const request = findPendingRequestForSlot(slot);
+
+  if (!request) {
+    return [
+      {
+        label: "Release slot",
+        onClick: () =>
+          updateAvailabilitySlot(slot.id, {
+            status: "Available",
+            assigned_student_id: null,
+            assigned_student_email: null,
+          }),
+      },
+    ];
+  }
+
+  return [
+    {
+      label: "Confirm",
+      className: "primary-button",
+      onClick: () => confirmSlotRequest(request),
+    },
+    {
+      label: "Decline",
+      onClick: () => updateSlotRequestStatus(request.id, "Declined", request),
+    },
+  ];
 }
 
 function renderDiaryWeek(slots = adminData.availabilitySlots) {
@@ -703,6 +810,15 @@ function renderDiaryWeek(slots = adminData.availabilitySlots) {
           hideButton.textContent = "Hide";
           hideButton.addEventListener("click", () => updateAvailabilitySlot(slot.id, { status: "Hidden" }));
           actions.append(hideButton);
+        } else if (statusValue === "pending") {
+          getPendingSlotActions(slot).forEach(({ label, className = "secondary-button", onClick }) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = className;
+            button.textContent = label;
+            button.addEventListener("click", onClick);
+            actions.append(button);
+          });
         } else if (statusValue === "hidden") {
           const showButton = document.createElement("button");
           showButton.type = "button";
@@ -712,7 +828,7 @@ function renderDiaryWeek(slots = adminData.availabilitySlots) {
           actions.append(showButton);
         }
 
-        if (statusValue !== "booked") {
+        if (statusValue !== "booked" && statusValue !== "pending") {
           const deleteButton = document.createElement("button");
           deleteButton.type = "button";
           deleteButton.className = "secondary-button";
@@ -771,6 +887,8 @@ function renderAvailabilitySlots(slots) {
           onClick: () => deleteAvailabilitySlot(slot),
         },
       );
+    } else if (statusValue === "pending") {
+      actions.push(...getPendingSlotActions(slot));
     } else if (statusValue === "hidden") {
       actions.push({
         label: "Make available",
@@ -840,7 +958,16 @@ async function loadAdminData() {
 
   setAdminDataStatus("Loading admin data...");
 
-  const [lessonRequests, studentProfiles, slotRequests, supportRequests, lessons, availabilitySlots] = await Promise.all([
+  const [
+    lessonRequests,
+    studentProfiles,
+    slotRequests,
+    supportRequests,
+    lessons,
+    availabilitySlots,
+    paymentBalances,
+    paymentEvents,
+  ] = await Promise.all([
     loadTable("lesson_requests", (query) =>
       query
         .select("id,student_id,name,email,phone,addresses,postcode,lesson_type,current_stage,availability,status,created_at")
@@ -877,6 +1004,18 @@ async function loadAdminData() {
         .order("starts_at", { ascending: true })
         .limit(120),
     ),
+    loadTable("student_payment_balances", (query) =>
+      query
+        .select("id,student_id,student_email,purchased_hours,used_hours,account_balance_pence,last_payment_at,updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(100),
+    ),
+    loadTable("student_payment_events", (query) =>
+      query
+        .select("id,student_id,student_email,event_type,event_status,plan_key,hours_delta,amount_pence,currency,created_at")
+        .order("created_at", { ascending: false })
+        .limit(120),
+    ),
   ]);
 
   adminData = {
@@ -886,16 +1025,27 @@ async function loadAdminData() {
     supportRequests: supportRequests.data,
     lessons: lessons.data,
     availabilitySlots: availabilitySlots.data,
+    paymentBalances: paymentBalances.data,
+    paymentEvents: paymentEvents.data,
   };
 
   renderPendingLessonRequests(lessonRequests.data);
   renderAvailabilitySlots(availabilitySlots.data);
-  renderApprovedStudents(studentProfiles.data, lessonRequests.data, lessons.data);
+  renderApprovedStudents(studentProfiles.data, lessonRequests.data, lessons.data, paymentBalances.data);
   renderSlotRequests(slotRequests.data);
   renderSupportRequests(supportRequests.data);
   renderConfirmedLessons(lessons.data, studentProfiles.data, lessonRequests.data);
 
-  const errors = [lessonRequests, studentProfiles, slotRequests, supportRequests, lessons, availabilitySlots].filter((result) => result.error);
+  const errors = [
+    lessonRequests,
+    studentProfiles,
+    slotRequests,
+    supportRequests,
+    lessons,
+    availabilitySlots,
+    paymentBalances,
+    paymentEvents,
+  ].filter((result) => result.error);
   if (errors.length) {
     const errorSummary = errors
       .map((result) => `${result.table}: ${result.error.message || "could not load"}`)
@@ -1385,7 +1535,107 @@ async function approveCancellationRequest(request) {
   await updateSlotRequestStatus(request.id, "Cancellation approved");
 }
 
-async function markLessonComplete(id) {
+function getLessonDurationHours(lesson) {
+  const hours = Number(lesson?.hours || lesson?.duration_hours || 2);
+  return Number.isFinite(hours) && hours > 0 ? hours : 2;
+}
+
+function calculateCreditPenceUsed(balance, lessonHours) {
+  const purchasedHours = Number(balance?.purchased_hours || 0);
+  const usedHours = Number(balance?.used_hours || 0);
+  const remainingHours = Math.max(purchasedHours - usedHours, 0);
+  const currentBalancePence = Math.max(Number(balance?.account_balance_pence || 0), 0);
+
+  if (!remainingHours || !currentBalancePence) {
+    return 0;
+  }
+
+  return Math.min(currentBalancePence, Math.round((currentBalancePence / remainingHours) * lessonHours));
+}
+
+async function consumeLessonPaymentCredit(lesson) {
+  const studentId = lesson?.student_id || null;
+  const studentEmail = String(lesson?.student_email || "").toLowerCase();
+
+  if (!studentId && !studentEmail) {
+    return { status: "skipped", message: "No student account was linked to this lesson." };
+  }
+
+  let balanceQuery = adminClient
+    .from("student_payment_balances")
+    .select("id,student_id,student_email,purchased_hours,used_hours,account_balance_pence");
+
+  if (studentId) {
+    balanceQuery = balanceQuery.eq("student_id", studentId);
+  } else {
+    balanceQuery = balanceQuery.eq("student_email", studentEmail);
+  }
+
+  const { data: balance, error: balanceError } = await balanceQuery.maybeSingle();
+
+  if (balanceError) {
+    return { status: "error", message: getAdminError(balanceError) };
+  }
+
+  if (!balance) {
+    return { status: "skipped", message: "No paid balance was found for this student yet." };
+  }
+
+  const lessonHours = getLessonDurationHours(lesson);
+  const currentUsedHours = Number(balance.used_hours || 0);
+  const currentBalancePence = Math.max(Number(balance.account_balance_pence || 0), 0);
+  const creditPenceUsed = calculateCreditPenceUsed(balance, lessonHours);
+  const nextBalancePence = Math.max(currentBalancePence - creditPenceUsed, 0);
+  const now = new Date().toISOString();
+
+  const { error: updateError } = await adminClient
+    .from("student_payment_balances")
+    .update({
+      used_hours: currentUsedHours + lessonHours,
+      account_balance_pence: nextBalancePence,
+      updated_at: now,
+    })
+    .eq("id", balance.id);
+
+  if (updateError) {
+    return { status: "error", message: getAdminError(updateError) };
+  }
+
+  const { error: eventError } = await adminClient
+    .from("student_payment_events")
+    .insert({
+      student_id: balance.student_id || studentId,
+      student_email: balance.student_email || studentEmail || null,
+      event_type: "lesson_credit_used",
+      event_status: "completed",
+      plan_key: "lesson_complete",
+      hours_delta: -lessonHours,
+      amount_pence: -creditPenceUsed,
+      currency: "gbp",
+      metadata: {
+        lesson_id: lesson.id,
+        starts_at: lesson.starts_at || lesson.lesson_date || null,
+        topic: lesson.topic || "Driving lesson",
+      },
+      updated_at: now,
+    });
+
+  if (eventError) {
+    return {
+      status: "warning",
+      message: "Lesson was completed and the balance was updated, but the payment history entry could not be saved.",
+    };
+  }
+
+  return { status: "success", message: "Lesson marked complete and payment balance updated." };
+}
+
+async function markLessonComplete(lessonOrId) {
+  const lesson = typeof lessonOrId === "object"
+    ? lessonOrId
+    : adminData.lessons.find((item) => item.id === lessonOrId);
+  const id = lesson?.id || lessonOrId;
+
   if (!id) return;
   setAdminDataStatus("Marking lesson complete...");
 
@@ -1399,7 +1649,25 @@ async function markLessonComplete(id) {
     return;
   }
 
+  const paymentResult = await consumeLessonPaymentCredit(lesson || { id });
   await loadAdminData();
+
+  if (paymentResult.status === "error") {
+    setAdminDataStatus(`Lesson marked complete, but payment balance could not update. ${paymentResult.message}`, "error");
+    return;
+  }
+
+  if (paymentResult.status === "warning") {
+    setAdminDataStatus(paymentResult.message, "error");
+    return;
+  }
+
+  if (paymentResult.status === "skipped") {
+    setAdminDataStatus(`Lesson marked complete. ${paymentResult.message}`, "success");
+    return;
+  }
+
+  setAdminDataStatus(paymentResult.message, "success");
 }
 
 function setAdminSession(session) {
