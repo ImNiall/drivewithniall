@@ -146,10 +146,28 @@ function renderPaymentHistory(events = []) {
       const status = String(event.event_status || "pending").replaceAll("_", " ");
 
       if (isLessonUsage) {
+        const lessonDate = event.metadata?.starts_at
+          ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(event.metadata.starts_at))
+          : null;
+        const lessonTopic = event.metadata?.topic || "Driving lesson";
         return `
           <li>
             <strong>Lesson credit used</strong>
-            <span>${hours} hour${Number(hours) === 1 ? "" : "s"} used · ${date}</span>
+            <span>${hours} hour${Number(hours) === 1 ? "" : "s"} used${lessonDate ? ` · ${lessonDate}` : ""}</span>
+            <span>${lessonTopic}${lessonDate ? "" : ` · ${date}`}</span>
+          </li>
+        `;
+      }
+
+      if (event.event_type === "lesson_credit_refunded") {
+        const lessonDate = event.metadata?.starts_at
+          ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(event.metadata.starts_at))
+          : null;
+        return `
+          <li>
+            <strong>Lesson credit restored</strong>
+            <span>${hours} hour${Number(hours) === 1 ? "" : "s"} restored${lessonDate ? ` · ${lessonDate}` : ""}</span>
+            <span>${status} · ${date}</span>
           </li>
         `;
       }
@@ -190,7 +208,7 @@ async function loadPaymentHistory(userId) {
 
   const { data, error } = await paymentsClient
     .from("student_payment_events")
-    .select("event_type,event_status,plan_key,hours_delta,amount_pence,currency,created_at")
+    .select("event_type,event_status,plan_key,hours_delta,amount_pence,currency,metadata,created_at")
     .eq("student_id", userId)
     .order("created_at", { ascending: false })
     .limit(8);

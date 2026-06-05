@@ -19,6 +19,7 @@ const pendingLessonRequests = document.querySelector("#pendingLessonRequests");
 const slotRequestList = document.querySelector("#slotRequestList");
 const approvedStudentList = document.querySelector("#approvedStudentList");
 const confirmedLessonList = document.querySelector("#confirmedLessonList");
+const deliveredLessonList = document.querySelector("#deliveredLessonList");
 const supportRequestList = document.querySelector("#supportRequestList");
 const pendingRequestCount = document.querySelector("#pendingRequestCount");
 const approvedStudentCount = document.querySelector("#approvedStudentCount");
@@ -111,6 +112,25 @@ function setAdminDataStatus(message, type = "info") {
 
 function setCount(element, value) {
   if (element) element.textContent = String(value || 0);
+}
+
+function getLessonStatusValue(status) {
+  return String(status || "").toLowerCase();
+}
+
+function isCompletedLessonStatus(status) {
+  const value = getLessonStatusValue(status);
+  return value.includes("complete") || value.includes("done") || value.includes("attended") || value.includes("deliver");
+}
+
+function isCancelledLessonStatus(status) {
+  return getLessonStatusValue(status).includes("cancel");
+}
+
+function getLessonRemainingHours(balance) {
+  const purchasedHours = Number(balance?.purchased_hours || 0);
+  const usedHours = Number(balance?.used_hours || 0);
+  return Math.max(purchasedHours - usedHours, 0);
 }
 
 function getAdminError(error) {
@@ -372,6 +392,10 @@ function buildAdminItem(title, meta, details = []) {
   return item;
 }
 
+function formatLessonDateValue(lesson) {
+  return lesson?.starts_at || lesson?.lesson_date || lesson?.created_at || "";
+}
+
 function addItemActions(item, actions) {
   const actionWrap = document.createElement("div");
   actionWrap.className = "admin-list-actions";
@@ -445,7 +469,7 @@ function renderApprovedStudents(students, requests, lessons, paymentBalances = a
     const studentLessons = (lessons || []).filter((lesson) => sameStudent(lesson, student));
     const paymentBalance = findPaymentBalanceForStudent(student, paymentBalances);
     const completedHours = studentLessons
-      .filter((lesson) => String(lesson.status || "").toLowerCase().includes("complete"))
+      .filter((lesson) => isCompletedLessonStatus(lesson.status))
       .reduce((total, lesson) => total + Number(lesson.hours || lesson.duration_hours || 2), 0);
     const purchasedHours = Number(paymentBalance?.purchased_hours || 0);
     const usedHours = Number(paymentBalance?.used_hours || 0);
@@ -608,8 +632,7 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
   clearElement(confirmedLessonList);
 
   const confirmed = (lessons || []).filter((lesson) => {
-    const status = String(lesson.status || "").toLowerCase();
-    return !status.includes("complete") && !status.includes("cancel");
+    return !isCompletedLessonStatus(lesson.status) && !isCancelledLessonStatus(lesson.status);
   });
   setCount(confirmedLessonCount, confirmed.length);
 
@@ -628,17 +651,57 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
         `Status: ${lesson.status || "Confirmed"}`,
         `Hours: ${lesson.hours || lesson.duration_hours || 2}`,
         lesson.topic ? `Focus: ${lesson.topic}` : "",
+        lesson.summary ? `Summary: ${lesson.summary}` : "",
       ],
     );
 
     addItemActions(item, [
       {
-        label: "Mark complete",
-        onClick: () => markLessonComplete(lesson),
+        label: "Mark as delivered",
+        className: "primary-button",
+        onClick: () => markLessonDelivered(lesson),
       },
     ]);
 
     confirmedLessonList?.append(item);
+  });
+}
+
+function renderDeliveredLessons(lessons, students = [], requests = []) {
+  clearElement(deliveredLessonList);
+
+  const delivered = (lessons || [])
+    .filter((lesson) => isCompletedLessonStatus(lesson.status))
+    .sort((a, b) => new Date(b.delivered_at || formatLessonDateValue(b) || 0) - new Date(a.delivered_at || formatLessonDateValue(a) || 0));
+
+  if (!delivered.length) {
+    deliveredLessonList?.append(createEmptyState("No delivered lessons yet."));
+    return;
+  }
+
+  delivered.forEach((lesson) => {
+    const student = findStudentForLesson(lesson, students, requests);
+    const item = buildAdminItem(
+      student ? getStudentName(student) : lesson.student_email || lesson.topic || "Driving lesson",
+      formatAdminDate(formatLessonDateValue(lesson)),
+      [
+        lesson.student_email ? `Email: ${lesson.student_email}` : "",
+        `Status: ${lesson.status || "Delivered"}`,
+        `Hours: ${lesson.hours || lesson.duration_hours || 2}`,
+        lesson.delivered_at ? `Delivered: ${formatAdminDate(lesson.delivered_at)}` : "",
+        lesson.topic ? `Focus: ${lesson.topic}` : "",
+        lesson.summary ? `Summary: ${lesson.summary}` : "",
+      ],
+    );
+
+    addItemActions(item, [
+      {
+        label: "Undo delivered",
+        onClick: () => undoLessonDelivered(lesson),
+      },
+    ]);
+
+    deliveredLessonList?.append(item);
   });
 }
 
@@ -994,7 +1057,7 @@ async function loadAdminData() {
     ),
     loadTable("lessons", (query) =>
       query
-        .select("id,student_id,student_email,availability_slot_id,starts_at,lesson_date,hours,duration_hours,topic,status,notes,created_at")
+        .select("id,student_id,student_email,availability_slot_id,starts_at,lesson_date,hours,duration_hours,topic,status,notes,summary,delivered_at,created_at")
         .order("starts_at", { ascending: true })
         .limit(100),
     ),
@@ -1012,7 +1075,7 @@ async function loadAdminData() {
     ),
     loadTable("student_payment_events", (query) =>
       query
-        .select("id,student_id,student_email,event_type,event_status,plan_key,hours_delta,amount_pence,currency,created_at")
+        .select("id,student_id,student_email,event_type,event_status,plan_key,hours_delta,amount_pence,currency,metadata,created_at")
         .order("created_at", { ascending: false })
         .limit(120),
     ),
@@ -1035,6 +1098,7 @@ async function loadAdminData() {
   renderSlotRequests(slotRequests.data);
   renderSupportRequests(supportRequests.data);
   renderConfirmedLessons(lessons.data, studentProfiles.data, lessonRequests.data);
+  renderDeliveredLessons(lessons.data, studentProfiles.data, lessonRequests.data);
 
   const errors = [
     lessonRequests,
@@ -1553,12 +1617,12 @@ function calculateCreditPenceUsed(balance, lessonHours) {
   return Math.min(currentBalancePence, Math.round((currentBalancePence / remainingHours) * lessonHours));
 }
 
-async function consumeLessonPaymentCredit(lesson) {
+async function getPaymentBalanceForLesson(lesson) {
   const studentId = lesson?.student_id || null;
   const studentEmail = String(lesson?.student_email || "").toLowerCase();
 
   if (!studentId && !studentEmail) {
-    return { status: "skipped", message: "No student account was linked to this lesson." };
+    return { balance: null, error: null };
   }
 
   let balanceQuery = adminClient
@@ -1574,7 +1638,67 @@ async function consumeLessonPaymentCredit(lesson) {
   const { data: balance, error: balanceError } = await balanceQuery.maybeSingle();
 
   if (balanceError) {
-    return { status: "error", message: getAdminError(balanceError) };
+    return { balance: null, error: getAdminError(balanceError) };
+  }
+
+  return { balance: balance || null, error: null };
+}
+
+function findLessonUsageEventInMemory(lessonId) {
+  if (!lessonId) return null;
+
+  return adminData.paymentEvents.find((event) =>
+    event.event_type === "lesson_credit_used" &&
+    event.event_status === "completed" &&
+    event.metadata?.lesson_id === lessonId,
+  ) || null;
+}
+
+async function getLessonUsageEvent(lessonId) {
+  if (!lessonId) return { event: null, error: null };
+
+  const existingEvent = findLessonUsageEventInMemory(lessonId);
+  if (existingEvent) {
+    return { event: existingEvent, error: null };
+  }
+
+  const { data, error } = await adminClient
+    .from("student_payment_events")
+    .select("id,student_id,student_email,event_type,event_status,plan_key,hours_delta,amount_pence,currency,metadata,created_at")
+    .eq("event_type", "lesson_credit_used")
+    .eq("event_status", "completed")
+    .contains("metadata", { lesson_id: lessonId })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return { event: null, error: getAdminError(error) };
+  }
+
+  return { event: data || null, error: null };
+}
+
+async function consumeLessonPaymentCredit(lesson) {
+  const studentId = lesson?.student_id || null;
+  const studentEmail = String(lesson?.student_email || "").toLowerCase();
+
+  if (!studentId && !studentEmail) {
+    return { status: "skipped", message: "No student account was linked to this lesson." };
+  }
+
+  const { event: existingUsageEvent, error: usageEventError } = await getLessonUsageEvent(lesson?.id);
+  if (usageEventError) {
+    return { status: "error", message: usageEventError };
+  }
+
+  if (existingUsageEvent) {
+    return { status: "skipped", message: "Payment credit was already consumed for this lesson." };
+  }
+
+  const { balance, error: balanceError } = await getPaymentBalanceForLesson(lesson);
+  if (balanceError) {
+    return { status: "error", message: balanceError };
   }
 
   if (!balance) {
@@ -1582,11 +1706,16 @@ async function consumeLessonPaymentCredit(lesson) {
   }
 
   const lessonHours = getLessonDurationHours(lesson);
+  const remainingHours = getLessonRemainingHours(balance);
   const currentUsedHours = Number(balance.used_hours || 0);
   const currentBalancePence = Math.max(Number(balance.account_balance_pence || 0), 0);
   const creditPenceUsed = calculateCreditPenceUsed(balance, lessonHours);
   const nextBalancePence = Math.max(currentBalancePence - creditPenceUsed, 0);
   const now = new Date().toISOString();
+
+  if (remainingHours <= 0) {
+    return { status: "warning", message: "This student had no paid hours remaining, so no payment credit was deducted." };
+  }
 
   const { error: updateError } = await adminClient
     .from("student_payment_balances")
@@ -1616,6 +1745,7 @@ async function consumeLessonPaymentCredit(lesson) {
         lesson_id: lesson.id,
         starts_at: lesson.starts_at || lesson.lesson_date || null,
         topic: lesson.topic || "Driving lesson",
+        delivered_at: lesson.delivered_at || now,
       },
       updated_at: now,
     });
@@ -1623,25 +1753,120 @@ async function consumeLessonPaymentCredit(lesson) {
   if (eventError) {
     return {
       status: "warning",
-      message: "Lesson was completed and the balance was updated, but the payment history entry could not be saved.",
+      message: "Lesson was delivered and the balance was updated, but the payment history entry could not be saved.",
     };
   }
 
-  return { status: "success", message: "Lesson marked complete and payment balance updated." };
+  return { status: "success", message: "Lesson marked as delivered and payment balance updated." };
 }
 
-async function markLessonComplete(lessonOrId) {
+async function restoreLessonPaymentCredit(lesson) {
+  const { event: usageEvent, error: usageEventError } = await getLessonUsageEvent(lesson?.id);
+  if (usageEventError) {
+    return { status: "error", message: usageEventError };
+  }
+
+  if (!usageEvent) {
+    return { status: "skipped", message: "No payment credit had been consumed for this lesson." };
+  }
+
+  const { balance, error: balanceError } = await getPaymentBalanceForLesson(lesson);
+  if (balanceError) {
+    return { status: "error", message: balanceError };
+  }
+
+  if (!balance) {
+    return { status: "error", message: "No paid balance record was found to restore this lesson against." };
+  }
+
+  const restoredHours = Math.abs(Number(usageEvent.hours_delta || 0));
+  const restoredPence = Math.abs(Number(usageEvent.amount_pence || 0));
+  const now = new Date().toISOString();
+
+  const { error: updateError } = await adminClient
+    .from("student_payment_balances")
+    .update({
+      used_hours: Math.max(Number(balance.used_hours || 0) - restoredHours, 0),
+      account_balance_pence: Math.max(Number(balance.account_balance_pence || 0) + restoredPence, 0),
+      updated_at: now,
+    })
+    .eq("id", balance.id);
+
+  if (updateError) {
+    return { status: "error", message: getAdminError(updateError) };
+  }
+
+  const { error: eventError } = await adminClient
+    .from("student_payment_events")
+    .insert({
+      student_id: balance.student_id || lesson?.student_id || null,
+      student_email: balance.student_email || lesson?.student_email || null,
+      event_type: "lesson_credit_refunded",
+      event_status: "completed",
+      plan_key: "lesson_reopened",
+      hours_delta: restoredHours,
+      amount_pence: restoredPence,
+      currency: usageEvent.currency || "gbp",
+      metadata: {
+        lesson_id: lesson?.id || null,
+        reversal_of_event_id: usageEvent.id,
+        starts_at: lesson?.starts_at || lesson?.lesson_date || null,
+        topic: lesson?.topic || "Driving lesson",
+      },
+      updated_at: now,
+    });
+
+  if (eventError) {
+    return {
+      status: "warning",
+      message: "The lesson credit was restored, but the refund history entry could not be saved.",
+    };
+  }
+
+  return { status: "success", message: "Lesson delivery was undone and the student's paid hours were restored." };
+}
+
+async function markLessonDelivered(lessonOrId) {
   const lesson = typeof lessonOrId === "object"
     ? lessonOrId
     : adminData.lessons.find((item) => item.id === lessonOrId);
   const id = lesson?.id || lessonOrId;
 
   if (!id) return;
-  setAdminDataStatus("Marking lesson complete...");
+  if (isCompletedLessonStatus(lesson?.status)) {
+    setAdminDataStatus("This lesson has already been marked as delivered.", "success");
+    return;
+  }
+
+  const { balance, error: balanceError } = await getPaymentBalanceForLesson(lesson || { id });
+  if (balanceError) {
+    setAdminDataStatus(balanceError, "error");
+    return;
+  }
+
+  const remainingHours = getLessonRemainingHours(balance);
+  const lessonHours = getLessonDurationHours(lesson);
+  const confirmationMessage = !balance
+    ? "Mark this lesson as delivered? No paid balance is linked to this student yet."
+    : remainingHours <= 0
+      ? "Mark this lesson as delivered? This student has no paid hours remaining."
+      : remainingHours < lessonHours
+        ? `Mark this lesson as delivered? Only ${remainingHours} paid hour${remainingHours === 1 ? "" : "s"} remain for a ${lessonHours}-hour lesson.`
+        : "Mark this lesson as delivered? This will reduce the student's remaining paid hours.";
+  const confirmed = window.confirm(confirmationMessage);
+  if (!confirmed) return;
+  const summaryInput = window.prompt("Add a short delivery note or lesson summary (optional).", lesson?.summary || "");
+
+  setAdminDataStatus("Marking lesson as delivered...");
+  const deliveredAt = new Date().toISOString();
 
   const { error } = await adminClient
     .from("lessons")
-    .update({ status: "Completed" })
+    .update({
+      status: "Delivered",
+      delivered_at: deliveredAt,
+      summary: summaryInput === null ? (lesson?.summary || null) : summaryInput.trim(),
+    })
     .eq("id", id);
 
   if (error) {
@@ -1649,11 +1874,15 @@ async function markLessonComplete(lessonOrId) {
     return;
   }
 
-  const paymentResult = await consumeLessonPaymentCredit(lesson || { id });
+  const paymentResult = await consumeLessonPaymentCredit({
+    ...(lesson || { id }),
+    delivered_at: deliveredAt,
+    summary: summaryInput === null ? (lesson?.summary || null) : summaryInput.trim(),
+  });
   await loadAdminData();
 
   if (paymentResult.status === "error") {
-    setAdminDataStatus(`Lesson marked complete, but payment balance could not update. ${paymentResult.message}`, "error");
+    setAdminDataStatus(`Lesson marked as delivered, but the payment balance could not update. ${paymentResult.message}`, "error");
     return;
   }
 
@@ -1663,7 +1892,58 @@ async function markLessonComplete(lessonOrId) {
   }
 
   if (paymentResult.status === "skipped") {
-    setAdminDataStatus(`Lesson marked complete. ${paymentResult.message}`, "success");
+    setAdminDataStatus(`Lesson marked as delivered. ${paymentResult.message}`, "success");
+    return;
+  }
+
+  setAdminDataStatus("Lesson marked as delivered and the student's remaining hours were updated.", "success");
+}
+
+async function undoLessonDelivered(lessonOrId) {
+  const lesson = typeof lessonOrId === "object"
+    ? lessonOrId
+    : adminData.lessons.find((item) => item.id === lessonOrId);
+  const id = lesson?.id || lessonOrId;
+
+  if (!id) return;
+  if (!isCompletedLessonStatus(lesson?.status)) {
+    setAdminDataStatus("This lesson is not marked as delivered.", "error");
+    return;
+  }
+
+  const confirmed = window.confirm("Undo this delivered lesson? This will restore the student's paid hours.");
+  if (!confirmed) return;
+
+  setAdminDataStatus("Undoing delivered lesson...");
+
+  const { error } = await adminClient
+    .from("lessons")
+    .update({
+      status: "Confirmed",
+      delivered_at: null,
+    })
+    .eq("id", id);
+
+  if (error) {
+    setAdminDataStatus(getAdminError(error), "error");
+    return;
+  }
+
+  const paymentResult = await restoreLessonPaymentCredit(lesson || { id });
+  await loadAdminData();
+
+  if (paymentResult.status === "error") {
+    setAdminDataStatus(`Lesson reopened, but the payment balance could not be restored. ${paymentResult.message}`, "error");
+    return;
+  }
+
+  if (paymentResult.status === "warning") {
+    setAdminDataStatus(paymentResult.message, "error");
+    return;
+  }
+
+  if (paymentResult.status === "skipped") {
+    setAdminDataStatus(`Lesson reopened. ${paymentResult.message}`, "success");
     return;
   }
 

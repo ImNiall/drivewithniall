@@ -172,7 +172,11 @@ function normaliseLessonRecord(lesson) {
   const dateValue = lesson.starts_at || lesson.lesson_date || lesson.date || lesson.created_at;
   const hours = Number(lesson.hours || lesson.duration_hours || 2);
   const status = String(lesson.status || "").toLowerCase();
-  const isCompleted = status.includes("complete") || status.includes("done") || status.includes("attended");
+  const isCompleted =
+    status.includes("complete") ||
+    status.includes("done") ||
+    status.includes("attended") ||
+    status.includes("deliver");
   const isCancelled = status.includes("cancel");
   const hasCancellationRequest = cancellationRequestSlots.has(String(dateValue || ""));
 
@@ -183,7 +187,7 @@ function normaliseLessonRecord(lesson) {
     label: formatLessonDate(dateValue),
     hours: Number.isFinite(hours) ? hours : 2,
     topic: lesson.topic || lesson.focus || lesson.lesson_type || "Driving lesson",
-    notes: lesson.notes || lesson.summary || "",
+    notes: lesson.summary || lesson.notes || "",
     status: lesson.status || (isCompleted ? "Completed" : "Confirmed"),
     isCompleted,
     isCancelled,
