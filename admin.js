@@ -1897,9 +1897,25 @@ async function consumeLessonPaymentCredit(lesson) {
     });
 
   if (eventError) {
+    const { error: revertError } = await adminClient
+      .from("student_payment_balances")
+      .update({
+        used_hours: currentUsedHours,
+        account_balance_pence: currentBalancePence,
+        updated_at: now,
+      })
+      .eq("id", balance.id);
+
+    if (revertError) {
+      return {
+        status: "error",
+        message: `Payment history could not be saved and the balance rollback failed. ${getAdminError(revertError)}`,
+      };
+    }
+
     return {
-      status: "warning",
-      message: "Lesson was delivered and the balance was updated, but the payment history entry could not be saved.",
+      status: "error",
+      message: "Payment history could not be saved, so the balance change was rolled back.",
     };
   }
 
@@ -1928,12 +1944,16 @@ async function restoreLessonPaymentCredit(lesson) {
   const restoredHours = Math.abs(Number(usageEvent.hours_delta || 0));
   const restoredPence = Math.abs(Number(usageEvent.amount_pence || 0));
   const now = new Date().toISOString();
+  const currentUsedHours = Number(balance.used_hours || 0);
+  const currentBalancePence = Math.max(Number(balance.account_balance_pence || 0), 0);
+  const restoredUsedHours = Math.max(currentUsedHours - restoredHours, 0);
+  const restoredBalancePence = Math.max(currentBalancePence + restoredPence, 0);
 
   const { error: updateError } = await adminClient
     .from("student_payment_balances")
     .update({
-      used_hours: Math.max(Number(balance.used_hours || 0) - restoredHours, 0),
-      account_balance_pence: Math.max(Number(balance.account_balance_pence || 0) + restoredPence, 0),
+      used_hours: restoredUsedHours,
+      account_balance_pence: restoredBalancePence,
       updated_at: now,
     })
     .eq("id", balance.id);
@@ -1963,9 +1983,25 @@ async function restoreLessonPaymentCredit(lesson) {
     });
 
   if (eventError) {
+    const { error: revertError } = await adminClient
+      .from("student_payment_balances")
+      .update({
+        used_hours: currentUsedHours,
+        account_balance_pence: currentBalancePence,
+        updated_at: now,
+      })
+      .eq("id", balance.id);
+
+    if (revertError) {
+      return {
+        status: "error",
+        message: `Refund history could not be saved and the balance rollback failed. ${getAdminError(revertError)}`,
+      };
+    }
+
     return {
-      status: "warning",
-      message: "The lesson credit was restored, but the refund history entry could not be saved.",
+      status: "error",
+      message: "Refund history could not be saved, so the balance restore was rolled back.",
     };
   }
 
