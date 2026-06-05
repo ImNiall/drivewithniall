@@ -277,6 +277,11 @@ function isApprovedStatus(status) {
   return ["approved", "accepted", "active", "confirmed"].some((word) => value.includes(word));
 }
 
+function isClosedWorkflowStatus(status) {
+  const value = String(status || "").toLowerCase();
+  return ["removed", "cancel", "complete", "deliver", "declined", "rejected"].some((word) => value.includes(word));
+}
+
 function isCancellationRequest(request) {
   const status = String(request?.status || "").toLowerCase();
   const label = String(request?.requested_label || "").toLowerCase();
@@ -479,6 +484,7 @@ function renderApprovedStudents(students, requests, lessons, paymentBalances = a
 
   approved.forEach((student) => {
     const studentLessons = (lessons || []).filter((lesson) => sameStudent(lesson, student));
+    const activeBookings = studentLessons.filter((lesson) => !isCompletedLessonStatus(lesson.status) && !isCancelledLessonStatus(lesson.status));
     const paymentBalance = findPaymentBalanceForStudent(student, paymentBalances);
     const completedHours = studentLessons
       .filter((lesson) => isCompletedLessonStatus(lesson.status))
@@ -493,7 +499,7 @@ function renderApprovedStudents(students, requests, lessons, paymentBalances = a
       [
         `Status: ${student.lesson_status || "Approved"}`,
         `Completed hours: ${completedHours}`,
-        `Bookings: ${studentLessons.length}`,
+        `Bookings: ${activeBookings.length}`,
         paymentBalance
           ? `Paid remaining: ${formatAdminHours(remainingHours)} hour${remainingHours === 1 ? "" : "s"}`
           : "Paid remaining: No paid hours recorded",
@@ -1208,14 +1214,19 @@ async function saveStudentDetails(event) {
       return;
     }
 
-    await adminClient
+    const { error: requestMetaError } = await adminClient
       .from("lesson_requests")
-      .update({ name, email, status: lessonStatus })
+      .update({ name, email })
       .eq("student_id", studentId);
+
+    if (requestMetaError) {
+      setAdminDataStatus(getAdminError(requestMetaError), "error");
+      return;
+    }
   } else if (originalEmail) {
     const { error: requestError } = await adminClient
       .from("lesson_requests")
-      .update({ name, email, status: lessonStatus })
+      .update({ name, email })
       .eq("email", originalEmail);
 
     if (requestError) {
@@ -1241,6 +1252,8 @@ async function removeStudentAccess(student = activeStudent) {
     if (!sameStudent(lesson, student)) return false;
     return !isCompletedLessonStatus(lesson.status) && !isCancelledLessonStatus(lesson.status);
   });
+  const activeLessonRequests = adminData.lessonRequests.filter((request) => sameStudent(request, student) && !isClosedWorkflowStatus(request.status));
+  const activeSlotRequests = adminData.slotRequests.filter((request) => sameStudent(request, student) && !isClosedWorkflowStatus(request.status));
 
   if (student.student_id) {
     const { error: profileError } = await adminClient
@@ -1256,30 +1269,53 @@ async function removeStudentAccess(student = activeStudent) {
       return;
     }
 
-    await adminClient
-      .from("lesson_requests")
-      .update({ status: "Removed" })
-      .eq("student_id", student.student_id);
+    if (activeLessonRequests.length) {
+      const { error: requestUpdateError } = await adminClient
+        .from("lesson_requests")
+        .update({ status: "Removed" })
+        .in("id", activeLessonRequests.map((request) => request.id));
 
-    await adminClient
-      .from("lesson_slot_requests")
-      .update({ status: "Removed" })
-      .eq("student_id", student.student_id);
-  } else if (student.email) {
-    const { error: requestError } = await adminClient
-      .from("lesson_requests")
-      .update({ status: "Removed" })
-      .eq("email", student.email);
-
-    if (requestError) {
-      setAdminDataStatus(getAdminError(requestError), "error");
-      return;
+      if (requestUpdateError) {
+        setAdminDataStatus(getAdminError(requestUpdateError), "error");
+        return;
+      }
     }
 
-    await adminClient
-      .from("lesson_slot_requests")
-      .update({ status: "Removed" })
-      .eq("student_email", student.email);
+    if (activeSlotRequests.length) {
+      const { error: slotRequestError } = await adminClient
+        .from("lesson_slot_requests")
+        .update({ status: "Removed" })
+        .in("id", activeSlotRequests.map((request) => request.id));
+
+      if (slotRequestError) {
+        setAdminDataStatus(getAdminError(slotRequestError), "error");
+        return;
+      }
+    }
+  } else if (student.email) {
+    if (activeLessonRequests.length) {
+      const { error: requestError } = await adminClient
+        .from("lesson_requests")
+        .update({ status: "Removed" })
+        .in("id", activeLessonRequests.map((request) => request.id));
+
+      if (requestError) {
+        setAdminDataStatus(getAdminError(requestError), "error");
+        return;
+      }
+    }
+
+    if (activeSlotRequests.length) {
+      const { error: slotRequestError } = await adminClient
+        .from("lesson_slot_requests")
+        .update({ status: "Removed" })
+        .in("id", activeSlotRequests.map((request) => request.id));
+
+      if (slotRequestError) {
+        setAdminDataStatus(getAdminError(slotRequestError), "error");
+        return;
+      }
+    }
   }
 
   for (const lesson of activeLessons) {
@@ -1988,6 +2024,15 @@ async function markLessonDelivered(lessonOrId) {
   await loadAdminData();
 
   if (paymentResult.status === "error") {
+    await adminClient
+      .from("lessons")
+      .update({
+        status: lesson?.status || "Confirmed",
+        delivered_at: null,
+        summary: lesson?.summary || null,
+      })
+      .eq("id", id);
+    await loadAdminData();
     setAdminDataStatus(`Lesson marked as delivered, but the payment balance could not update. ${paymentResult.message}`, "error");
     return;
   }
@@ -2039,6 +2084,14 @@ async function undoLessonDelivered(lessonOrId) {
   await loadAdminData();
 
   if (paymentResult.status === "error") {
+    await adminClient
+      .from("lessons")
+      .update({
+        status: lesson?.status || "Delivered",
+        delivered_at: lesson?.delivered_at || new Date().toISOString(),
+      })
+      .eq("id", id);
+    await loadAdminData();
     setAdminDataStatus(`Lesson reopened, but the payment balance could not be restored. ${paymentResult.message}`, "error");
     return;
   }
