@@ -661,6 +661,10 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
         className: "primary-button",
         onClick: () => markLessonDelivered(lesson),
       },
+      {
+        label: "Cancel booking",
+        onClick: () => cancelLessonBooking(lesson),
+      },
     ]);
 
     confirmedLessonList?.append(item);
@@ -1221,6 +1225,11 @@ async function removeStudentAccess(student = activeStudent) {
 
   setAdminDataStatus("Removing practical lesson access...");
 
+  const activeLessons = adminData.lessons.filter((lesson) => {
+    if (!sameStudent(lesson, student)) return false;
+    return !isCompletedLessonStatus(lesson.status) && !isCancelledLessonStatus(lesson.status);
+  });
+
   if (student.student_id) {
     const { error: profileError } = await adminClient
       .from("student_profiles")
@@ -1239,6 +1248,11 @@ async function removeStudentAccess(student = activeStudent) {
       .from("lesson_requests")
       .update({ status: "Removed" })
       .eq("student_id", student.student_id);
+
+    await adminClient
+      .from("lesson_slot_requests")
+      .update({ status: "Removed" })
+      .eq("student_id", student.student_id);
   } else if (student.email) {
     const { error: requestError } = await adminClient
       .from("lesson_requests")
@@ -1249,11 +1263,25 @@ async function removeStudentAccess(student = activeStudent) {
       setAdminDataStatus(getAdminError(requestError), "error");
       return;
     }
+
+    await adminClient
+      .from("lesson_slot_requests")
+      .update({ status: "Removed" })
+      .eq("student_email", student.email);
+  }
+
+  for (const lesson of activeLessons) {
+    const cancelled = await cancelLessonBooking(lesson, { skipConfirm: true, silent: true });
+    if (!cancelled) {
+      setAdminDataStatus("Practical access was removed, but one or more booked lessons could not be released.", "error");
+      await loadAdminData();
+      return;
+    }
   }
 
   studentManageDialog?.close();
   await loadAdminData();
-  setAdminDataStatus("Student practical access removed. Their history has been kept.", "success");
+  setAdminDataStatus("Student practical access removed. Active bookings were cancelled and their history was kept.", "success");
 }
 
 function shouldReleaseHeldSlot(status, request) {
@@ -1597,6 +1625,72 @@ async function approveCancellationRequest(request) {
   }
 
   await updateSlotRequestStatus(request.id, "Cancellation approved");
+}
+
+async function releaseLessonAvailabilitySlot(lesson) {
+  const slotId = lesson?.availability_slot_id;
+  if (!slotId) return { error: null };
+
+  const { error } = await adminClient
+    .from("lesson_availability_slots")
+    .update({
+      status: "Available",
+      assigned_student_id: null,
+      assigned_student_email: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", slotId);
+
+  return { error };
+}
+
+async function cancelLessonBooking(lessonOrId, options = {}) {
+  const lesson = typeof lessonOrId === "object"
+    ? lessonOrId
+    : adminData.lessons.find((item) => item.id === lessonOrId);
+  const id = lesson?.id || lessonOrId;
+
+  if (!id) return false;
+  if (isCancelledLessonStatus(lesson?.status)) {
+    setAdminDataStatus("This lesson is already cancelled.", "success");
+    return true;
+  }
+
+  if (!options.skipConfirm) {
+    const confirmed = window.confirm("Cancel this booked lesson and release the diary slot?");
+    if (!confirmed) return false;
+  }
+
+  if (!options.silent) {
+    setAdminDataStatus("Cancelling booked lesson...");
+  }
+
+  const { error: lessonError } = await adminClient
+    .from("lessons")
+    .update({ status: "Cancelled" })
+    .eq("id", id);
+
+  if (lessonError) {
+    if (!options.silent) {
+      setAdminDataStatus(getAdminError(lessonError), "error");
+    }
+    return false;
+  }
+
+  const { error: slotError } = await releaseLessonAvailabilitySlot(lesson);
+  if (slotError) {
+    if (!options.silent) {
+      setAdminDataStatus(getAdminError(slotError), "error");
+    }
+    return false;
+  }
+
+  if (!options.silent) {
+    await loadAdminData();
+    setAdminDataStatus("Lesson cancelled and diary slot released.", "success");
+  }
+
+  return true;
 }
 
 function getLessonDurationHours(lesson) {
