@@ -313,39 +313,43 @@ function getStudentName(student) {
 }
 
 function getApprovedStudentRecords(students = adminData.studentProfiles, requests = adminData.lessonRequests) {
-  const approvedProfiles = (students || []).filter((student) => isApprovedStatus(student.lesson_status));
-  const approvedFromRequests = (requests || [])
-    .filter((request) => isApprovedStatus(request.status))
-    .map((request) => ({
-      student_id: request.student_id,
-      email: request.email,
-      name: request.name,
-      lesson_status: request.status,
-    }));
-
   const merged = new Map();
-  [...approvedProfiles, ...approvedFromRequests].forEach((student) => {
+  (students || []).forEach((student) => {
     const key = getStudentMergeKey(student);
     if (!key) return;
-    const existing = merged.get(key) || {};
     merged.set(key, {
-      ...existing,
       ...student,
-      student_id: existing.student_id || student.student_id,
-      name: existing.name || existing.full_name || student.name || student.full_name,
-      full_name: existing.full_name || existing.name || student.full_name || student.name,
-      email: existing.email || student.email,
+      student_id: student.student_id,
+      name: student.name || student.full_name,
+      full_name: student.full_name || student.name,
+      email: student.email,
     });
   });
 
-  return [...merged.values()].map((student) => {
-    const latestRequest = (requests || []).find((request) => sameStudent(request, student));
-    return {
-      ...latestRequest,
-      ...student,
-      latest_request_id: latestRequest?.id,
-    };
-  });
+  (requests || [])
+    .filter((request) => isApprovedStatus(request.status))
+    .forEach((request) => {
+      const requestRecord = {
+        student_id: request.student_id,
+        email: request.email,
+        name: request.name,
+        lesson_status: request.status,
+      };
+      const key = getStudentMergeKey(requestRecord);
+      if (!key || merged.has(key)) return;
+      merged.set(key, requestRecord);
+    });
+
+  return [...merged.values()]
+    .filter((student) => isApprovedStatus(student.lesson_status))
+    .map((student) => {
+      const latestRequest = (requests || []).find((request) => sameStudent(request, student));
+      return {
+        ...latestRequest,
+        ...student,
+        latest_request_id: latestRequest?.id,
+      };
+    });
 }
 
 function findStudentForLesson(lesson, students = [], requests = []) {

@@ -405,7 +405,6 @@ async function loadLessonRequests(userId) {
   }
 
   const requests = data || [];
-  const hasApprovedRequest = requests.some((request) => isApprovedStatus(request.status));
 
   if (!requests.length) {
     setLessonStatus("No lesson requests are linked to this account yet. Use the request button when you are ready.");
@@ -414,10 +413,6 @@ async function loadLessonRequests(userId) {
 
   setLessonStatus("Your latest linked requests:");
   renderLessonRequests(requests);
-
-  if (hasApprovedRequest) {
-    setLessonStudentAccess(true);
-  }
 }
 
 async function loadLessonProgress(userId) {
