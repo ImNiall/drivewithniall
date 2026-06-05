@@ -257,7 +257,19 @@ function getWeekDays(weekStart = currentDiaryWeekStart) {
 
 function isPendingStatus(status) {
   const value = String(status || "submitted").toLowerCase();
-  return !["approved", "accepted", "active", "confirmed", "rejected", "declined", "waiting"].some((word) => value.includes(word));
+  return ![
+    "approved",
+    "accepted",
+    "active",
+    "confirmed",
+    "rejected",
+    "declined",
+    "waiting",
+    "removed",
+    "cancel",
+    "complete",
+    "deliver",
+  ].some((word) => value.includes(word));
 }
 
 function isApprovedStatus(status) {
