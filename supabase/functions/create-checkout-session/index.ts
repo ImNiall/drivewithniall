@@ -17,8 +17,6 @@ const paymentPlans = {
   },
 };
 
-type PlanKey = keyof typeof paymentPlans;
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -44,8 +42,9 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Sign in before starting a payment." }, 401);
   }
 
-  const { planKey } = await req.json().catch(() => ({ planKey: "" }));
-  const plan = paymentPlans[planKey as PlanKey];
+  const body = await req.json().catch(() => ({ planKey: "" }));
+  const planKey = String(body?.planKey || "");
+  const plan = paymentPlans[planKey as keyof typeof paymentPlans];
 
   if (!plan) {
     return jsonResponse({ error: "Unknown payment option." }, 400);
@@ -69,7 +68,7 @@ Deno.serve(async (req) => {
     httpClient: Stripe.createFetchHttpClient(),
   });
 
-  let session: Stripe.Checkout.Session;
+  let session;
 
   try {
     session = await stripe.checkout.sessions.create({
