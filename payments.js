@@ -290,7 +290,7 @@ function configureCheckoutButtons() {
   });
 
   if (stripeSetupMessage) {
-    stripeSetupMessage.textContent = "Stripe Checkout will open securely once the Supabase Edge Function secrets are set and the functions are deployed.";
+    stripeSetupMessage.textContent = "Your payment opens in a secure Stripe Checkout page and your lesson credit updates automatically when the payment is confirmed.";
   }
 }
 
