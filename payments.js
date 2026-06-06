@@ -75,19 +75,26 @@ function getPlan(planKey) {
   return paymentsConfig.payments?.plans?.[planKey] || null;
 }
 
-function showPaymentReturnNotice() {
+function getPaymentReturnParams() {
   const params = new URLSearchParams(window.location.search);
-  const result = params.get("payment");
+  return {
+    result: params.get("payment"),
+    sessionId: params.get("session_id"),
+  };
+}
+
+function clearPaymentReturnParams() {
+  const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
+  window.history.replaceState({}, document.title, cleanUrl);
+}
+
+function showPaymentReturnNotice(result) {
+  if (!result) return;
 
   if (result === "success") {
     setReturnNotice("Payment submitted. Your lesson balance will update once Stripe confirms the payment.", "success");
   } else if (result === "cancelled") {
     setReturnNotice("Payment cancelled. No lesson credit has been added.", "error");
-  }
-
-  if (result) {
-    const cleanUrl = `${window.location.pathname}${window.location.hash || ""}`;
-    window.history.replaceState({}, document.title, cleanUrl);
   }
 }
 
@@ -292,12 +299,45 @@ async function startCheckout(planKey) {
   }
 }
 
+async function confirmReturnedCheckout(sessionId) {
+  if (!paymentsClient || !currentPaymentsSession || !sessionId) return false;
+
+  try {
+    const response = await fetch(
+      `${paymentsConfig.supabaseUrl}/functions/v1/${paymentsConfig.payments?.confirmCheckoutFunction || "confirm-checkout-session"}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: paymentsConfig.supabaseAnonKey,
+          Authorization: `Bearer ${currentPaymentsSession.access_token}`,
+        },
+        body: JSON.stringify({ sessionId }),
+      },
+    );
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(payload.error || "Stripe payment confirmation failed.");
+    }
+
+    setReturnNotice("Payment confirmed and your lesson balance has been updated.", "success");
+    return true;
+  } catch (error) {
+    const message = error?.message || "Stripe payment confirmation failed.";
+    setPaymentsStatus(`${message} Refresh again in a moment if Stripe has only just redirected you back.`, "error");
+    return false;
+  }
+}
+
 async function initialisePayments() {
   const savedTheme = localStorage.getItem("driveTheme");
   const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
   setTheme(savedTheme || (prefersDark ? "dark" : "light"));
   configureCheckoutButtons();
-  showPaymentReturnNotice();
+  const returnParams = getPaymentReturnParams();
+  showPaymentReturnNotice(returnParams.result);
 
   if (!paymentsClient) {
     showSignedOut("Student payments need the Supabase project details before account balances can load.");
@@ -316,10 +356,16 @@ async function initialisePayments() {
   }
 
   showSignedIn(data.session);
+  if (returnParams.result === "success" && returnParams.sessionId) {
+    await confirmReturnedCheckout(returnParams.sessionId);
+  }
   await Promise.all([
     loadPaymentBalance(data.session.user.id),
     loadPaymentHistory(data.session.user.id),
   ]);
+  if (returnParams.result) {
+    clearPaymentReturnParams();
+  }
 }
 
 themeToggle?.addEventListener("click", () => {
