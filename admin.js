@@ -33,6 +33,12 @@ const studentDialogTitle = document.querySelector("#studentDialogTitle");
 const studentEditName = document.querySelector("#studentEditName");
 const studentEditEmail = document.querySelector("#studentEditEmail");
 const studentEditStatus = document.querySelector("#studentEditStatus");
+const studentPaymentSummary = document.querySelector("#studentPaymentSummary");
+const studentPaymentAction = document.querySelector("#studentPaymentAction");
+const studentPaymentHours = document.querySelector("#studentPaymentHours");
+const studentPaymentAmount = document.querySelector("#studentPaymentAmount");
+const studentPaymentNote = document.querySelector("#studentPaymentNote");
+const applyStudentPaymentButton = document.querySelector("#applyStudentPaymentButton");
 const studentHistoryList = document.querySelector("#studentHistoryList");
 const removeStudentButton = document.querySelector("#removeStudentButton");
 const availabilityForm = document.querySelector("#availabilityForm");
@@ -243,6 +249,12 @@ function formatPoundsFromPence(value) {
   }).format(amount);
 }
 
+function parsePoundsToPence(value) {
+  const amount = Number.parseFloat(String(value || "").trim());
+  if (!Number.isFinite(amount)) return 0;
+  return Math.round(amount * 100);
+}
+
 function getSlotDateKey(slot) {
   return getDateKey(slot?.starts_at);
 }
@@ -377,8 +389,58 @@ function getPaymentEventsForStudent(student, events = adminData.paymentEvents) {
 }
 
 function formatPaymentEventTitle(event) {
-  const type = String(event?.event_type || "payment").replaceAll("_", " ");
+  const eventType = String(event?.event_type || "payment");
+  const customTitles = {
+    manual_payment_received: "Manual payment recorded",
+    manual_credit_added: "Manual credit added",
+    manual_credit_deducted: "Manual credit deducted",
+    checkout_session_completed: "Stripe payment confirmed",
+    checkout_session_created: "Stripe checkout started",
+    checkout_session_expired: "Stripe checkout expired",
+    lesson_credit_used: "Lesson credit used",
+    lesson_credit_refunded: "Lesson credit refunded",
+  };
+
+  if (customTitles[eventType]) return customTitles[eventType];
+
+  const type = eventType.replaceAll("_", " ");
   return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
+function getPaymentSummaryLines(student) {
+  const balance = findPaymentBalanceForStudent(student);
+  if (!balance) {
+    return ["No payment balance recorded yet."];
+  }
+
+  const remainingHours = getLessonRemainingHours(balance);
+  const purchasedHours = Number(balance.purchased_hours || 0);
+  const usedHours = Number(balance.used_hours || 0);
+
+  return [
+    `Remaining: ${formatAdminHours(remainingHours)}h`,
+    `Purchased: ${formatAdminHours(purchasedHours)}h`,
+    `Used: ${formatAdminHours(usedHours)}h`,
+    `Balance: ${formatPoundsFromPence(balance.account_balance_pence)}`,
+  ];
+}
+
+function renderStudentPaymentSummary(student) {
+  if (!studentPaymentSummary) return;
+  studentPaymentSummary.innerHTML = "";
+
+  getPaymentSummaryLines(student).forEach((line) => {
+    const detail = document.createElement("div");
+    detail.textContent = line;
+    studentPaymentSummary.append(detail);
+  });
+}
+
+function resetStudentPaymentControls() {
+  if (studentPaymentAction) studentPaymentAction.value = "payment_received";
+  if (studentPaymentHours) studentPaymentHours.value = "";
+  if (studentPaymentAmount) studentPaymentAmount.value = "";
+  if (studentPaymentNote) studentPaymentNote.value = "";
 }
 
 function buildAdminItem(title, meta, details = []) {
@@ -573,6 +635,7 @@ function renderStudentHistory(student) {
   paymentEvents.forEach((event) => {
     const hours = Number(event.hours_delta || 0);
     const amount = Number(event.amount_pence || 0);
+    const metadata = event.metadata && typeof event.metadata === "object" ? event.metadata : {};
     const item = buildAdminItem(
       formatPaymentEventTitle(event),
       `${event.event_status || "Recorded"} · ${formatAdminDate(event.created_at)}`,
@@ -580,6 +643,8 @@ function renderStudentHistory(student) {
         event.plan_key ? `Plan: ${event.plan_key}` : "",
         hours ? `Hours: ${formatAdminHours(hours)}` : "",
         amount ? `Amount: ${formatPoundsFromPence(amount)}` : "",
+        metadata.note ? `Note: ${metadata.note}` : "",
+        metadata.source ? `Source: ${metadata.source}` : "",
       ],
     );
     studentHistoryList?.append(item);
@@ -594,6 +659,8 @@ function openStudentManager(student) {
   if (studentEditEmail) studentEditEmail.value = student.email || "";
   if (studentEditStatus) studentEditStatus.value = student.lesson_status || "Approved";
 
+  resetStudentPaymentControls();
+  renderStudentPaymentSummary(student);
   renderStudentHistory(student);
   studentManageDialog?.showModal();
 }
@@ -1287,6 +1354,172 @@ async function saveStudentDetails(event) {
   studentManageDialog?.close();
   await loadAdminData();
   setAdminDataStatus("Student details saved.", "success");
+}
+
+async function applyStudentPaymentAdjustment() {
+  if (!activeStudent) return;
+
+  const action = String(studentPaymentAction?.value || "payment_received");
+  const hoursDelta = Number.parseFloat(String(studentPaymentHours?.value || "").trim());
+  const amountPenceInput = parsePoundsToPence(studentPaymentAmount?.value || "");
+  const note = String(studentPaymentNote?.value || "").trim();
+
+  if (!Number.isFinite(hoursDelta) || hoursDelta <= 0) {
+    setAdminDataStatus("Enter the number of hours to add or deduct.", "error");
+    return;
+  }
+
+  if (action === "payment_received" && amountPenceInput <= 0) {
+    setAdminDataStatus("Enter the payment amount in pounds for a cash or bank-transfer payment.", "error");
+    return;
+  }
+
+  const existingBalance = findPaymentBalanceForStudent(activeStudent);
+  const purchasedHours = Number(existingBalance?.purchased_hours || 0);
+  const usedHours = Number(existingBalance?.used_hours || 0);
+  const currentBalancePence = Number(existingBalance?.account_balance_pence || 0);
+  const remainingHours = Math.max(purchasedHours - usedHours, 0);
+  const normalisedHours = Math.round(hoursDelta * 10) / 10;
+  const adjustmentHours = action === "debit_correction" ? -normalisedHours : normalisedHours;
+  const adjustmentAmountPence = action === "debit_correction" ? -Math.abs(amountPenceInput) : Math.abs(amountPenceInput);
+
+  if (action === "debit_correction") {
+    if (normalisedHours > remainingHours) {
+      setAdminDataStatus(`Only ${formatAdminHours(remainingHours)} hour${remainingHours === 1 ? "" : "s"} can be deducted from the remaining balance.`, "error");
+      return;
+    }
+
+    if (Math.abs(adjustmentAmountPence) > currentBalancePence) {
+      setAdminDataStatus(`Only ${formatPoundsFromPence(currentBalancePence)} can be deducted from the current account balance.`, "error");
+      return;
+    }
+  }
+
+  const nextPurchasedHours = purchasedHours + adjustmentHours;
+  const nextBalancePence = currentBalancePence + adjustmentAmountPence;
+
+  if (nextPurchasedHours < usedHours) {
+    setAdminDataStatus("This change would reduce purchased hours below the hours already used.", "error");
+    return;
+  }
+
+  if (nextBalancePence < 0) {
+    setAdminDataStatus("This change would make the account balance negative.", "error");
+    return;
+  }
+
+  const studentId = activeStudent.student_id || null;
+  const studentEmail = activeStudent.email || activeStudent.student_email || "";
+  const now = new Date().toISOString();
+  const eventType = {
+    payment_received: "manual_payment_received",
+    credit_only: "manual_credit_added",
+    debit_correction: "manual_credit_deducted",
+  }[action] || "manual_payment_received";
+  const statusMessage = {
+    payment_received: "Recording manual payment...",
+    credit_only: "Adding lesson credit...",
+    debit_correction: "Applying manual deduction...",
+  }[action] || "Updating payment balance...";
+
+  setAdminDataStatus(statusMessage);
+  if (applyStudentPaymentButton) applyStudentPaymentButton.disabled = true;
+
+  const balancePayload = {
+    student_id: studentId,
+    student_email: studentEmail,
+    purchased_hours: nextPurchasedHours,
+    used_hours: usedHours,
+    account_balance_pence: nextBalancePence,
+    last_payment_at: action === "debit_correction" ? existingBalance?.last_payment_at || null : now,
+    updated_at: now,
+  };
+
+  let balanceError = null;
+  let createdBalanceRow = false;
+
+  if (existingBalance?.id) {
+    const result = await adminClient
+      .from("student_payment_balances")
+      .update(balancePayload)
+      .eq("id", existingBalance.id);
+    balanceError = result.error;
+  } else {
+    const result = await adminClient
+      .from("student_payment_balances")
+      .insert(balancePayload);
+    balanceError = result.error;
+    createdBalanceRow = !result.error;
+  }
+
+  if (balanceError) {
+    if (applyStudentPaymentButton) applyStudentPaymentButton.disabled = false;
+    setAdminDataStatus(getAdminError(balanceError), "error");
+    return;
+  }
+
+  const metadata = {
+    source: action === "payment_received" ? "admin_manual_payment" : "admin_manual_adjustment",
+    note: note || null,
+    adjusted_by: adminUsernameEmail || adminName,
+    adjustment_action: action,
+  };
+
+  const { error: eventError } = await adminClient
+    .from("student_payment_events")
+    .insert({
+      student_id: studentId,
+      student_email: studentEmail,
+      event_type: eventType,
+      event_status: "completed",
+      plan_key: action === "payment_received" ? "offline_payment" : "manual_adjustment",
+      hours_delta: adjustmentHours,
+      amount_pence: adjustmentAmountPence,
+      currency: "gbp",
+      metadata,
+      updated_at: now,
+    });
+
+  if (eventError) {
+    if (existingBalance) {
+      await adminClient
+        .from("student_payment_balances")
+        .update({
+          purchased_hours: purchasedHours,
+          used_hours: usedHours,
+          account_balance_pence: currentBalancePence,
+          last_payment_at: existingBalance.last_payment_at || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingBalance.id);
+    } else if (createdBalanceRow) {
+      const deleteQuery = adminClient
+        .from("student_payment_balances")
+        .delete()
+        .eq("student_email", studentEmail);
+
+      if (studentId) {
+        await deleteQuery.eq("student_id", studentId);
+      } else {
+        await deleteQuery;
+      }
+    }
+
+    if (applyStudentPaymentButton) applyStudentPaymentButton.disabled = false;
+    setAdminDataStatus(getAdminError(eventError), "error");
+    return;
+  }
+
+  resetStudentPaymentControls();
+  await loadAdminData();
+
+  const refreshedStudent = getApprovedStudentRecords().find((student) => sameStudent(student, activeStudent)) || activeStudent;
+  activeStudent = refreshedStudent;
+  renderStudentPaymentSummary(refreshedStudent);
+  renderStudentHistory(refreshedStudent);
+
+  if (applyStudentPaymentButton) applyStudentPaymentButton.disabled = false;
+  setAdminDataStatus("Payment balance updated.", "success");
 }
 
 async function removeStudentAccess(student = activeStudent) {
@@ -2422,7 +2655,12 @@ studentManageDialog?.addEventListener("click", (event) => {
   if (event.target === studentManageDialog) studentManageDialog.close();
 });
 
+studentManageDialog?.addEventListener("close", () => {
+  resetStudentPaymentControls();
+});
+
 studentManageForm?.addEventListener("submit", saveStudentDetails);
+applyStudentPaymentButton?.addEventListener("click", applyStudentPaymentAdjustment);
 removeStudentButton?.addEventListener("click", () => removeStudentAccess());
 availabilityForm?.addEventListener("submit", createAvailabilitySlot);
 weeklyAvailabilityForm?.addEventListener("submit", createWeeklyAvailability);
