@@ -304,8 +304,8 @@ function updatePaymentBalance(balance) {
 
   if (dashboardPaymentMessage) {
     dashboardPaymentMessage.textContent = balance
-      ? "Your latest payment balance is shown below."
-      : "No payment balance has been added yet. Use the payments page to pay for lessons, then your balance can be recorded here.";
+      ? "Your latest payment balance is shown below for 2 hour lesson payments and 10 hour packages."
+      : "No payment balance has been added yet. Use the payments page to pay £74 for a 2 hour lesson or buy a 10 hour package, then your balance will appear here.";
   }
 }
 
