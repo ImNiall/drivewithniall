@@ -10,14 +10,14 @@ window.driveAuthConfig = {
     createCheckoutFunction: "create-checkout-session",
     plans: {
       payPerLesson: {
-        label: "Pay £35",
-        hours: 1,
-        amountPence: 3500,
+        label: "Pay £74",
+        hours: 2,
+        amountPence: 7400,
       },
       tenHourPackage: {
         label: "Buy 10 hours",
         hours: 10,
-        amountPence: 32500,
+        amountPence: 35000,
       },
     },
   },

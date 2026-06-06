@@ -4,15 +4,15 @@ import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
 
 const paymentPlans = {
   payPerLesson: {
-    name: "Drive with Niall lesson hour",
-    description: "One hour of manual driving lesson credit.",
-    amountPence: 3500,
-    hours: 1,
+    name: "Drive with Niall 2 hour lesson",
+    description: "Two hours of manual driving lesson credit.",
+    amountPence: 7400,
+    hours: 2,
   },
   tenHourPackage: {
     name: "Drive with Niall 10 hour lesson package",
     description: "Ten hours of manual driving lesson credit.",
-    amountPence: 32500,
+    amountPence: 35000,
     hours: 10,
   },
 };
