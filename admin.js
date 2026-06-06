@@ -18,6 +18,7 @@ const adminDataStatus = document.querySelector("#adminDataStatus");
 const pendingLessonRequests = document.querySelector("#pendingLessonRequests");
 const slotRequestList = document.querySelector("#slotRequestList");
 const approvedStudentList = document.querySelector("#approvedStudentList");
+const paymentTrackerList = document.querySelector("#paymentTrackerList");
 const confirmedLessonList = document.querySelector("#confirmedLessonList");
 const deliveredLessonList = document.querySelector("#deliveredLessonList");
 const supportRequestList = document.querySelector("#supportRequestList");
@@ -590,6 +591,82 @@ function renderApprovedStudents(students, requests, lessons, paymentBalances = a
   });
 }
 
+function renderPaymentTracker(students, requests, lessons = adminData.lessons, paymentBalances = adminData.paymentBalances) {
+  clearElement(paymentTrackerList);
+
+  const approved = getApprovedStudentRecords(students, requests);
+
+  if (!approved.length) {
+    paymentTrackerList?.append(createEmptyState("No approved students to track yet."));
+    return;
+  }
+
+  const trackerRows = approved
+    .map((student) => {
+      const studentLessons = (lessons || []).filter((lesson) => sameStudent(lesson, student));
+      const activeBookings = studentLessons.filter((lesson) => !isCompletedLessonStatus(lesson.status) && !isCancelledLessonStatus(lesson.status));
+      const paymentBalance = findPaymentBalanceForStudent(student, paymentBalances);
+      const purchasedHours = Number(paymentBalance?.purchased_hours || 0);
+      const usedHours = Number(paymentBalance?.used_hours || 0);
+      const remainingHours = Math.max(0, purchasedHours - usedHours);
+      const nextLessonHours = activeBookings.length
+        ? Number(activeBookings[0].hours || activeBookings[0].duration_hours || 2)
+        : 0;
+      const coverageGap = nextLessonHours ? nextLessonHours - remainingHours : 0;
+
+      return {
+        student,
+        activeBookings,
+        paymentBalance,
+        remainingHours,
+        purchasedHours,
+        usedHours,
+        nextLessonHours,
+        coverageGap,
+      };
+    })
+    .sort((a, b) => {
+      const aSeverity = a.remainingHours <= 0 ? 0 : a.coverageGap > 0 ? 1 : 2;
+      const bSeverity = b.remainingHours <= 0 ? 0 : b.coverageGap > 0 ? 1 : 2;
+      if (aSeverity !== bSeverity) return aSeverity - bSeverity;
+      return a.remainingHours - b.remainingHours;
+    });
+
+  trackerRows.forEach((row) => {
+    const summary = row.paymentBalance
+      ? row.coverageGap > 0
+        ? `Short by ${formatAdminHours(row.coverageGap)}h for the next booked lesson`
+        : row.activeBookings.length
+          ? `Next booked lesson is covered`
+          : `No booked lesson using the balance yet`
+      : "No paid balance recorded";
+
+    const item = buildAdminItem(
+      getStudentName(row.student),
+      summary,
+      [
+        row.student.email || "No email saved",
+        `Hours remaining: ${formatAdminHours(row.remainingHours)}`,
+        `Hours purchased: ${formatAdminHours(row.purchasedHours)}`,
+        `Hours used: ${formatAdminHours(row.usedHours)}`,
+        row.paymentBalance ? `Account balance: ${formatPoundsFromPence(row.paymentBalance.account_balance_pence)}` : "",
+        row.activeBookings.length ? `Booked lessons: ${row.activeBookings.length}` : "Booked lessons: 0",
+        row.nextLessonHours ? `Next lesson needs: ${formatAdminHours(row.nextLessonHours)}h` : "",
+      ],
+    );
+
+    addItemActions(item, [
+      {
+        label: "View / edit",
+        className: "primary-button",
+        onClick: () => openStudentManager(row.student),
+      },
+    ]);
+
+    paymentTrackerList?.append(item);
+  });
+}
+
 function renderStudentHistory(student) {
   clearElement(studentHistoryList);
 
@@ -732,13 +809,25 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
 
   confirmed.forEach((lesson) => {
     const student = findStudentForLesson(lesson, students, requests);
+    const paymentBalance = student ? findPaymentBalanceForStudent(student) : null;
+    const remainingHours = paymentBalance ? getLessonRemainingHours(paymentBalance) : 0;
+    const lessonHours = Number(lesson.hours || lesson.duration_hours || 2);
+    const afterLessonHours = paymentBalance ? remainingHours - lessonHours : 0;
     const item = buildAdminItem(
       student ? getStudentName(student) : lesson.student_email || lesson.topic || "Driving lesson",
       formatAdminDate(lesson.starts_at || lesson.lesson_date),
       [
         lesson.student_email ? `Email: ${lesson.student_email}` : "",
         `Status: ${lesson.status || "Confirmed"}`,
-        `Hours: ${lesson.hours || lesson.duration_hours || 2}`,
+        `Hours: ${lessonHours}`,
+        paymentBalance
+          ? `Paid remaining now: ${formatAdminHours(remainingHours)}h`
+          : "Paid remaining now: No paid hours recorded",
+        paymentBalance
+          ? afterLessonHours >= 0
+            ? `After this lesson: ${formatAdminHours(afterLessonHours)}h remaining`
+            : `After this lesson: ${formatAdminHours(Math.abs(afterLessonHours))}h short`
+          : "",
         lesson.topic ? `Focus: ${lesson.topic}` : "",
         lesson.summary ? `Summary: ${lesson.summary}` : "",
       ],
@@ -1188,6 +1277,7 @@ async function loadAdminData() {
   renderPendingLessonRequests(lessonRequests.data);
   renderAvailabilitySlots(availabilitySlots.data);
   renderApprovedStudents(studentProfiles.data, lessonRequests.data, lessons.data, paymentBalances.data);
+  renderPaymentTracker(studentProfiles.data, lessonRequests.data, lessons.data, paymentBalances.data);
   renderSlotRequests(slotRequests.data);
   renderSupportRequests(supportRequests.data);
   renderConfirmedLessons(lessons.data, studentProfiles.data, lessonRequests.data);
