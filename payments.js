@@ -134,15 +134,32 @@ function renderPaymentBalance(balance) {
   }
 }
 
+function shouldDisplayPaymentEvent(event) {
+  const type = String(event?.event_type || "");
+  const status = String(event?.event_status || "").toLowerCase();
+
+  if (status === "superseded") {
+    return false;
+  }
+
+  if (type === "checkout_session_created") {
+    return false;
+  }
+
+  return true;
+}
+
 function renderPaymentHistory(events = []) {
   if (!paymentHistoryList) return;
 
-  if (!events.length) {
+  const visibleEvents = events.filter(shouldDisplayPaymentEvent);
+
+  if (!visibleEvents.length) {
     paymentHistoryList.innerHTML = "<li>No payment activity has been recorded yet.</li>";
     return;
   }
 
-  paymentHistoryList.innerHTML = events
+  paymentHistoryList.innerHTML = visibleEvents
     .map((event) => {
       const date = event.created_at
         ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(event.created_at))
@@ -187,6 +204,27 @@ function renderPaymentHistory(events = []) {
       `;
     })
     .join("");
+}
+
+async function reconcilePaymentHistory() {
+  if (!paymentsClient || !currentPaymentsSession) return;
+
+  try {
+    await fetch(
+      `${paymentsConfig.supabaseUrl}/functions/v1/${paymentsConfig.payments?.reconcileHistoryFunction || "reconcile-payment-history"}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: paymentsConfig.supabaseAnonKey,
+          Authorization: `Bearer ${currentPaymentsSession.access_token}`,
+        },
+        body: JSON.stringify({}),
+      },
+    );
+  } catch (_) {
+    // Ignore cleanup failures; payment balances still load from the source tables.
+  }
 }
 
 async function loadPaymentBalance(userId) {
@@ -356,6 +394,7 @@ async function initialisePayments() {
   }
 
   showSignedIn(data.session);
+  await reconcilePaymentHistory();
   if (returnParams.result === "success" && returnParams.sessionId) {
     await confirmReturnedCheckout(returnParams.sessionId);
   }
