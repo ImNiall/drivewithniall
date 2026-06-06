@@ -1,6 +1,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
 
+const currentPlans = {
+  payPerLesson: {
+    hours: 2,
+    amountPence: 7400,
+  },
+  tenHourPackage: {
+    hours: 10,
+    amountPence: 35000,
+  },
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -56,6 +67,15 @@ Deno.serve(async (req) => {
     event.event_type === "checkout_session_completed" &&
     event.event_status === "completed",
   );
+  const legacyCompletedEvents = completedEvents.filter((event) => {
+    const plan = currentPlans[event.plan_key as keyof typeof currentPlans];
+    if (!plan) return false;
+
+    return (
+      Number(event.hours_delta || 0) !== Number(plan.hours || 0) ||
+      Number(event.amount_pence || 0) !== Number(plan.amountPence || 0)
+    );
+  });
 
   let reconciled = 0;
 
@@ -90,5 +110,63 @@ Deno.serve(async (req) => {
     reconciled += 1;
   }
 
-  return jsonResponse({ reconciled });
+  let legacySuperseded = 0;
+
+  if (legacyCompletedEvents.length) {
+    const legacyHoursTotal = legacyCompletedEvents.reduce((total, event) => total + Number(event.hours_delta || 0), 0);
+    const legacyAmountTotal = legacyCompletedEvents.reduce((total, event) => total + Number(event.amount_pence || 0), 0);
+    const supersededAt = new Date().toISOString();
+
+    for (const legacyEvent of legacyCompletedEvents) {
+      const { error: updateError } = await supabaseAdmin
+        .from("student_payment_events")
+        .update({
+          event_status: "superseded",
+          metadata: {
+            ...(legacyEvent.metadata || {}),
+            superseded_reason: "legacy_pricing_cleanup",
+            superseded_at: supersededAt,
+          },
+          updated_at: supersededAt,
+        })
+        .eq("id", legacyEvent.id);
+
+      if (updateError) {
+        return jsonResponse({ error: updateError.message }, 500);
+      }
+
+      legacySuperseded += 1;
+    }
+
+    const { data: balance, error: balanceReadError } = await supabaseAdmin
+      .from("student_payment_balances")
+      .select("id,purchased_hours,used_hours,account_balance_pence")
+      .eq("student_id", user.id)
+      .maybeSingle();
+
+    if (balanceReadError) {
+      return jsonResponse({ error: balanceReadError.message }, 500);
+    }
+
+    if (balance?.id) {
+      const usedHours = Number(balance.used_hours || 0);
+      const nextPurchasedHours = Math.max(Number(balance.purchased_hours || 0) - legacyHoursTotal, usedHours);
+      const nextAccountBalancePence = Math.max(Number(balance.account_balance_pence || 0) - legacyAmountTotal, 0);
+
+      const { error: balanceUpdateError } = await supabaseAdmin
+        .from("student_payment_balances")
+        .update({
+          purchased_hours: nextPurchasedHours,
+          account_balance_pence: nextAccountBalancePence,
+          updated_at: supersededAt,
+        })
+        .eq("id", balance.id);
+
+      if (balanceUpdateError) {
+        return jsonResponse({ error: balanceUpdateError.message }, 500);
+      }
+    }
+  }
+
+  return jsonResponse({ reconciled, legacySuperseded });
 });
