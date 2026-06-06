@@ -1168,7 +1168,21 @@ async function approveLessonRequest(request) {
   if (!request?.id) return;
   setAdminDataStatus("Approving practical student...");
 
+  let existingProfile = null;
   if (request.student_id) {
+    const { data: profileData, error: profileLoadError } = await adminClient
+      .from("student_profiles")
+      .select("id,student_id,email,name,full_name,lesson_status")
+      .eq("student_id", request.student_id)
+      .maybeSingle();
+
+    if (profileLoadError) {
+      setAdminDataStatus(getAdminError(profileLoadError), "error");
+      return;
+    }
+
+    existingProfile = profileData || null;
+
     const { error: profileError } = await adminClient.from("student_profiles").upsert({
       student_id: request.student_id,
       email: request.email,
@@ -1185,7 +1199,38 @@ async function approveLessonRequest(request) {
     }
   }
 
-  await updateLessonRequestStatus(request.id, "Approved");
+  const { error: requestError } = await adminClient
+    .from("lesson_requests")
+    .update({ status: "Approved" })
+    .eq("id", request.id);
+
+  if (requestError) {
+    if (request.student_id) {
+      if (existingProfile) {
+        await adminClient
+          .from("student_profiles")
+          .update({
+            email: existingProfile.email,
+            name: existingProfile.name,
+            full_name: existingProfile.full_name,
+            lesson_status: existingProfile.lesson_status,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("student_id", request.student_id);
+      } else {
+        await adminClient
+          .from("student_profiles")
+          .delete()
+          .eq("student_id", request.student_id);
+      }
+    }
+
+    setAdminDataStatus(getAdminError(requestError), "error");
+    return;
+  }
+
+  await loadAdminData();
+  setAdminDataStatus("Practical student approved.", "success");
 }
 
 async function saveStudentDetails(event) {
@@ -1568,28 +1613,45 @@ async function assignSlotToStudent(event) {
 
   setAdminDataStatus("Booking selected student...");
 
-  const { error: lessonError } = await adminClient.from("lessons").insert({
-    student_id: student.student_id || null,
-    student_email: student.email,
-    availability_slot_id: slot.id,
-    starts_at: slot.starts_at,
-    status: "Confirmed",
-    hours: Number(slot.hours || 2),
-    topic: "Driving lesson",
-    notes: slot.notes || "",
-  });
+  const { data: savedLesson, error: lessonError } = await adminClient
+    .from("lessons")
+    .insert({
+      student_id: student.student_id || null,
+      student_email: student.email,
+      availability_slot_id: slot.id,
+      starts_at: slot.starts_at,
+      status: "Confirmed",
+      hours: Number(slot.hours || 2),
+      topic: "Driving lesson",
+      notes: slot.notes || "",
+    })
+    .select("id")
+    .single();
 
   if (lessonError) {
     setAdminDataStatus(getAdminError(lessonError), "error");
     return;
   }
 
-  await updateAvailabilitySlot(slot.id, {
-    status: "Booked",
-    assigned_student_id: student.student_id || null,
-    assigned_student_email: student.email,
-  });
+  const { error: slotError } = await adminClient
+    .from("lesson_availability_slots")
+    .update({
+      status: "Booked",
+      assigned_student_id: student.student_id || null,
+      assigned_student_email: student.email,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", slot.id);
 
+  if (slotError) {
+    if (savedLesson?.id) {
+      await adminClient.from("lessons").delete().eq("id", savedLesson.id);
+    }
+    setAdminDataStatus(getAdminError(slotError), "error");
+    return;
+  }
+
+  await loadAdminData();
   setAdminDataStatus("Student booked into that diary slot.", "success");
 }
 
@@ -1601,16 +1663,20 @@ async function confirmSlotRequest(request) {
     ? adminData.availabilitySlots.find((slot) => slot.id === request.availability_slot_id)
     : null;
 
-  const { error: lessonError } = await adminClient.from("lessons").insert({
-    student_id: request.student_id,
-    student_email: request.student_email,
-    availability_slot_id: availabilitySlot?.id || request.availability_slot_id || null,
-    starts_at: availabilitySlot?.starts_at || request.requested_slot,
-    status: "Confirmed",
-    hours: Number(availabilitySlot?.hours || 2),
-    topic: "Driving lesson",
-    notes: availabilitySlot?.notes || "",
-  });
+  const { data: savedLesson, error: lessonError } = await adminClient
+    .from("lessons")
+    .insert({
+      student_id: request.student_id,
+      student_email: request.student_email,
+      availability_slot_id: availabilitySlot?.id || request.availability_slot_id || null,
+      starts_at: availabilitySlot?.starts_at || request.requested_slot,
+      status: "Confirmed",
+      hours: Number(availabilitySlot?.hours || 2),
+      topic: "Driving lesson",
+      notes: availabilitySlot?.notes || "",
+    })
+    .select("id")
+    .single();
 
   if (lessonError) {
     setAdminDataStatus(getAdminError(lessonError), "error");
@@ -1629,12 +1695,40 @@ async function confirmSlotRequest(request) {
       .eq("id", availabilitySlot.id);
 
     if (slotError) {
+      if (savedLesson?.id) {
+        await adminClient.from("lessons").delete().eq("id", savedLesson.id);
+      }
       setAdminDataStatus(getAdminError(slotError), "error");
       return;
     }
   }
 
-  await updateSlotRequestStatus(request.id, "Confirmed");
+  const { error: requestError } = await adminClient
+    .from("lesson_slot_requests")
+    .update({ status: "Confirmed" })
+    .eq("id", request.id);
+
+  if (requestError) {
+    if (savedLesson?.id) {
+      await adminClient.from("lessons").delete().eq("id", savedLesson.id);
+    }
+    if (availabilitySlot?.id) {
+      await adminClient
+        .from("lesson_availability_slots")
+        .update({
+          status: availabilitySlot.status || "Available",
+          assigned_student_id: availabilitySlot.assigned_student_id || null,
+          assigned_student_email: availabilitySlot.assigned_student_email || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", availabilitySlot.id);
+    }
+    setAdminDataStatus(getAdminError(requestError), "error");
+    return;
+  }
+
+  await loadAdminData();
+  setAdminDataStatus("Lesson confirmed.", "success");
 }
 
 async function approveCancellationRequest(request) {
@@ -1671,12 +1765,60 @@ async function approveCancellationRequest(request) {
       .eq("id", request.availability_slot_id);
 
     if (slotError) {
+      let lessonRollback = adminClient
+        .from("lessons")
+        .update({ status: "Confirmed" })
+        .eq("starts_at", request.requested_slot);
+
+      if (request.student_id) {
+        lessonRollback = lessonRollback.eq("student_id", request.student_id);
+      } else if (request.student_email) {
+        lessonRollback = lessonRollback.eq("student_email", request.student_email);
+      }
+
+      await lessonRollback;
       setAdminDataStatus(getAdminError(slotError), "error");
       return;
     }
   }
 
-  await updateSlotRequestStatus(request.id, "Cancellation approved");
+  const { error: requestError } = await adminClient
+    .from("lesson_slot_requests")
+    .update({ status: "Cancellation approved" })
+    .eq("id", request.id);
+
+  if (requestError) {
+    let lessonRollback = adminClient
+      .from("lessons")
+      .update({ status: "Confirmed" })
+      .eq("starts_at", request.requested_slot);
+
+    if (request.student_id) {
+      lessonRollback = lessonRollback.eq("student_id", request.student_id);
+    } else if (request.student_email) {
+      lessonRollback = lessonRollback.eq("student_email", request.student_email);
+    }
+
+    await lessonRollback;
+
+    if (request.availability_slot_id) {
+      await adminClient
+        .from("lesson_availability_slots")
+        .update({
+          status: "Booked",
+          assigned_student_id: request.student_id || null,
+          assigned_student_email: request.student_email || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", request.availability_slot_id);
+    }
+
+    setAdminDataStatus(getAdminError(requestError), "error");
+    return;
+  }
+
+  await loadAdminData();
+  setAdminDataStatus("Cancellation approved.", "success");
 }
 
 async function releaseLessonAvailabilitySlot(lesson) {
@@ -1731,6 +1873,11 @@ async function cancelLessonBooking(lessonOrId, options = {}) {
 
   const { error: slotError } = await releaseLessonAvailabilitySlot(lesson);
   if (slotError) {
+    await adminClient
+      .from("lessons")
+      .update({ status: lesson?.status || "Confirmed" })
+      .eq("id", id);
+
     if (!options.silent) {
       setAdminDataStatus(getAdminError(slotError), "error");
     }
