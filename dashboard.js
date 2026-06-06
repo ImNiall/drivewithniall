@@ -239,10 +239,7 @@ function renderLessonRecordList(listElement, lessons, options = {}) {
 function renderDiaryRequests(requests = []) {
   if (!diaryRequestList) return;
 
-  const activeRequests = requests.filter((request) => {
-    const status = String(request.status || "Requested").toLowerCase();
-    return !status.includes("confirmed") && !status.includes("complete") && !status.includes("declined") && !status.includes("approved");
-  });
+  const activeRequests = requests.filter((request) => !isClosedDiaryRequestStatus(request.status));
 
   cancellationRequestSlots = new Set(
     activeRequests
@@ -312,6 +309,21 @@ function updatePaymentBalance(balance) {
   }
 }
 
+function isClosedDiaryRequestStatus(status) {
+  const value = String(status || "").toLowerCase();
+  return [
+    "confirm",
+    "complete",
+    "deliver",
+    "declin",
+    "reject",
+    "approv",
+    "remov",
+    "cancelled",
+    "canceled",
+  ].some((word) => value.includes(word));
+}
+
 function setLessonStudentAccess(hasAccess, message) {
   lessonStudentAccess = hasAccess;
 
@@ -340,6 +352,16 @@ function setLessonStudentAccess(hasAccess, message) {
 function isApprovedStatus(status) {
   const value = String(status || "").toLowerCase();
   return ["approved", "accepted", "active", "confirmed"].some((word) => value.includes(word));
+}
+
+function isPausedLessonAccessStatus(status) {
+  const value = String(status || "").toLowerCase();
+  return ["paused", "pause", "hold", "inactive"].some((word) => value.includes(word));
+}
+
+function isRemovedLessonAccessStatus(status) {
+  const value = String(status || "").toLowerCase();
+  return ["removed", "revoked", "closed", "disabled"].some((word) => value.includes(word));
 }
 
 function showSignedOut(message) {
@@ -511,6 +533,22 @@ async function loadLessonStudentAccess(userId) {
 
   if (isApprovedStatus(data.lesson_status)) {
     setLessonStudentAccess(true);
+    return;
+  }
+
+  if (isPausedLessonAccessStatus(data.lesson_status)) {
+    setLessonStudentAccess(
+      false,
+      "Your practical lesson access is currently paused. Contact me if you need your diary access reopened.",
+    );
+    return;
+  }
+
+  if (isRemovedLessonAccessStatus(data.lesson_status)) {
+    setLessonStudentAccess(
+      false,
+      "Your practical lesson access is currently inactive. Submit a new request or contact me if you need access restored.",
+    );
   }
 }
 
