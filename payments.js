@@ -196,6 +196,15 @@ function renderPaymentHistory(events = []) {
         `;
       }
 
+      if (event.plan_key === "liveVerification") {
+        return `
+          <li>
+            <strong>${amount} live payment test</strong>
+            <span>${status} · ${date}</span>
+          </li>
+        `;
+      }
+
       return `
         <li>
           <strong>${amount} · ${hours} hour${Number(event.hours_delta) === 1 ? "" : "s"}</strong>

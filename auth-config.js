@@ -9,6 +9,11 @@ window.driveAuthConfig = {
   payments: {
     createCheckoutFunction: "create-checkout-session",
     plans: {
+      liveVerification: {
+        label: "Pay £1",
+        hours: 0,
+        amountPence: 100,
+      },
       payPerLesson: {
         label: "Pay £74",
         hours: 2,

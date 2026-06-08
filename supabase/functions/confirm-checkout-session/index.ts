@@ -83,9 +83,11 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Stripe has not marked this checkout session as paid yet." }, 409);
   }
 
-  if (!Number.isFinite(hours) || hours <= 0) {
+  if (!Number.isFinite(hours) || hours < 0) {
     return jsonResponse({ error: "Checkout session is missing valid lesson hours metadata." }, 400);
   }
+
+  const isVerificationPayment = planKey === "liveVerification";
 
   const completedAt = new Date().toISOString();
 
@@ -129,6 +131,10 @@ Deno.serve(async (req) => {
 
   if (eventError) {
     return jsonResponse({ error: eventError.message }, 500);
+  }
+
+  if (isVerificationPayment) {
+    return jsonResponse({ confirmed: true, sessionId: session.id, verificationOnly: true });
   }
 
   const { data: balance, error: balanceReadError } = await supabaseAdmin

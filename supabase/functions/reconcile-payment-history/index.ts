@@ -2,6 +2,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
 
 const currentPlans = {
+  liveVerification: {
+    hours: 0,
+    amountPence: 100,
+  },
   payPerLesson: {
     hours: 2,
     amountPence: 7400,
