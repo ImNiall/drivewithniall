@@ -23,6 +23,24 @@ const paymentPlans = {
   },
 };
 
+function getPaymentPlan(planKey: string) {
+  const normalisedKey = String(planKey || "").trim();
+
+  if (normalisedKey === "liveVerification") {
+    return paymentPlans.liveVerification;
+  }
+
+  if (normalisedKey === "payPerLesson") {
+    return paymentPlans.payPerLesson;
+  }
+
+  if (normalisedKey === "tenHourPackage") {
+    return paymentPlans.tenHourPackage;
+  }
+
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -50,7 +68,7 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => ({ planKey: "" }));
   const planKey = String(body?.planKey || "");
-  const plan = paymentPlans[planKey as keyof typeof paymentPlans];
+  const plan = getPaymentPlan(planKey);
 
   if (!plan) {
     return jsonResponse({ error: "Unknown payment option." }, 400);
