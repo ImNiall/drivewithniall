@@ -3,12 +3,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
 
 const paymentPlans = {
-  liveVerification: {
-    name: "Drive with Niall live payment test",
-    description: "A one-off live Stripe verification payment with no lesson credit added.",
-    amountPence: 100,
-    hours: 0,
-  },
   payPerLesson: {
     name: "Drive with Niall 2 hour lesson",
     description: "Two hours of manual driving lesson credit.",
@@ -25,10 +19,6 @@ const paymentPlans = {
 
 function getPaymentPlan(planKey: string) {
   const normalisedKey = String(planKey || "").trim();
-
-  if (normalisedKey === "liveVerification") {
-    return paymentPlans.liveVerification;
-  }
 
   if (normalisedKey === "payPerLesson") {
     return paymentPlans.payPerLesson;

@@ -196,15 +196,6 @@ function renderPaymentHistory(events = []) {
         `;
       }
 
-      if (event.plan_key === "liveVerification") {
-        return `
-          <li>
-            <strong>${amount} live payment test</strong>
-            <span>${status} · ${date}</span>
-          </li>
-        `;
-      }
-
       if (event.event_type === "payment_reversed") {
         return `
           <li>

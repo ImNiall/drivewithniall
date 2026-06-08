@@ -60,8 +60,6 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Checkout session is missing student or hours metadata." }, 400);
     }
 
-    const isVerificationPayment = planKey === "liveVerification";
-
     const completedAt = new Date().toISOString();
     const { data: existingEvent, error: existingEventError } = await supabaseAdmin
       .from("student_payment_events")
@@ -103,10 +101,6 @@ Deno.serve(async (req) => {
 
     if (eventError) {
       return jsonResponse({ error: eventError.message }, 500);
-    }
-
-    if (isVerificationPayment) {
-      return jsonResponse({ received: true, verificationOnly: true });
     }
 
     const { data: balance, error: balanceReadError } = await supabaseAdmin
