@@ -395,6 +395,7 @@ function formatPaymentEventTitle(event) {
     manual_payment_received: "Manual payment recorded",
     manual_credit_added: "Manual credit added",
     manual_credit_deducted: "Manual credit deducted",
+    payment_reversed: "Payment reversed",
     checkout_session_completed: "Stripe payment confirmed",
     checkout_session_created: "Stripe checkout started",
     checkout_session_expired: "Stripe checkout expired",
@@ -442,6 +443,27 @@ function resetStudentPaymentControls() {
   if (studentPaymentHours) studentPaymentHours.value = "";
   if (studentPaymentAmount) studentPaymentAmount.value = "";
   if (studentPaymentNote) studentPaymentNote.value = "";
+}
+
+function getPaymentEventMetadata(event) {
+  return event?.metadata && typeof event.metadata === "object" ? event.metadata : {};
+}
+
+function isReversiblePaymentEvent(event) {
+  const eventType = String(event?.event_type || "");
+  const status = String(event?.event_status || "").toLowerCase();
+  const metadata = getPaymentEventMetadata(event);
+  const reversibleTypes = [
+    "checkout_session_completed",
+    "manual_payment_received",
+    "manual_credit_added",
+  ];
+
+  if (!reversibleTypes.includes(eventType)) return false;
+  if (["reversed", "superseded", "refunded"].includes(status)) return false;
+  if (metadata.reversed_by_event_id || metadata.superseded_by_event_id) return false;
+
+  return Number(event?.hours_delta || 0) >= 0 && Number(event?.amount_pence || 0) >= 0;
 }
 
 function buildAdminItem(title, meta, details = []) {
@@ -712,7 +734,7 @@ function renderStudentHistory(student) {
   paymentEvents.forEach((event) => {
     const hours = Number(event.hours_delta || 0);
     const amount = Number(event.amount_pence || 0);
-    const metadata = event.metadata && typeof event.metadata === "object" ? event.metadata : {};
+    const metadata = getPaymentEventMetadata(event);
     const item = buildAdminItem(
       formatPaymentEventTitle(event),
       `${event.event_status || "Recorded"} · ${formatAdminDate(event.created_at)}`,
@@ -724,6 +746,16 @@ function renderStudentHistory(student) {
         metadata.source ? `Source: ${metadata.source}` : "",
       ],
     );
+
+    if (isReversiblePaymentEvent(event)) {
+      addItemActions(item, [
+        {
+          label: "Reverse payment",
+          onClick: () => reverseStudentPaymentEvent(event),
+        },
+      ]);
+    }
+
     studentHistoryList?.append(item);
   });
 }
@@ -1610,6 +1642,148 @@ async function applyStudentPaymentAdjustment() {
 
   if (applyStudentPaymentButton) applyStudentPaymentButton.disabled = false;
   setAdminDataStatus("Payment balance updated.", "success");
+}
+
+async function reverseStudentPaymentEvent(event) {
+  if (!activeStudent || !event?.id) return;
+
+  const reverseHours = Math.abs(Number(event.hours_delta || 0));
+  const reverseAmountPence = Math.abs(Number(event.amount_pence || 0));
+  const eventLabel = formatPaymentEventTitle(event);
+  const isStripePayment = String(event.event_type || "") === "checkout_session_completed";
+  const currentBalance = findPaymentBalanceForStudent(activeStudent);
+  const currentPurchasedHours = Number(currentBalance?.purchased_hours || 0);
+  const currentUsedHours = Number(currentBalance?.used_hours || 0);
+  const currentAccountBalancePence = Number(currentBalance?.account_balance_pence || 0);
+  const nextPurchasedHours = currentPurchasedHours - reverseHours;
+  const nextAccountBalancePence = currentAccountBalancePence - reverseAmountPence;
+
+  if (nextPurchasedHours < currentUsedHours) {
+    setAdminDataStatus("This payment cannot be reversed because some of the credited lesson hours have already been used.", "error");
+    return;
+  }
+
+  if (nextAccountBalancePence < 0) {
+    setAdminDataStatus("This payment cannot be reversed because the stored account balance is already lower than the payment amount.", "error");
+    return;
+  }
+
+  const confirmationMessage = isStripePayment
+    ? `Reverse ${eventLabel} for ${formatPoundsFromPence(reverseAmountPence)} and ${formatAdminHours(reverseHours)}h? This removes the lesson credit in Drive with Niall only. Refund the actual card payment separately in Stripe if needed.`
+    : `Reverse ${eventLabel} for ${formatPoundsFromPence(reverseAmountPence)} and ${formatAdminHours(reverseHours)}h?`;
+  const confirmed = window.confirm(confirmationMessage);
+  if (!confirmed) return;
+
+  const studentId = activeStudent.student_id || null;
+  const studentEmail = activeStudent.email || activeStudent.student_email || "";
+  const now = new Date().toISOString();
+  setAdminDataStatus("Reversing payment credit...");
+
+  const { error: balanceError } = await adminClient
+    .from("student_payment_balances")
+    .update({
+      purchased_hours: nextPurchasedHours,
+      used_hours: currentUsedHours,
+      account_balance_pence: nextAccountBalancePence,
+      updated_at: now,
+    })
+    .eq("id", currentBalance?.id);
+
+  if (balanceError) {
+    setAdminDataStatus(getAdminError(balanceError), "error");
+    return;
+  }
+
+  const { data: reversalEvent, error: reversalInsertError } = await adminClient
+    .from("student_payment_events")
+    .insert({
+      student_id: studentId,
+      student_email: studentEmail,
+      event_type: "payment_reversed",
+      event_status: "completed",
+      plan_key: event.plan_key || "payment_reversal",
+      hours_delta: -reverseHours,
+      amount_pence: -reverseAmountPence,
+      currency: event.currency || "gbp",
+      metadata: {
+        source: "admin_payment_reversal",
+        reversed_event_id: event.id,
+        original_event_type: event.event_type,
+        original_created_at: event.created_at || null,
+        note: isStripePayment
+          ? "Lesson credit reversed in admin. Refund the original Stripe charge separately if needed."
+          : "Payment credit reversed in admin.",
+        reversed_by: adminUsernameEmail || adminName,
+      },
+      updated_at: now,
+    })
+    .select("id")
+    .single();
+
+  if (reversalInsertError) {
+    await adminClient
+      .from("student_payment_balances")
+      .update({
+        purchased_hours: currentPurchasedHours,
+        used_hours: currentUsedHours,
+        account_balance_pence: currentAccountBalancePence,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", currentBalance?.id);
+
+    setAdminDataStatus(getAdminError(reversalInsertError), "error");
+    return;
+  }
+
+  const originalMetadata = getPaymentEventMetadata(event);
+  const { error: originalUpdateError } = await adminClient
+    .from("student_payment_events")
+    .update({
+      event_status: "reversed",
+      metadata: {
+        ...originalMetadata,
+        reversed_by_event_id: reversalEvent?.id || null,
+        reversed_at: now,
+        reversed_by: adminUsernameEmail || adminName,
+      },
+      updated_at: now,
+    })
+    .eq("id", event.id);
+
+  if (originalUpdateError) {
+    await adminClient
+      .from("student_payment_balances")
+      .update({
+        purchased_hours: currentPurchasedHours,
+        used_hours: currentUsedHours,
+        account_balance_pence: currentAccountBalancePence,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", currentBalance?.id);
+
+    if (reversalEvent?.id) {
+      await adminClient
+        .from("student_payment_events")
+        .delete()
+        .eq("id", reversalEvent.id);
+    }
+
+    setAdminDataStatus(getAdminError(originalUpdateError), "error");
+    return;
+  }
+
+  await loadAdminData();
+  const refreshedStudent = getApprovedStudentRecords().find((student) => sameStudent(student, activeStudent)) || activeStudent;
+  activeStudent = refreshedStudent;
+  renderStudentPaymentSummary(refreshedStudent);
+  renderStudentHistory(refreshedStudent);
+
+  setAdminDataStatus(
+    isStripePayment
+      ? "Payment credit reversed. If the card charge also needs refunding, do that in Stripe."
+      : "Payment credit reversed.",
+    "success",
+  );
 }
 
 async function removeStudentAccess(student = activeStudent) {

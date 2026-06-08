@@ -138,7 +138,7 @@ function shouldDisplayPaymentEvent(event) {
   const type = String(event?.event_type || "");
   const status = String(event?.event_status || "").toLowerCase();
 
-  if (status === "superseded") {
+  if (status === "superseded" || status === "reversed") {
     return false;
   }
 
@@ -200,6 +200,15 @@ function renderPaymentHistory(events = []) {
         return `
           <li>
             <strong>${amount} live payment test</strong>
+            <span>${status} · ${date}</span>
+          </li>
+        `;
+      }
+
+      if (event.event_type === "payment_reversed") {
+        return `
+          <li>
+            <strong>${amount} payment reversed</strong>
             <span>${status} · ${date}</span>
           </li>
         `;
