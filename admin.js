@@ -14,6 +14,9 @@ const adminBrandName = document.querySelector("#adminBrandName");
 const adminDashboardTitle = document.querySelector("#adminDashboardTitle");
 const adminSignOutButton = document.querySelector("#adminSignOutButton");
 const adminRefreshButton = document.querySelector("#adminRefreshButton");
+const adminSearchInput = document.querySelector("#adminSearchInput");
+const adminFocusFilter = document.querySelector("#adminFocusFilter");
+const adminPaymentFilter = document.querySelector("#adminPaymentFilter");
 const adminDataStatus = document.querySelector("#adminDataStatus");
 const pendingLessonRequests = document.querySelector("#pendingLessonRequests");
 const slotRequestList = document.querySelector("#slotRequestList");
@@ -21,12 +24,17 @@ const approvedStudentList = document.querySelector("#approvedStudentList");
 const paymentTrackerList = document.querySelector("#paymentTrackerList");
 const confirmedLessonList = document.querySelector("#confirmedLessonList");
 const deliveredLessonList = document.querySelector("#deliveredLessonList");
+const closedLessonList = document.querySelector("#closedLessonList");
 const supportRequestList = document.querySelector("#supportRequestList");
 const pendingRequestCount = document.querySelector("#pendingRequestCount");
 const approvedStudentCount = document.querySelector("#approvedStudentCount");
 const slotRequestCount = document.querySelector("#slotRequestCount");
 const confirmedLessonCount = document.querySelector("#confirmedLessonCount");
 const supportRequestCount = document.querySelector("#supportRequestCount");
+const lowCreditCount = document.querySelector("#lowCreditCount");
+const unpaidLessonCount = document.querySelector("#unpaidLessonCount");
+const deliveredThisMonthCount = document.querySelector("#deliveredThisMonthCount");
+const paidThisMonthValue = document.querySelector("#paidThisMonthValue");
 const studentManageDialog = document.querySelector("#studentManageDialog");
 const studentManageForm = document.querySelector("#studentManageForm");
 const closeStudentDialog = document.querySelector("#closeStudentDialog");
@@ -79,6 +87,11 @@ let adminData = {
 };
 let activeStudent = null;
 let currentDiaryWeekStart = getStartOfWeek(new Date());
+let adminFilters = {
+  search: "",
+  focus: "all",
+  payment: "all",
+};
 
 const hasAdminConfig =
   adminConfig.supabaseUrl &&
@@ -132,6 +145,11 @@ function isCompletedLessonStatus(status) {
 
 function isCancelledLessonStatus(status) {
   return getLessonStatusValue(status).includes("cancel");
+}
+
+function isNoShowLessonStatus(status) {
+  const value = getLessonStatusValue(status);
+  return value.includes("no-show") || value.includes("no show");
 }
 
 function getLessonRemainingHours(balance) {
@@ -292,7 +310,7 @@ function isApprovedStatus(status) {
 
 function isClosedWorkflowStatus(status) {
   const value = String(status || "").toLowerCase();
-  return ["removed", "cancel", "complete", "deliver", "declined", "rejected"].some((word) => value.includes(word));
+  return ["removed", "cancel", "complete", "deliver", "declined", "rejected", "no-show", "no show"].some((word) => value.includes(word));
 }
 
 function isCancellationRequest(request) {
@@ -409,21 +427,237 @@ function formatPaymentEventTitle(event) {
   return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
-function getPaymentSummaryLines(student) {
-  const balance = findPaymentBalanceForStudent(student);
-  if (!balance) {
-    return ["No payment balance recorded yet."];
+function formatLessonStatusLabel(status) {
+  const value = String(status || "").trim();
+  const normalised = value.toLowerCase();
+
+  if (!value) return "Confirmed";
+  if (normalised === "confirmed") return "Booked";
+  if (normalised === "delivered") return "Delivered";
+  if (normalised === "cancelled by instructor") return "Cancelled by instructor";
+  if (normalised === "cancelled by student") return "Cancelled by student";
+  if (normalised === "no-show") return "No-show";
+
+  return value;
+}
+
+function normaliseAdminSearchValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function matchesAdminSearch(values = []) {
+  const search = normaliseAdminSearchValue(adminFilters.search);
+  if (!search) return true;
+
+  return values.some((value) => normaliseAdminSearchValue(value).includes(search));
+}
+
+function getStudentLessons(student, lessons = adminData.lessons) {
+  return (lessons || []).filter((lesson) => sameStudent(lesson, student));
+}
+
+function getStudentActiveBookings(student, lessons = adminData.lessons) {
+  return getStudentLessons(student, lessons)
+    .filter((lesson) => !isCompletedLessonStatus(lesson.status) && !isCancelledLessonStatus(lesson.status) && !isNoShowLessonStatus(lesson.status))
+    .sort((a, b) => new Date(formatLessonDateValue(a) || 0) - new Date(formatLessonDateValue(b) || 0));
+}
+
+function getStudentClosedLessons(student, lessons = adminData.lessons) {
+  return getStudentLessons(student, lessons).filter((lesson) => isCancelledLessonStatus(lesson.status) || isNoShowLessonStatus(lesson.status));
+}
+
+function getStudentCompletedLessons(student, lessons = adminData.lessons) {
+  return getStudentLessons(student, lessons).filter((lesson) => isCompletedLessonStatus(lesson.status));
+}
+
+function getStudentPaymentHealth(student, lessons = adminData.lessons, paymentBalances = adminData.paymentBalances) {
+  const paymentBalance = findPaymentBalanceForStudent(student, paymentBalances);
+  const activeBookings = getStudentActiveBookings(student, lessons);
+  const nextLesson = activeBookings[0] || null;
+  const nextLessonHours = nextLesson ? getLessonDurationHours(nextLesson) : 0;
+  const purchasedHours = Number(paymentBalance?.purchased_hours || 0);
+  const usedHours = Number(paymentBalance?.used_hours || 0);
+  const remainingHours = Math.max(purchasedHours - usedHours, 0);
+  const coverageGap = nextLessonHours ? Math.max(nextLessonHours - remainingHours, 0) : 0;
+
+  if (!paymentBalance) {
+    return {
+      code: activeBookings.length ? "needs-payment" : "no-credit",
+      tone: activeBookings.length ? "danger" : "muted",
+      label: activeBookings.length ? "Needs payment" : "No credit recorded",
+      summary: activeBookings.length ? "Booked lesson has no paid credit linked yet." : "No paid balance recorded yet.",
+      paymentBalance,
+      activeBookings,
+      nextLesson,
+      nextLessonHours,
+      purchasedHours,
+      usedHours,
+      remainingHours,
+      coverageGap,
+    };
   }
 
-  const remainingHours = getLessonRemainingHours(balance);
-  const purchasedHours = Number(balance.purchased_hours || 0);
-  const usedHours = Number(balance.used_hours || 0);
+  if (remainingHours <= 0) {
+    return {
+      code: "needs-payment",
+      tone: "danger",
+      label: "No paid hours",
+      summary: activeBookings.length ? "The next booked lesson is not covered." : "No paid hours remain.",
+      paymentBalance,
+      activeBookings,
+      nextLesson,
+      nextLessonHours,
+      purchasedHours,
+      usedHours,
+      remainingHours,
+      coverageGap,
+    };
+  }
+
+  if (coverageGap > 0) {
+    return {
+      code: "short-next-lesson",
+      tone: "danger",
+      label: "Short for next lesson",
+      summary: `Short by ${formatAdminHours(coverageGap)}h for the next booked lesson.`,
+      paymentBalance,
+      activeBookings,
+      nextLesson,
+      nextLessonHours,
+      purchasedHours,
+      usedHours,
+      remainingHours,
+      coverageGap,
+    };
+  }
+
+  if (remainingHours <= 2) {
+    return {
+      code: "low-hours",
+      tone: "warning",
+      label: "Low remaining hours",
+      summary: activeBookings.length ? "The next lesson is covered, but the account is running low." : "Paid credit is running low.",
+      paymentBalance,
+      activeBookings,
+      nextLesson,
+      nextLessonHours,
+      purchasedHours,
+      usedHours,
+      remainingHours,
+      coverageGap,
+    };
+  }
+
+  return {
+    code: activeBookings.length ? "covered" : "credit-available",
+    tone: "success",
+    label: activeBookings.length ? "Lesson covered" : "Credit available",
+    summary: activeBookings.length ? "The next booked lesson is covered." : "Paid credit is available for future bookings.",
+    paymentBalance,
+    activeBookings,
+    nextLesson,
+    nextLessonHours,
+    purchasedHours,
+    usedHours,
+    remainingHours,
+    coverageGap,
+  };
+}
+
+function matchesPaymentFilter(health) {
+  switch (adminFilters.payment) {
+    case "needs-payment":
+      return ["needs-payment", "short-next-lesson"].includes(health.code);
+    case "low-hours":
+      return health.code === "low-hours";
+    case "covered":
+      return ["covered", "credit-available"].includes(health.code);
+    case "no-credit":
+      return health.code === "no-credit";
+    default:
+      return true;
+  }
+}
+
+function matchesFocusFilterForStudent(student, health, lessons = adminData.lessons, requests = adminData.lessonRequests, slotRequests = adminData.slotRequests) {
+  switch (adminFilters.focus) {
+    case "pending":
+      return (requests || []).some((request) => sameStudent(request, student) && isPendingStatus(request.status))
+        || (slotRequests || []).some((request) => sameStudent(request, student) && isPendingStatus(request.status));
+    case "unpaid":
+      return ["needs-payment", "short-next-lesson"].includes(health.code);
+    case "low":
+      return ["low-hours", "short-next-lesson"].includes(health.code);
+    case "upcoming":
+      return health.activeBookings.length > 0;
+    case "delivered":
+      return getStudentCompletedLessons(student, lessons).length > 0;
+    case "closed":
+      return getStudentClosedLessons(student, lessons).length > 0;
+    default:
+      return true;
+  }
+}
+
+function getLessonSearchTerms(lesson, student = null) {
+  return [
+    lesson?.student_email,
+    lesson?.topic,
+    lesson?.notes,
+    lesson?.summary,
+    formatLessonDateValue(lesson),
+    student ? getStudentName(student) : "",
+    student?.email || "",
+  ];
+}
+
+function matchesFocusFilterForLesson(lesson, student, health) {
+  switch (adminFilters.focus) {
+    case "upcoming":
+      return !isCompletedLessonStatus(lesson.status) && !isCancelledLessonStatus(lesson.status) && !isNoShowLessonStatus(lesson.status);
+    case "delivered":
+      return isCompletedLessonStatus(lesson.status);
+    case "closed":
+      return isCancelledLessonStatus(lesson.status) || isNoShowLessonStatus(lesson.status);
+    case "unpaid":
+      return !isCompletedLessonStatus(lesson.status) && ["needs-payment", "short-next-lesson"].includes(health.code);
+    case "low":
+      return !isCompletedLessonStatus(lesson.status) && ["low-hours", "short-next-lesson"].includes(health.code);
+    default:
+      return true;
+  }
+}
+
+function addStatusPill(item, label, tone = "muted") {
+  if (!label) return;
+  const pill = document.createElement("span");
+  pill.className = `status-pill is-${tone}`;
+  pill.textContent = label;
+  item.prepend(pill);
+}
+
+function getPaymentSummaryLines(student) {
+  const health = getStudentPaymentHealth(student);
+  const balance = health.paymentBalance;
+  if (!balance) {
+    return [
+      "No payment balance recorded yet.",
+      health.activeBookings.length ? "Booked lesson warning: this student has a lesson booked without linked credit." : "",
+    ].filter(Boolean);
+  }
+
+  const remainingHours = health.remainingHours;
+  const purchasedHours = health.purchasedHours;
+  const usedHours = health.usedHours;
 
   return [
+    `Status: ${health.label}`,
     `Remaining: ${formatAdminHours(remainingHours)}h`,
     `Purchased: ${formatAdminHours(purchasedHours)}h`,
     `Used: ${formatAdminHours(usedHours)}h`,
     `Balance: ${formatPoundsFromPence(balance.account_balance_pence)}`,
+    health.nextLesson ? `Next lesson: ${formatAdminDate(formatLessonDateValue(health.nextLesson))} (${formatAdminHours(health.nextLessonHours)}h)` : "",
+    health.summary,
   ];
 }
 
@@ -522,7 +756,11 @@ function addItemActions(item, actions) {
 function renderPendingLessonRequests(requests) {
   clearElement(pendingLessonRequests);
 
-  const pending = (requests || []).filter((request) => isPendingStatus(request.status));
+  const pending = (requests || []).filter((request) =>
+    isPendingStatus(request.status) &&
+    (adminFilters.focus === "all" || adminFilters.focus === "pending") &&
+    matchesAdminSearch([request.name, request.email, request.phone, request.postcode, request.addresses, request.current_stage]),
+  );
   setCount(pendingRequestCount, pending.length);
 
   if (!pending.length) {
@@ -563,7 +801,16 @@ function renderPendingLessonRequests(requests) {
 function renderApprovedStudents(students, requests, lessons, paymentBalances = adminData.paymentBalances) {
   clearElement(approvedStudentList);
 
-  const approved = getApprovedStudentRecords(students, requests);
+  const approved = getApprovedStudentRecords(students, requests)
+    .map((student) => ({
+      student,
+      health: getStudentPaymentHealth(student, lessons, paymentBalances),
+    }))
+    .filter(({ student, health }) =>
+      matchesAdminSearch([getStudentName(student), student.email, student.lesson_status, health.label, health.summary]) &&
+      matchesPaymentFilter(health) &&
+      matchesFocusFilterForStudent(student, health, lessons, requests, adminData.slotRequests),
+    );
   setCount(approvedStudentCount, approved.length);
 
   if (!approved.length) {
@@ -571,22 +818,23 @@ function renderApprovedStudents(students, requests, lessons, paymentBalances = a
     return;
   }
 
-  approved.forEach((student) => {
-    const studentLessons = (lessons || []).filter((lesson) => sameStudent(lesson, student));
-    const activeBookings = studentLessons.filter((lesson) => !isCompletedLessonStatus(lesson.status) && !isCancelledLessonStatus(lesson.status));
-    const paymentBalance = findPaymentBalanceForStudent(student, paymentBalances);
+  approved.forEach(({ student, health }) => {
+    const studentLessons = getStudentLessons(student, lessons);
+    const activeBookings = health.activeBookings;
+    const paymentBalance = health.paymentBalance;
     const completedHours = studentLessons
       .filter((lesson) => isCompletedLessonStatus(lesson.status))
       .reduce((total, lesson) => total + Number(lesson.hours || lesson.duration_hours || 2), 0);
-    const purchasedHours = Number(paymentBalance?.purchased_hours || 0);
-    const usedHours = Number(paymentBalance?.used_hours || 0);
-    const remainingHours = Math.max(0, purchasedHours - usedHours);
+    const purchasedHours = health.purchasedHours;
+    const usedHours = health.usedHours;
+    const remainingHours = health.remainingHours;
 
     const item = buildAdminItem(
       getStudentName(student),
       student.email || "No email saved",
       [
-        `Status: ${student.lesson_status || "Approved"}`,
+        `Access: ${student.lesson_status || "Approved"}`,
+        `Payment status: ${health.label}`,
         `Completed hours: ${completedHours}`,
         `Bookings: ${activeBookings.length}`,
         paymentBalance
@@ -594,8 +842,11 @@ function renderApprovedStudents(students, requests, lessons, paymentBalances = a
           : "Paid remaining: No paid hours recorded",
         paymentBalance ? `Paid used: ${formatAdminHours(usedHours)} of ${formatAdminHours(purchasedHours)} hours` : "",
         paymentBalance ? `Account balance: ${formatPoundsFromPence(paymentBalance.account_balance_pence)}` : "",
+        health.nextLesson ? `Next lesson: ${formatAdminDate(formatLessonDateValue(health.nextLesson))}` : "",
+        health.summary,
       ],
     );
+    addStatusPill(item, health.label, health.tone);
 
     addItemActions(item, [
       {
@@ -625,57 +876,50 @@ function renderPaymentTracker(students, requests, lessons = adminData.lessons, p
 
   const trackerRows = approved
     .map((student) => {
-      const studentLessons = (lessons || []).filter((lesson) => sameStudent(lesson, student));
-      const activeBookings = studentLessons.filter((lesson) => !isCompletedLessonStatus(lesson.status) && !isCancelledLessonStatus(lesson.status));
-      const paymentBalance = findPaymentBalanceForStudent(student, paymentBalances);
-      const purchasedHours = Number(paymentBalance?.purchased_hours || 0);
-      const usedHours = Number(paymentBalance?.used_hours || 0);
-      const remainingHours = Math.max(0, purchasedHours - usedHours);
-      const nextLessonHours = activeBookings.length
-        ? Number(activeBookings[0].hours || activeBookings[0].duration_hours || 2)
-        : 0;
-      const coverageGap = nextLessonHours ? nextLessonHours - remainingHours : 0;
-
       return {
         student,
-        activeBookings,
-        paymentBalance,
-        remainingHours,
-        purchasedHours,
-        usedHours,
-        nextLessonHours,
-        coverageGap,
+        health: getStudentPaymentHealth(student, lessons, paymentBalances),
       };
     })
+    .filter(({ student, health }) =>
+      matchesAdminSearch([getStudentName(student), student.email, health.label, health.summary]) &&
+      matchesPaymentFilter(health) &&
+      matchesFocusFilterForStudent(student, health, lessons, requests, adminData.slotRequests),
+    )
     .sort((a, b) => {
-      const aSeverity = a.remainingHours <= 0 ? 0 : a.coverageGap > 0 ? 1 : 2;
-      const bSeverity = b.remainingHours <= 0 ? 0 : b.coverageGap > 0 ? 1 : 2;
+      const severityMap = {
+        "needs-payment": 0,
+        "short-next-lesson": 1,
+        "low-hours": 2,
+        "no-credit": 3,
+        covered: 4,
+        "credit-available": 5,
+      };
+      const aSeverity = severityMap[a.health.code] ?? 9;
+      const bSeverity = severityMap[b.health.code] ?? 9;
       if (aSeverity !== bSeverity) return aSeverity - bSeverity;
-      return a.remainingHours - b.remainingHours;
+      return a.health.remainingHours - b.health.remainingHours;
     });
 
   trackerRows.forEach((row) => {
-    const summary = row.paymentBalance
-      ? row.coverageGap > 0
-        ? `Short by ${formatAdminHours(row.coverageGap)}h for the next booked lesson`
-        : row.activeBookings.length
-          ? `Next booked lesson is covered`
-          : `No booked lesson using the balance yet`
-      : "No paid balance recorded";
+    const { health } = row;
+    const summary = health.summary;
 
     const item = buildAdminItem(
       getStudentName(row.student),
       summary,
       [
         row.student.email || "No email saved",
-        `Hours remaining: ${formatAdminHours(row.remainingHours)}`,
-        `Hours purchased: ${formatAdminHours(row.purchasedHours)}`,
-        `Hours used: ${formatAdminHours(row.usedHours)}`,
-        row.paymentBalance ? `Account balance: ${formatPoundsFromPence(row.paymentBalance.account_balance_pence)}` : "",
-        row.activeBookings.length ? `Booked lessons: ${row.activeBookings.length}` : "Booked lessons: 0",
-        row.nextLessonHours ? `Next lesson needs: ${formatAdminHours(row.nextLessonHours)}h` : "",
+        `Hours remaining: ${formatAdminHours(health.remainingHours)}`,
+        `Hours purchased: ${formatAdminHours(health.purchasedHours)}`,
+        `Hours used: ${formatAdminHours(health.usedHours)}`,
+        health.paymentBalance ? `Account balance: ${formatPoundsFromPence(health.paymentBalance.account_balance_pence)}` : "",
+        health.activeBookings.length ? `Booked lessons: ${health.activeBookings.length}` : "Booked lessons: 0",
+        health.nextLessonHours ? `Next lesson needs: ${formatAdminHours(health.nextLessonHours)}h` : "",
+        health.nextLesson ? `Next lesson: ${formatAdminDate(formatLessonDateValue(health.nextLesson))}` : "",
       ],
     );
+    addStatusPill(item, health.label, health.tone);
 
     addItemActions(item, [
       {
@@ -735,6 +979,7 @@ function renderStudentHistory(student) {
     const hours = Number(event.hours_delta || 0);
     const amount = Number(event.amount_pence || 0);
     const metadata = getPaymentEventMetadata(event);
+    const isStripePayment = String(event.event_type || "") === "checkout_session_completed";
     const item = buildAdminItem(
       formatPaymentEventTitle(event),
       `${event.event_status || "Recorded"} · ${formatAdminDate(event.created_at)}`,
@@ -742,6 +987,7 @@ function renderStudentHistory(student) {
         event.plan_key ? `Plan: ${event.plan_key}` : "",
         hours ? `Hours: ${formatAdminHours(hours)}` : "",
         amount ? `Amount: ${formatPoundsFromPence(amount)}` : "",
+        isStripePayment ? "Stripe refund note: refund the card payment in Stripe, then reverse app credit here if needed." : "",
         metadata.note ? `Note: ${metadata.note}` : "",
         metadata.source ? `Source: ${metadata.source}` : "",
       ],
@@ -750,7 +996,7 @@ function renderStudentHistory(student) {
     if (isReversiblePaymentEvent(event)) {
       addItemActions(item, [
         {
-          label: "Reverse payment",
+          label: isStripePayment ? "Reverse app credit" : "Reverse payment",
           onClick: () => reverseStudentPaymentEvent(event),
         },
       ]);
@@ -777,7 +1023,11 @@ function openStudentManager(student) {
 function renderSlotRequests(slotRequests) {
   clearElement(slotRequestList);
 
-  const activeRequests = (slotRequests || []).filter((request) => isPendingStatus(request.status) || String(request.status || "").toLowerCase().includes("requested"));
+  const activeRequests = (slotRequests || []).filter((request) =>
+    (isPendingStatus(request.status) || String(request.status || "").toLowerCase().includes("requested")) &&
+    (adminFilters.focus === "all" || adminFilters.focus === "pending") &&
+    matchesAdminSearch([request.student_email, request.requested_label, request.status]),
+  );
   setCount(slotRequestCount, activeRequests.length);
 
   if (!activeRequests.length) {
@@ -830,7 +1080,23 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
   clearElement(confirmedLessonList);
 
   const confirmed = (lessons || []).filter((lesson) => {
-    return !isCompletedLessonStatus(lesson.status) && !isCancelledLessonStatus(lesson.status);
+    const student = findStudentForLesson(lesson, students, requests);
+    const health = student ? getStudentPaymentHealth(student) : {
+      code: "no-credit",
+      tone: "muted",
+      label: "No credit recorded",
+      activeBookings: [],
+      nextLesson: null,
+      nextLessonHours: 0,
+      remainingHours: 0,
+      paymentBalance: null,
+    };
+    return !isCompletedLessonStatus(lesson.status) &&
+      !isCancelledLessonStatus(lesson.status) &&
+      !isNoShowLessonStatus(lesson.status) &&
+      matchesFocusFilterForLesson(lesson, student, health) &&
+      matchesAdminSearch(getLessonSearchTerms(lesson, student)) &&
+      matchesPaymentFilter(health);
   });
   setCount(confirmedLessonCount, confirmed.length);
 
@@ -841,8 +1107,9 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
 
   confirmed.forEach((lesson) => {
     const student = findStudentForLesson(lesson, students, requests);
-    const paymentBalance = student ? findPaymentBalanceForStudent(student) : null;
-    const remainingHours = paymentBalance ? getLessonRemainingHours(paymentBalance) : 0;
+    const health = student ? getStudentPaymentHealth(student) : null;
+    const paymentBalance = health?.paymentBalance || null;
+    const remainingHours = health?.remainingHours || 0;
     const lessonHours = Number(lesson.hours || lesson.duration_hours || 2);
     const afterLessonHours = paymentBalance ? remainingHours - lessonHours : 0;
     const item = buildAdminItem(
@@ -850,7 +1117,7 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
       formatAdminDate(lesson.starts_at || lesson.lesson_date),
       [
         lesson.student_email ? `Email: ${lesson.student_email}` : "",
-        `Status: ${lesson.status || "Confirmed"}`,
+        `Status: ${formatLessonStatusLabel(lesson.status || "Confirmed")}`,
         `Hours: ${lessonHours}`,
         paymentBalance
           ? `Paid remaining now: ${formatAdminHours(remainingHours)}h`
@@ -860,16 +1127,22 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
             ? `After this lesson: ${formatAdminHours(afterLessonHours)}h remaining`
             : `After this lesson: ${formatAdminHours(Math.abs(afterLessonHours))}h short`
           : "",
+        health?.label ? `Payment status: ${health.label}` : "",
         lesson.topic ? `Focus: ${lesson.topic}` : "",
         lesson.summary ? `Summary: ${lesson.summary}` : "",
       ],
     );
+    if (health) addStatusPill(item, health.label, health.tone);
 
     addItemActions(item, [
       {
         label: "Mark as delivered",
         className: "primary-button",
         onClick: () => markLessonDelivered(lesson),
+      },
+      {
+        label: "Mark no-show",
+        onClick: () => markLessonNoShow(lesson),
       },
       {
         label: "Cancel booking",
@@ -885,7 +1158,13 @@ function renderDeliveredLessons(lessons, students = [], requests = []) {
   clearElement(deliveredLessonList);
 
   const delivered = (lessons || [])
-    .filter((lesson) => isCompletedLessonStatus(lesson.status))
+    .filter((lesson) => {
+      const student = findStudentForLesson(lesson, students, requests);
+      const health = student ? getStudentPaymentHealth(student) : { code: "no-credit", tone: "muted", label: "No credit recorded" };
+      return isCompletedLessonStatus(lesson.status) &&
+        matchesFocusFilterForLesson(lesson, student, health) &&
+        matchesAdminSearch(getLessonSearchTerms(lesson, student));
+    })
     .sort((a, b) => new Date(b.delivered_at || formatLessonDateValue(b) || 0) - new Date(a.delivered_at || formatLessonDateValue(a) || 0));
 
   if (!delivered.length) {
@@ -900,7 +1179,7 @@ function renderDeliveredLessons(lessons, students = [], requests = []) {
       formatAdminDate(formatLessonDateValue(lesson)),
       [
         lesson.student_email ? `Email: ${lesson.student_email}` : "",
-        `Status: ${lesson.status || "Delivered"}`,
+        `Status: ${formatLessonStatusLabel(lesson.status || "Delivered")}`,
         `Hours: ${lesson.hours || lesson.duration_hours || 2}`,
         lesson.delivered_at ? `Delivered: ${formatAdminDate(lesson.delivered_at)}` : "",
         lesson.topic ? `Focus: ${lesson.topic}` : "",
@@ -916,6 +1195,43 @@ function renderDeliveredLessons(lessons, students = [], requests = []) {
     ]);
 
     deliveredLessonList?.append(item);
+  });
+}
+
+function renderClosedLessons(lessons, students = [], requests = []) {
+  clearElement(closedLessonList);
+
+  const closedLessons = (lessons || [])
+    .filter((lesson) => {
+      const student = findStudentForLesson(lesson, students, requests);
+      const health = student ? getStudentPaymentHealth(student) : { code: "no-credit", tone: "muted", label: "No credit recorded" };
+      return (isCancelledLessonStatus(lesson.status) || isNoShowLessonStatus(lesson.status)) &&
+        matchesFocusFilterForLesson(lesson, student, health) &&
+        matchesAdminSearch(getLessonSearchTerms(lesson, student));
+    })
+    .sort((a, b) => new Date(formatLessonDateValue(b) || 0) - new Date(formatLessonDateValue(a) || 0));
+
+  if (!closedLessons.length) {
+    closedLessonList?.append(createEmptyState("No cancelled or no-show lessons yet."));
+    return;
+  }
+
+  closedLessons.forEach((lesson) => {
+    const student = findStudentForLesson(lesson, students, requests);
+    const tone = isNoShowLessonStatus(lesson.status) ? "warning" : "muted";
+    const item = buildAdminItem(
+      student ? getStudentName(student) : lesson.student_email || lesson.topic || "Driving lesson",
+      formatAdminDate(formatLessonDateValue(lesson)),
+      [
+        lesson.student_email ? `Email: ${lesson.student_email}` : "",
+        `Status: ${formatLessonStatusLabel(lesson.status)}`,
+        `Hours: ${lesson.hours || lesson.duration_hours || 2}`,
+        lesson.topic ? `Focus: ${lesson.topic}` : "",
+        lesson.summary ? `Summary: ${lesson.summary}` : "",
+      ],
+    );
+    addStatusPill(item, formatLessonStatusLabel(lesson.status), tone);
+    closedLessonList?.append(item);
   });
 }
 
@@ -1185,7 +1501,11 @@ function renderAvailabilitySlots(slots) {
 function renderSupportRequests(requests) {
   clearElement(supportRequestList);
 
-  const activeRequests = (requests || []).filter((request) => isPendingStatus(request.status));
+  const activeRequests = (requests || []).filter((request) =>
+    isPendingStatus(request.status) &&
+    (adminFilters.focus === "all" || adminFilters.focus === "pending") &&
+    matchesAdminSearch([request.name, request.email, request.topic, request.support_option, request.status]),
+  );
   setCount(supportRequestCount, activeRequests.length);
 
   if (!activeRequests.length) {
@@ -1215,6 +1535,70 @@ function renderSupportRequests(requests) {
 
     supportRequestList?.append(item);
   });
+}
+
+function renderAdminSummary() {
+  const approvedStudents = getApprovedStudentRecords();
+  const lowCreditStudents = approvedStudents.filter((student) => {
+    const health = getStudentPaymentHealth(student);
+    return ["low-hours", "short-next-lesson"].includes(health.code);
+  });
+  const unpaidBookedLessons = (adminData.lessons || []).filter((lesson) => {
+    if (isCompletedLessonStatus(lesson.status) || isCancelledLessonStatus(lesson.status) || isNoShowLessonStatus(lesson.status)) {
+      return false;
+    }
+    const student = findStudentForLesson(lesson, adminData.studentProfiles, adminData.lessonRequests);
+    if (!student) return false;
+    const health = getStudentPaymentHealth(student);
+    return ["needs-payment", "short-next-lesson"].includes(health.code);
+  });
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const deliveredThisMonth = (adminData.lessons || []).filter((lesson) =>
+    isCompletedLessonStatus(lesson.status) &&
+    new Date(lesson.delivered_at || formatLessonDateValue(lesson) || 0) >= monthStart,
+  );
+  const paidThisMonthPence = (adminData.paymentEvents || [])
+    .filter((event) =>
+      Number(event.amount_pence || 0) > 0 &&
+      String(event.event_status || "").toLowerCase() === "completed" &&
+      new Date(event.created_at || 0) >= monthStart,
+    )
+    .reduce((total, event) => total + Number(event.amount_pence || 0), 0);
+
+  setCount(lowCreditCount, lowCreditStudents.length);
+  setCount(unpaidLessonCount, unpaidBookedLessons.length);
+  setCount(deliveredThisMonthCount, deliveredThisMonth.length);
+  if (paidThisMonthValue) paidThisMonthValue.textContent = formatPoundsFromPence(paidThisMonthPence);
+}
+
+function applyAdminFiltersFromControls() {
+  adminFilters = {
+    search: String(adminSearchInput?.value || "").trim(),
+    focus: String(adminFocusFilter?.value || "all"),
+    payment: String(adminPaymentFilter?.value || "all"),
+  };
+}
+
+function rerenderAdminBoard() {
+  renderPendingLessonRequests(adminData.lessonRequests);
+  renderAvailabilitySlots(adminData.availabilitySlots);
+  renderApprovedStudents(adminData.studentProfiles, adminData.lessonRequests, adminData.lessons, adminData.paymentBalances);
+  renderPaymentTracker(adminData.studentProfiles, adminData.lessonRequests, adminData.lessons, adminData.paymentBalances);
+  renderSlotRequests(adminData.slotRequests);
+  renderSupportRequests(adminData.supportRequests);
+  renderConfirmedLessons(adminData.lessons, adminData.studentProfiles, adminData.lessonRequests);
+  renderDeliveredLessons(adminData.lessons, adminData.studentProfiles, adminData.lessonRequests);
+  renderClosedLessons(adminData.lessons, adminData.studentProfiles, adminData.lessonRequests);
+  renderAdminSummary();
+
+  if (activeStudent) {
+    const refreshedStudent = getApprovedStudentRecords().find((student) => sameStudent(student, activeStudent)) || activeStudent;
+    activeStudent = refreshedStudent;
+    renderStudentPaymentSummary(refreshedStudent);
+    renderStudentHistory(refreshedStudent);
+  }
 }
 
 async function loadTable(table, queryBuilder) {
@@ -1306,14 +1690,7 @@ async function loadAdminData() {
     paymentEvents: paymentEvents.data,
   };
 
-  renderPendingLessonRequests(lessonRequests.data);
-  renderAvailabilitySlots(availabilitySlots.data);
-  renderApprovedStudents(studentProfiles.data, lessonRequests.data, lessons.data, paymentBalances.data);
-  renderPaymentTracker(studentProfiles.data, lessonRequests.data, lessons.data, paymentBalances.data);
-  renderSlotRequests(slotRequests.data);
-  renderSupportRequests(supportRequests.data);
-  renderConfirmedLessons(lessons.data, studentProfiles.data, lessonRequests.data);
-  renderDeliveredLessons(lessons.data, studentProfiles.data, lessonRequests.data);
+  rerenderAdminBoard();
 
   const errors = [
     lessonRequests,
@@ -2234,7 +2611,7 @@ async function approveCancellationRequest(request) {
 
   let lessonUpdate = adminClient
     .from("lessons")
-    .update({ status: "Cancelled" })
+    .update({ status: "Cancelled by student" })
     .eq("starts_at", request.requested_slot);
 
   if (request.student_id) {
@@ -2356,9 +2733,11 @@ async function cancelLessonBooking(lessonOrId, options = {}) {
     setAdminDataStatus("Cancelling booked lesson...");
   }
 
+  const nextStatus = String(options.status || "Cancelled by instructor");
+
   const { error: lessonError } = await adminClient
     .from("lessons")
-    .update({ status: "Cancelled" })
+    .update({ status: nextStatus })
     .eq("id", id);
 
   if (lessonError) {
@@ -2383,10 +2762,45 @@ async function cancelLessonBooking(lessonOrId, options = {}) {
 
   if (!options.silent) {
     await loadAdminData();
-    setAdminDataStatus("Lesson cancelled and diary slot released.", "success");
+    setAdminDataStatus(`${formatLessonStatusLabel(nextStatus)} recorded and the diary slot was released.`, "success");
   }
 
   return true;
+}
+
+async function markLessonNoShow(lessonOrId) {
+  const lesson = typeof lessonOrId === "object"
+    ? lessonOrId
+    : adminData.lessons.find((item) => item.id === lessonOrId);
+  const id = lesson?.id || lessonOrId;
+
+  if (!id) return;
+  if (isNoShowLessonStatus(lesson?.status)) {
+    setAdminDataStatus("This lesson is already marked as a no-show.", "success");
+    return;
+  }
+
+  const confirmed = window.confirm("Mark this booked lesson as a no-show? This closes the lesson without changing paid hours.");
+  if (!confirmed) return;
+  const summaryInput = window.prompt("Add a short no-show note (optional).", lesson?.summary || "");
+
+  setAdminDataStatus("Marking lesson as no-show...");
+
+  const { error } = await adminClient
+    .from("lessons")
+    .update({
+      status: "No-show",
+      summary: summaryInput === null ? (lesson?.summary || null) : summaryInput.trim(),
+    })
+    .eq("id", id);
+
+  if (error) {
+    setAdminDataStatus(getAdminError(error), "error");
+    return;
+  }
+
+  await loadAdminData();
+  setAdminDataStatus("Lesson marked as a no-show.", "success");
 }
 
 function getLessonDurationHours(lesson) {
@@ -2909,6 +3323,21 @@ adminSignOutButton?.addEventListener("click", async () => {
 
 adminRefreshButton?.addEventListener("click", () => {
   loadAdminData();
+});
+
+adminSearchInput?.addEventListener("input", () => {
+  applyAdminFiltersFromControls();
+  rerenderAdminBoard();
+});
+
+adminFocusFilter?.addEventListener("change", () => {
+  applyAdminFiltersFromControls();
+  rerenderAdminBoard();
+});
+
+adminPaymentFilter?.addEventListener("change", () => {
+  applyAdminFiltersFromControls();
+  rerenderAdminBoard();
 });
 
 closeStudentDialog?.addEventListener("click", () => {

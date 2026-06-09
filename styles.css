@@ -1809,6 +1809,30 @@ body.dark-mode .account-status[data-type="error"] {
   white-space: nowrap;
 }
 
+.status-pill.is-danger {
+  color: #8c2f1f;
+  background: #fff1eb;
+  border-color: #f1c5b8;
+}
+
+.status-pill.is-warning {
+  color: #7a4a0b;
+  background: #fff6dd;
+  border-color: #f1dca0;
+}
+
+.status-pill.is-success {
+  color: #1f684f;
+  background: #e8f7ef;
+  border-color: #c7ead6;
+}
+
+.status-pill.is-muted {
+  color: #465362;
+  background: #eef3f7;
+  border-color: #d7e0e8;
+}
+
 .dashboard-list {
   display: grid;
   gap: 10px;
@@ -2359,6 +2383,18 @@ body.dark-mode .dashboard-timeline strong {
   line-height: 1.55;
 }
 
+.admin-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) repeat(2, minmax(190px, 0.7fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.admin-filter-bar input,
+.admin-filter-bar select {
+  min-height: 48px;
+}
+
 .admin-stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -2792,6 +2828,10 @@ body.dark-mode .dashboard-timeline strong {
   gap: 8px;
 }
 
+.admin-list.compact .admin-list-item .status-pill {
+  justify-self: start;
+}
+
 .admin-list-content {
   display: grid;
   gap: 8px;
@@ -2979,6 +3019,37 @@ body.dark-mode .admin-payment-heading p {
 body.dark-mode .admin-payment-summary {
   background: rgba(72, 136, 103, 0.18);
   color: #f7fbff;
+}
+
+body.dark-mode .admin-filter-bar input,
+body.dark-mode .admin-filter-bar select {
+  color: #f7fbff;
+  background: #0f172a;
+  border-color: #405173;
+}
+
+body.dark-mode .status-pill.is-danger {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.35);
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+body.dark-mode .status-pill.is-warning {
+  color: #fde68a;
+  background: rgba(133, 77, 14, 0.35);
+  border-color: rgba(250, 204, 21, 0.4);
+}
+
+body.dark-mode .status-pill.is-success {
+  color: #bbf7d0;
+  background: rgba(21, 128, 61, 0.28);
+  border-color: rgba(134, 239, 172, 0.35);
+}
+
+body.dark-mode .status-pill.is-muted {
+  color: #dbe4ef;
+  background: rgba(71, 85, 105, 0.35);
+  border-color: rgba(148, 163, 184, 0.35);
 }
 
 body.dark-mode .admin-login-card h1,
@@ -3487,6 +3558,7 @@ body.dark-mode .area-content p {
   .dashboard-action-panel,
   .diary-heading,
   .admin-toolbar,
+  .admin-filter-bar,
   .admin-card-heading {
     grid-template-columns: 1fr;
   }
