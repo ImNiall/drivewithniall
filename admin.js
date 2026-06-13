@@ -92,6 +92,9 @@ let adminFilters = {
   focus: "all",
   payment: "all",
 };
+let isCreatingAvailabilitySlot = false;
+let isPublishingWeeklyAvailability = false;
+let isAssigningStudentSlot = false;
 
 const hasAdminConfig =
   adminConfig.supabaseUrl &&
@@ -187,6 +190,18 @@ function createEmptyState(message) {
   empty.className = "admin-empty-state";
   empty.textContent = message;
   return empty;
+}
+
+function setFormSubmitButtonState(form, isBusy, busyLabel, idleLabel) {
+  const button = form?.querySelector('button[type="submit"]');
+  if (!button) return;
+
+  if (!button.dataset.idleLabel) {
+    button.dataset.idleLabel = idleLabel || button.textContent.trim();
+  }
+
+  button.disabled = Boolean(isBusy);
+  button.textContent = isBusy ? busyLabel : (idleLabel || button.dataset.idleLabel);
 }
 
 function formatAdminDate(value) {
@@ -737,6 +752,16 @@ function formatLessonDateValue(lesson) {
   return lesson?.starts_at || lesson?.lesson_date || lesson?.created_at || "";
 }
 
+function getDateTimeValue(value) {
+  const date = new Date(value || "");
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isPastDateTime(value) {
+  const date = getDateTimeValue(value);
+  return Boolean(date && date.getTime() < Date.now());
+}
+
 function addItemActions(item, actions) {
   const actionWrap = document.createElement("div");
   actionWrap.className = "admin-list-actions";
@@ -1098,6 +1123,11 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
       matchesFocusFilterForLesson(lesson, student, health) &&
       matchesAdminSearch(getLessonSearchTerms(lesson, student)) &&
       matchesPaymentFilter(health);
+  }).sort((a, b) => {
+    const aPast = isPastDateTime(formatLessonDateValue(a));
+    const bPast = isPastDateTime(formatLessonDateValue(b));
+    if (aPast !== bPast) return aPast ? -1 : 1;
+    return new Date(formatLessonDateValue(a) || 0) - new Date(formatLessonDateValue(b) || 0);
   });
   setCount(confirmedLessonCount, confirmed.length);
 
@@ -1113,12 +1143,14 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
     const remainingHours = health?.remainingHours || 0;
     const lessonHours = Number(lesson.hours || lesson.duration_hours || 2);
     const afterLessonHours = paymentBalance ? remainingHours - lessonHours : 0;
+    const isPastLesson = isPastDateTime(formatLessonDateValue(lesson));
     const item = buildAdminItem(
       student ? getStudentName(student) : lesson.student_email || lesson.topic || "Driving lesson",
       formatAdminDate(lesson.starts_at || lesson.lesson_date),
       [
         lesson.student_email ? `Email: ${lesson.student_email}` : "",
         `Status: ${formatLessonStatusLabel(lesson.status || "Confirmed")}`,
+        isPastLesson ? "Action: This lesson time has passed and needs review." : "",
         `Hours: ${lessonHours}`,
         paymentBalance
           ? `Paid remaining now: ${formatAdminHours(remainingHours)}h`
@@ -1134,6 +1166,7 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
       ],
     );
     if (health) addStatusPill(item, health.label, health.tone);
+    if (isPastLesson) addStatusPill(item, "Needs review", "warning");
 
     addItemActions(item, [
       {
@@ -1624,6 +1657,43 @@ async function loadTable(table, queryBuilder) {
   return { table, data: data || [], error: null };
 }
 
+async function archiveExpiredAvailabilitySlots(slots = []) {
+  const expiredAvailableSlots = (slots || []).filter((slot) =>
+    String(slot.status || "").toLowerCase() === "available" &&
+    isPastDateTime(slot.starts_at),
+  );
+
+  if (!expiredAvailableSlots.length) {
+    return { count: 0, error: null };
+  }
+
+  const now = new Date().toISOString();
+  const results = await Promise.all(
+    expiredAvailableSlots.map((slot) =>
+      adminClient
+        .from("lesson_availability_slots")
+        .update({
+          status: "Hidden",
+          updated_at: now,
+        })
+        .eq("id", slot.id),
+    ),
+  );
+
+  const firstError = results.find((result) => result.error)?.error || null;
+  if (firstError) {
+    return { count: 0, error: firstError };
+  }
+
+  const archivedIds = new Set(expiredAvailableSlots.map((slot) => slot.id));
+  expiredAvailableSlots.forEach((slot) => {
+    slot.status = "Hidden";
+    slot.updated_at = now;
+  });
+
+  return { count: archivedIds.size, error: null };
+}
+
 async function loadAdminData() {
   if (!adminClient) {
     setAdminDataStatus("Admin data is not connected to Supabase yet.", "error");
@@ -1703,6 +1773,12 @@ async function loadAdminData() {
     paymentEvents: paymentEvents.data,
   };
 
+  const expiredSlotArchive = await archiveExpiredAvailabilitySlots(adminData.availabilitySlots);
+  if (expiredSlotArchive.error) {
+    setAdminDataStatus(getAdminError(expiredSlotArchive.error), "error");
+    return;
+  }
+
   rerenderAdminBoard();
 
   const errors = [
@@ -1720,6 +1796,11 @@ async function loadAdminData() {
       .map((result) => `${result.table}: ${result.error.message || "could not load"}`)
       .join(" | ");
     setAdminDataStatus(`Some admin data could not load yet. ${errorSummary}`, "error");
+    return;
+  }
+
+  if (expiredSlotArchive.count) {
+    setAdminDataStatus(`${expiredSlotArchive.count} past available slot${expiredSlotArchive.count === 1 ? "" : "s"} archived automatically.`, "success");
     return;
   }
 
@@ -2338,6 +2419,10 @@ async function updateSupportRequestStatus(id, status) {
 async function createAvailabilitySlot(event) {
   event.preventDefault();
 
+  if (isCreatingAvailabilitySlot) {
+    return;
+  }
+
   const date = availabilityDate?.value;
   const time = availabilityTime?.value;
   const hours = Number(availabilityHours?.value || 2);
@@ -2349,29 +2434,40 @@ async function createAvailabilitySlot(event) {
   }
 
   const startsAt = `${date}T${time}:00`;
+  isCreatingAvailabilitySlot = true;
+  setFormSubmitButtonState(availabilityForm, true, "Adding slot...", "Add slot");
   setAdminDataStatus("Adding available diary slot...");
 
-  const { error } = await adminClient.from("lesson_availability_slots").insert({
-    starts_at: startsAt,
-    label: formatAdminDate(startsAt),
-    hours: Number.isFinite(hours) ? hours : 2,
-    status: "Available",
-    notes,
-  });
+  try {
+    const { error } = await adminClient.from("lesson_availability_slots").insert({
+      starts_at: startsAt,
+      label: formatAdminDate(startsAt),
+      hours: Number.isFinite(hours) ? hours : 2,
+      status: "Available",
+      notes,
+    });
 
-  if (error) {
-    setAdminDataStatus(getAdminError(error), "error");
-    return;
+    if (error) {
+      setAdminDataStatus(getAdminError(error), "error");
+      return;
+    }
+
+    availabilityForm?.reset();
+    if (availabilityHours) availabilityHours.value = "2";
+    await loadAdminData();
+    setAdminDataStatus("Diary slot added. Approved students can now request it.", "success");
+  } finally {
+    isCreatingAvailabilitySlot = false;
+    setFormSubmitButtonState(availabilityForm, false, "Adding slot...", "Add slot");
   }
-
-  availabilityForm?.reset();
-  if (availabilityHours) availabilityHours.value = "2";
-  await loadAdminData();
-  setAdminDataStatus("Diary slot added. Approved students can now request it.", "success");
 }
 
 async function createWeeklyAvailability(event) {
   event.preventDefault();
+
+  if (isPublishingWeeklyAvailability) {
+    return;
+  }
 
   const weekStartValue = availabilityWeekStart?.value;
   const startTime = availabilityBlockStart?.value;
@@ -2430,18 +2526,25 @@ async function createWeeklyAvailability(event) {
     return;
   }
 
+  isPublishingWeeklyAvailability = true;
+  setFormSubmitButtonState(weeklyAvailabilityForm, true, "Publishing...", "Publish lesson times");
   setAdminDataStatus(`Publishing ${newSlots.length} diary slot${newSlots.length === 1 ? "" : "s"}...`);
 
-  const { error } = await adminClient.from("lesson_availability_slots").insert(newSlots);
+  try {
+    const { error } = await adminClient.from("lesson_availability_slots").insert(newSlots);
 
-  if (error) {
-    setAdminDataStatus(getAdminError(error), "error");
-    return;
+    if (error) {
+      setAdminDataStatus(getAdminError(error), "error");
+      return;
+    }
+
+    currentDiaryWeekStart = weekStart;
+    await loadAdminData();
+    setAdminDataStatus(`${newSlots.length} diary slot${newSlots.length === 1 ? "" : "s"} published.`, "success");
+  } finally {
+    isPublishingWeeklyAvailability = false;
+    setFormSubmitButtonState(weeklyAvailabilityForm, false, "Publishing...", "Publish lesson times");
   }
-
-  currentDiaryWeekStart = weekStart;
-  await loadAdminData();
-  setAdminDataStatus(`${newSlots.length} diary slot${newSlots.length === 1 ? "" : "s"} published.`, "success");
 }
 
 async function updateAvailabilitySlot(id, changes) {
@@ -2488,6 +2591,10 @@ async function deleteAvailabilitySlot(slot) {
 async function assignSlotToStudent(event) {
   event.preventDefault();
 
+  if (isAssigningStudentSlot) {
+    return;
+  }
+
   const slotId = assignSlotSelect?.value;
   const studentKey = assignStudentSelect?.value;
   const slot = adminData.availabilitySlots.find((item) => item.id === slotId);
@@ -2498,48 +2605,55 @@ async function assignSlotToStudent(event) {
     return;
   }
 
+  isAssigningStudentSlot = true;
+  setFormSubmitButtonState(assignSlotForm, true, "Booking student...", "Book student");
   setAdminDataStatus("Booking selected student...");
 
-  const { data: savedLesson, error: lessonError } = await adminClient
-    .from("lessons")
-    .insert({
-      student_id: student.student_id || null,
-      student_email: student.email,
-      availability_slot_id: slot.id,
-      starts_at: slot.starts_at,
-      status: "Confirmed",
-      hours: Number(slot.hours || 2),
-      topic: "Driving lesson",
-      notes: slot.notes || "",
-    })
-    .select("id")
-    .single();
+  try {
+    const { data: savedLesson, error: lessonError } = await adminClient
+      .from("lessons")
+      .insert({
+        student_id: student.student_id || null,
+        student_email: student.email,
+        availability_slot_id: slot.id,
+        starts_at: slot.starts_at,
+        status: "Confirmed",
+        hours: Number(slot.hours || 2),
+        topic: "Driving lesson",
+        notes: slot.notes || "",
+      })
+      .select("id")
+      .single();
 
-  if (lessonError) {
-    setAdminDataStatus(getAdminError(lessonError), "error");
-    return;
-  }
-
-  const { error: slotError } = await adminClient
-    .from("lesson_availability_slots")
-    .update({
-      status: "Booked",
-      assigned_student_id: student.student_id || null,
-      assigned_student_email: student.email,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", slot.id);
-
-  if (slotError) {
-    if (savedLesson?.id) {
-      await adminClient.from("lessons").delete().eq("id", savedLesson.id);
+    if (lessonError) {
+      setAdminDataStatus(getAdminError(lessonError), "error");
+      return;
     }
-    setAdminDataStatus(getAdminError(slotError), "error");
-    return;
-  }
 
-  await loadAdminData();
-  setAdminDataStatus("Student booked into that diary slot.", "success");
+    const { error: slotError } = await adminClient
+      .from("lesson_availability_slots")
+      .update({
+        status: "Booked",
+        assigned_student_id: student.student_id || null,
+        assigned_student_email: student.email,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", slot.id);
+
+    if (slotError) {
+      if (savedLesson?.id) {
+        await adminClient.from("lessons").delete().eq("id", savedLesson.id);
+      }
+      setAdminDataStatus(getAdminError(slotError), "error");
+      return;
+    }
+
+    await loadAdminData();
+    setAdminDataStatus("Student booked into that diary slot.", "success");
+  } finally {
+    isAssigningStudentSlot = false;
+    setFormSubmitButtonState(assignSlotForm, false, "Booking student...", "Book student");
+  }
 }
 
 async function confirmSlotRequest(request) {
