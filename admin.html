@@ -173,6 +173,7 @@
                   <span class="dashboard-kicker">Students</span>
                   <h2>Approved practical students</h2>
                 </div>
+                <button class="secondary-button" id="addStudentButton" type="button">Add student</button>
               </div>
               <p>These accounts should have access to the practical lesson diary and lesson history.</p>
               <div class="admin-list compact" id="approvedStudentList"></div>
@@ -254,6 +255,9 @@
             <div class="admin-edit-grid">
               <label>Full name <input id="studentEditName" name="name" type="text" /></label>
               <label>Email <input id="studentEditEmail" name="email" type="email" /></label>
+              <label>Phone <input id="studentEditPhone" name="phone" type="tel" /></label>
+              <label>Postcode <input id="studentEditPostcode" name="postcode" type="text" /></label>
+              <label>Learning stage <input id="studentEditLicenceStage" name="licence_stage" type="text" placeholder="Beginner, test prep, motorway practice..." /></label>
               <label>
                 Practical access
                 <select id="studentEditStatus" name="lesson_status">
@@ -264,6 +268,90 @@
                 </select>
               </label>
             </div>
+
+            <label class="admin-notes-field">
+              Instructor notes
+              <textarea id="studentEditNotes" name="student_notes" placeholder="Any learner context, confidence points, or admin notes for the instructor only."></textarea>
+            </label>
+
+            <section class="admin-progress-panel">
+              <div class="admin-card-heading">
+                <div>
+                  <span class="dashboard-kicker">Student Progress Intelligence</span>
+                  <h3>Lesson progress record</h3>
+                </div>
+                <button class="secondary-button" id="createLessonRecordButton" type="button">Add lesson record</button>
+              </div>
+
+              <div class="admin-edit-grid admin-progress-header-grid">
+                <label>
+                  Lesson record
+                  <select id="lessonRecordSelect" name="lesson_record"></select>
+                </label>
+                <label>
+                  Lesson date and time
+                  <input id="lessonRecordDate" name="lesson_date" type="datetime-local" />
+                </label>
+                <label>
+                  Duration (hours)
+                  <input id="lessonRecordHours" min="1" name="lesson_hours" step="0.5" type="number" />
+                </label>
+                <label>
+                  Status
+                  <select id="lessonRecordStatus" name="lesson_status_value">
+                    <option>Delivered</option>
+                    <option>Confirmed</option>
+                    <option>Cancelled by instructor</option>
+                    <option>Cancelled by student</option>
+                    <option>No-show</option>
+                  </select>
+                </label>
+              </div>
+
+              <label class="admin-notes-field">
+                Lesson focus
+                <input id="lessonRecordTopic" name="lesson_topic" type="text" placeholder="Roundabouts, junctions, moving away, test route practice..." />
+              </label>
+
+              <div class="admin-topic-picker">
+                <p class="admin-section-label">What was covered?</p>
+                <div class="topic-chip-grid" id="coveredTopicsGrid"></div>
+              </div>
+
+              <div class="admin-progress-grid">
+                <label class="admin-notes-field">
+                  Short lesson notes
+                  <textarea id="lessonRecordNotes" name="lesson_notes" placeholder="Short notes from the lesson. Keep this student-facing."></textarea>
+                </label>
+
+                <label class="admin-notes-field">
+                  Homework for next lesson
+                  <textarea id="lessonRecordHomework" name="lesson_homework" placeholder="One task per line, for example:&#10;Private practice: moving away and stopping&#10;Revise mirror checks before signalling"></textarea>
+                </label>
+              </div>
+
+              <section class="admin-skill-rating-panel" aria-labelledby="skillRatingsTitle">
+                <div class="admin-card-heading">
+                  <div>
+                    <h4 id="skillRatingsTitle">DVSA skill ratings</h4>
+                    <p>Rate each skill area using the same four-point scale after the lesson.</p>
+                  </div>
+                </div>
+                <div class="skill-ratings-grid" id="skillRatingsGrid"></div>
+              </section>
+
+              <section class="admin-summary-panel">
+                <div class="admin-summary-metric">
+                  <span class="admin-summary-value" id="lessonReadinessValue">0%</span>
+                  <strong>Estimated test readiness</strong>
+                </div>
+                <div class="admin-summary-copy" id="lessonSummaryPreview">Choose the covered topics and skill ratings to generate a student progress summary.</div>
+              </section>
+
+              <div class="admin-payment-actions">
+                <button class="primary-button" id="saveLessonRecordButton" type="button">Save lesson progress</button>
+              </div>
+            </section>
 
             <section class="admin-payment-panel">
               <div class="admin-payment-heading">

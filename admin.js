@@ -38,10 +38,28 @@ const paidThisMonthValue = document.querySelector("#paidThisMonthValue");
 const studentManageDialog = document.querySelector("#studentManageDialog");
 const studentManageForm = document.querySelector("#studentManageForm");
 const closeStudentDialog = document.querySelector("#closeStudentDialog");
+const addStudentButton = document.querySelector("#addStudentButton");
 const studentDialogTitle = document.querySelector("#studentDialogTitle");
 const studentEditName = document.querySelector("#studentEditName");
 const studentEditEmail = document.querySelector("#studentEditEmail");
+const studentEditPhone = document.querySelector("#studentEditPhone");
+const studentEditPostcode = document.querySelector("#studentEditPostcode");
+const studentEditLicenceStage = document.querySelector("#studentEditLicenceStage");
+const studentEditNotes = document.querySelector("#studentEditNotes");
 const studentEditStatus = document.querySelector("#studentEditStatus");
+const createLessonRecordButton = document.querySelector("#createLessonRecordButton");
+const lessonRecordSelect = document.querySelector("#lessonRecordSelect");
+const lessonRecordDate = document.querySelector("#lessonRecordDate");
+const lessonRecordHours = document.querySelector("#lessonRecordHours");
+const lessonRecordStatus = document.querySelector("#lessonRecordStatus");
+const lessonRecordTopic = document.querySelector("#lessonRecordTopic");
+const coveredTopicsGrid = document.querySelector("#coveredTopicsGrid");
+const lessonRecordNotes = document.querySelector("#lessonRecordNotes");
+const lessonRecordHomework = document.querySelector("#lessonRecordHomework");
+const skillRatingsGrid = document.querySelector("#skillRatingsGrid");
+const lessonReadinessValue = document.querySelector("#lessonReadinessValue");
+const lessonSummaryPreview = document.querySelector("#lessonSummaryPreview");
+const saveLessonRecordButton = document.querySelector("#saveLessonRecordButton");
 const studentPaymentSummary = document.querySelector("#studentPaymentSummary");
 const studentPaymentAction = document.querySelector("#studentPaymentAction");
 const studentPaymentHours = document.querySelector("#studentPaymentHours");
@@ -78,14 +96,20 @@ const nextDiaryWeek = document.querySelector("#nextDiaryWeek");
 let adminData = {
   lessonRequests: [],
   studentProfiles: [],
+  studentRecords: [],
+  profileRecords: [],
   slotRequests: [],
   supportRequests: [],
   lessons: [],
+  lessonSkillRatings: [],
+  homeworkTasks: [],
+  skillAreas: [],
   availabilitySlots: [],
   paymentBalances: [],
   paymentEvents: [],
 };
 let activeStudent = null;
+let activeLessonRecordId = null;
 let currentDiaryWeekStart = getStartOfWeek(new Date());
 let adminFilters = {
   search: "",
@@ -95,6 +119,39 @@ let adminFilters = {
 let isCreatingAvailabilitySlot = false;
 let isPublishingWeeklyAvailability = false;
 let isAssigningStudentSlot = false;
+let isSavingLessonRecord = false;
+
+const lessonTopicOptions = [
+  "Cockpit drill",
+  "Moving away and stopping",
+  "Clutch control",
+  "Use of mirrors",
+  "Signalling",
+  "Junctions",
+  "Roundabouts",
+  "Meeting traffic",
+  "Pedestrian crossings",
+  "Manoeuvres",
+  "Reversing",
+  "Hill starts",
+  "Dual carriageways",
+  "Independent driving",
+  "Mock test practice",
+];
+
+const skillRatingOptions = [
+  "Not introduced",
+  "Needs work",
+  "Developing",
+  "Test standard",
+];
+
+const readinessScoreMap = {
+  "Not introduced": 0,
+  "Needs work": 35,
+  Developing: 70,
+  "Test standard": 100,
+};
 
 const hasAdminConfig =
   adminConfig.supabaseUrl &&
@@ -337,11 +394,14 @@ function isCancellationRequest(request) {
 function sameStudent(record, student) {
   if (!record || !student) return false;
   const studentId = student.student_id;
+  const studentRecordId = student.progress_student_id || student.progressStudentId;
   const studentEmail = String(student.email || "").toLowerCase();
   const recordEmail = String(record.email || record.student_email || "").toLowerCase();
 
   return Boolean(
-    (studentId && record.student_id === studentId) ||
+    (studentRecordId && record.student_record_id === studentRecordId) ||
+      (studentRecordId && record.student_id === studentRecordId) ||
+      (studentId && record.student_id === studentId) ||
       (studentEmail && recordEmail && recordEmail === studentEmail),
   );
 }
@@ -358,13 +418,50 @@ function getStudentName(student) {
   return student?.name || student?.full_name || student?.email || "Approved student";
 }
 
-function getApprovedStudentRecords(students = adminData.studentProfiles, requests = adminData.lessonRequests) {
+function findStudentRecord(student, studentRecords = adminData.studentRecords) {
+  if (!student) return null;
+  const matchEmail = normaliseEmail(student.email || student.student_email);
+
+  return (studentRecords || []).find((record) => Boolean(
+    (student.progress_student_id && record.id === student.progress_student_id) ||
+      (student.id && !student.student_id && record.id === student.id) ||
+      (student.student_id && record.auth_user_id === student.student_id) ||
+      (matchEmail && normaliseEmail(record.email) === matchEmail)
+  )) || null;
+}
+
+function getStudentRecordKey(student) {
+  return student?.progress_student_id || student?.student_id || normaliseEmail(student?.email);
+}
+
+function getApprovedStudentRecords(students = adminData.studentProfiles, requests = adminData.lessonRequests, studentRecords = adminData.studentRecords) {
   const merged = new Map();
+  (studentRecords || []).forEach((record) => {
+    const key = getStudentMergeKey({
+      id: record.id,
+      student_id: record.auth_user_id,
+      email: record.email,
+    });
+    if (!key) return;
+    merged.set(key, {
+      ...record,
+      progress_student_id: record.id,
+      student_id: record.auth_user_id,
+      name: record.full_name,
+      full_name: record.full_name,
+      email: record.email,
+      lesson_status: record.lesson_access_status || "Approved",
+    });
+  });
+
   (students || []).forEach((student) => {
     const key = getStudentMergeKey(student);
     if (!key) return;
+    const linkedRecord = findStudentRecord(student, studentRecords);
     merged.set(key, {
+      ...merged.get(key),
       ...student,
+      progress_student_id: linkedRecord?.id || merged.get(key)?.progress_student_id || null,
       student_id: student.student_id,
       name: student.name || student.full_name,
       full_name: student.full_name || student.name,
@@ -390,12 +487,98 @@ function getApprovedStudentRecords(students = adminData.studentProfiles, request
     .filter((student) => isApprovedStatus(student.lesson_status))
     .map((student) => {
       const latestRequest = (requests || []).find((request) => sameStudent(request, student));
+      const linkedRecord = findStudentRecord(student, studentRecords);
       return {
         ...latestRequest,
         ...student,
+        progress_student_id: linkedRecord?.id || student.progress_student_id || null,
+        phone: linkedRecord?.phone || student.phone || "",
+        postcode: linkedRecord?.postcode || student.postcode || "",
+        licence_stage: linkedRecord?.licence_stage || student.licence_stage || "",
+        student_notes: linkedRecord?.notes || student.student_notes || "",
         latest_request_id: latestRequest?.id,
       };
     });
+}
+
+function getLessonRatingsForStudent(student) {
+  const key = getStudentRecordKey(student);
+  if (!key) return [];
+  return (adminData.lessonSkillRatings || []).filter((rating) => sameStudent(rating, student));
+}
+
+function getHomeworkForStudent(student) {
+  const key = getStudentRecordKey(student);
+  if (!key) return [];
+  return (adminData.homeworkTasks || []).filter((task) => sameStudent(task, student));
+}
+
+function getLatestSkillSnapshots(student) {
+  const ratings = getLessonRatingsForStudent(student);
+  const lessonsById = new Map((adminData.lessons || []).map((lesson) => [lesson.id, lesson]));
+  const snapshots = new Map();
+
+  ratings.forEach((rating) => {
+    const currentLesson = lessonsById.get(rating.lesson_id);
+    const currentDate = new Date(formatLessonDateValue(currentLesson) || currentLesson?.created_at || 0).getTime();
+    const previous = snapshots.get(rating.skill_area_id);
+    const previousDate = previous
+      ? new Date(formatLessonDateValue(lessonsById.get(previous.lesson_id)) || lessonsById.get(previous.lesson_id)?.created_at || 0).getTime()
+      : -Infinity;
+
+    if (!previous || currentDate >= previousDate) {
+      snapshots.set(rating.skill_area_id, rating);
+    }
+  });
+
+  return (adminData.skillAreas || []).map((skillArea) => {
+    const rating = snapshots.get(skillArea.id);
+    return {
+      skillArea,
+      rating: rating?.rating || "Not introduced",
+    };
+  });
+}
+
+function calculateReadinessFromSnapshots(snapshots = []) {
+  if (!snapshots.length) return 0;
+  const total = snapshots.reduce((sum, snapshot) => sum + (readinessScoreMap[snapshot.rating] || 0), 0);
+  return Math.round(total / snapshots.length);
+}
+
+function buildStudentProgressSummary(student) {
+  const snapshots = getLatestSkillSnapshots(student);
+  const readiness = calculateReadinessFromSnapshots(snapshots);
+  const strengths = snapshots.filter((snapshot) => snapshot.rating === "Test standard" || snapshot.rating === "Developing");
+  const weakAreas = snapshots.filter((snapshot) => snapshot.rating === "Needs work" || snapshot.rating === "Not introduced");
+  const latestLesson = getStudentCompletedLessons(student)
+    .sort((a, b) => new Date(formatLessonDateValue(b) || 0) - new Date(formatLessonDateValue(a) || 0))[0];
+  const latestHomework = getHomeworkForStudent(student)
+    .filter((task) => task.status === "Assigned")
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+    .slice(0, 3);
+
+  const summary = [
+    strengths.length
+      ? `Strongest areas: ${strengths.slice(0, 3).map((item) => item.skillArea.name).join(", ")}.`
+      : "Strengths will appear after lesson ratings are added.",
+    weakAreas.length
+      ? `Main development areas: ${weakAreas.slice(0, 3).map((item) => item.skillArea.name).join(", ")}.`
+      : "No weak areas flagged yet.",
+    latestHomework.length
+      ? `Homework focus: ${latestHomework.map((task) => task.task_text).join("; ")}.`
+      : "No homework set for the next lesson yet.",
+    latestLesson?.covered_topics?.length
+      ? `Most recent lesson covered: ${latestLesson.covered_topics.join(", ")}.`
+      : "",
+  ].filter(Boolean).join(" ");
+
+  return {
+    readiness,
+    strengths,
+    weakAreas,
+    summary,
+  };
 }
 
 function findStudentForLesson(lesson, students = [], requests = []) {
@@ -827,7 +1010,10 @@ function renderPendingLessonRequests(requests) {
 function renderApprovedStudents(students, requests, lessons, paymentBalances = adminData.paymentBalances) {
   clearElement(approvedStudentList);
 
-  const approved = getApprovedStudentRecords(students, requests)
+  const approvedSource = Array.isArray(students) && students.some((student) => Object.prototype.hasOwnProperty.call(student, "progress_student_id"))
+    ? students
+    : getApprovedStudentRecords(students, requests, adminData.studentRecords);
+  const approved = approvedSource
     .map((student) => ({
       student,
       health: getStudentPaymentHealth(student, lessons, paymentBalances),
@@ -848,6 +1034,7 @@ function renderApprovedStudents(students, requests, lessons, paymentBalances = a
     const studentLessons = getStudentLessons(student, lessons);
     const activeBookings = health.activeBookings;
     const paymentBalance = health.paymentBalance;
+    const progress = buildStudentProgressSummary(student);
     const completedHours = studentLessons
       .filter((lesson) => isCompletedLessonStatus(lesson.status))
       .reduce((total, lesson) => total + Number(lesson.hours || lesson.duration_hours || 2), 0);
@@ -869,6 +1056,8 @@ function renderApprovedStudents(students, requests, lessons, paymentBalances = a
         paymentBalance ? `Paid used: ${formatAdminHours(usedHours)} of ${formatAdminHours(purchasedHours)} hours` : "",
         paymentBalance ? `Account balance: ${formatPoundsFromPence(paymentBalance.account_balance_pence)}` : "",
         health.nextLesson ? `Next lesson: ${formatAdminDate(formatLessonDateValue(health.nextLesson))}` : "",
+        `Estimated test readiness: ${progress.readiness}%`,
+        progress.summary,
         health.summary,
       ],
     );
@@ -893,7 +1082,9 @@ function renderApprovedStudents(students, requests, lessons, paymentBalances = a
 function renderPaymentTracker(students, requests, lessons = adminData.lessons, paymentBalances = adminData.paymentBalances) {
   clearElement(paymentTrackerList);
 
-  const approved = getApprovedStudentRecords(students, requests);
+  const approved = Array.isArray(students) && students.some((student) => Object.prototype.hasOwnProperty.call(student, "progress_student_id"))
+    ? students
+    : getApprovedStudentRecords(students, requests, adminData.studentRecords);
 
   if (!approved.length) {
     paymentTrackerList?.append(createEmptyState("No approved students to track yet."));
@@ -1032,17 +1223,369 @@ function renderStudentHistory(student) {
   });
 }
 
-function openStudentManager(student) {
-  activeStudent = student;
+function toDateTimeLocalValue(value) {
+  const date = new Date(value || "");
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+  return localDate.toISOString().slice(0, 16);
+}
 
-  if (studentDialogTitle) studentDialogTitle.textContent = getStudentName(student);
-  if (studentEditName) studentEditName.value = student.name || student.full_name || "";
-  if (studentEditEmail) studentEditEmail.value = student.email || "";
-  if (studentEditStatus) studentEditStatus.value = student.lesson_status || "Approved";
+function getSelectedCoveredTopics() {
+  return [...coveredTopicsGrid?.querySelectorAll("input[type='checkbox']:checked") || []].map((input) => input.value);
+}
+
+function renderCoveredTopicOptions(selectedTopics = []) {
+  if (!coveredTopicsGrid) return;
+  coveredTopicsGrid.innerHTML = "";
+
+  lessonTopicOptions.forEach((topic) => {
+    const label = document.createElement("label");
+    label.className = "topic-chip";
+    label.innerHTML = `
+      <input type="checkbox" value="${topic}" ${selectedTopics.includes(topic) ? "checked" : ""} />
+      <span>${topic}</span>
+    `;
+    label.querySelector("input")?.addEventListener("change", refreshLessonSummaryPreview);
+    coveredTopicsGrid.append(label);
+  });
+}
+
+function renderSkillRatingsGrid(selectedRatings = {}) {
+  if (!skillRatingsGrid) return;
+  skillRatingsGrid.innerHTML = "";
+
+  (adminData.skillAreas || []).forEach((skillArea) => {
+    const row = document.createElement("fieldset");
+    row.className = "skill-rating-row";
+
+    const legend = document.createElement("legend");
+    legend.innerHTML = `<strong>${skillArea.name}</strong><span>${skillArea.category}</span>`;
+    row.append(legend);
+
+    const options = document.createElement("div");
+    options.className = "skill-rating-options";
+
+    skillRatingOptions.forEach((rating) => {
+      const label = document.createElement("label");
+      label.className = "skill-rating-option";
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = `skill-rating-${skillArea.id}`;
+      input.value = rating;
+      input.checked = (selectedRatings[skillArea.id] || "Not introduced") === rating;
+      input.addEventListener("change", refreshLessonSummaryPreview);
+
+      const text = document.createElement("span");
+      text.textContent = rating;
+      label.append(input, text);
+      options.append(label);
+    });
+
+    row.append(options);
+    skillRatingsGrid.append(row);
+  });
+}
+
+function getSelectedSkillRatings() {
+  const selections = {};
+  (adminData.skillAreas || []).forEach((skillArea) => {
+    const selected = skillRatingsGrid?.querySelector(`input[name="skill-rating-${skillArea.id}"]:checked`);
+    selections[skillArea.id] = selected?.value || "Not introduced";
+  });
+  return selections;
+}
+
+function resetLessonRecordForm(student = activeStudent) {
+  activeLessonRecordId = null;
+  if (lessonRecordSelect) lessonRecordSelect.value = "";
+  if (lessonRecordDate) lessonRecordDate.value = toDateTimeLocalValue(new Date());
+  if (lessonRecordHours) lessonRecordHours.value = "2";
+  if (lessonRecordStatus) lessonRecordStatus.value = "Delivered";
+  if (lessonRecordTopic) lessonRecordTopic.value = "";
+  if (lessonRecordNotes) lessonRecordNotes.value = "";
+  if (lessonRecordHomework) lessonRecordHomework.value = "";
+  renderCoveredTopicOptions([]);
+  renderSkillRatingsGrid({});
+  refreshLessonSummaryPreview(student);
+}
+
+function renderLessonRecordOptions(student) {
+  if (!lessonRecordSelect) return;
+
+  lessonRecordSelect.innerHTML = "";
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "New lesson record";
+  lessonRecordSelect.append(placeholder);
+
+  getStudentLessons(student)
+    .sort((a, b) => new Date(formatLessonDateValue(b) || 0) - new Date(formatLessonDateValue(a) || 0))
+    .forEach((lesson) => {
+      const option = document.createElement("option");
+      option.value = lesson.id;
+      option.textContent = `${formatAdminDate(formatLessonDateValue(lesson))} · ${formatLessonStatusLabel(lesson.status || "Delivered")}`;
+      lessonRecordSelect.append(option);
+    });
+}
+
+function loadLessonRecordIntoForm(student, lessonId) {
+  const lesson = getStudentLessons(student).find((item) => item.id === lessonId);
+  if (!lesson) {
+    resetLessonRecordForm(student);
+    return;
+  }
+
+  const selectedRatings = {};
+  (adminData.lessonSkillRatings || [])
+    .filter((rating) => rating.lesson_id === lesson.id)
+    .forEach((rating) => {
+      selectedRatings[rating.skill_area_id] = rating.rating;
+    });
+
+  const homeworkLines = (adminData.homeworkTasks || [])
+    .filter((task) => task.lesson_id === lesson.id)
+    .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+    .map((task) => task.task_text);
+
+  activeLessonRecordId = lesson.id;
+  if (lessonRecordSelect) lessonRecordSelect.value = lesson.id;
+  if (lessonRecordDate) lessonRecordDate.value = toDateTimeLocalValue(formatLessonDateValue(lesson));
+  if (lessonRecordHours) lessonRecordHours.value = String(lesson.hours || lesson.duration_hours || 2);
+  if (lessonRecordStatus) lessonRecordStatus.value = lesson.status || "Delivered";
+  if (lessonRecordTopic) lessonRecordTopic.value = lesson.topic || "";
+  if (lessonRecordNotes) lessonRecordNotes.value = lesson.progress_notes || lesson.summary || "";
+  if (lessonRecordHomework) lessonRecordHomework.value = homeworkLines.join("\n");
+  renderCoveredTopicOptions(lesson.covered_topics || []);
+  renderSkillRatingsGrid(selectedRatings);
+  refreshLessonSummaryPreview(student);
+}
+
+function refreshLessonSummaryPreview(student = activeStudent) {
+  const coveredTopics = getSelectedCoveredTopics();
+  const selectedRatings = Object.values(getSelectedSkillRatings());
+  const readiness = selectedRatings.length
+    ? Math.round(selectedRatings.reduce((sum, rating) => sum + (readinessScoreMap[rating] || 0), 0) / selectedRatings.length)
+    : 0;
+  const strongCount = selectedRatings.filter((rating) => rating === "Test standard").length;
+  const developingCount = selectedRatings.filter((rating) => rating === "Developing").length;
+  const weakAreas = (adminData.skillAreas || []).filter((skillArea) => {
+    const rating = getSelectedSkillRatings()[skillArea.id];
+    return rating === "Needs work" || rating === "Not introduced";
+  }).slice(0, 3);
+
+  if (lessonReadinessValue) {
+    lessonReadinessValue.textContent = `${readiness}%`;
+  }
+
+  if (lessonSummaryPreview) {
+    const pieces = [
+      coveredTopics.length ? `Covered: ${coveredTopics.join(", ")}.` : "Select the topics covered in the lesson.",
+      `Current rating snapshot: ${strongCount} at test standard, ${developingCount} developing.`,
+      weakAreas.length ? `Next focus: ${weakAreas.map((item) => item.name).join(", ")}.` : "No weak areas highlighted from the current ratings.",
+      student ? `Student: ${getStudentName(student)}.` : "",
+    ];
+    lessonSummaryPreview.textContent = pieces.filter(Boolean).join(" ");
+  }
+}
+
+async function upsertProgressStudentRecord(student) {
+  const fullName = String(studentEditName?.value || student?.name || student?.full_name || "").trim();
+  const email = String(studentEditEmail?.value || student?.email || "").trim();
+  const payload = {
+    auth_user_id: student?.student_id || null,
+    email: email || null,
+    full_name: fullName || null,
+    phone: String(studentEditPhone?.value || student?.phone || "").trim() || null,
+    postcode: String(studentEditPostcode?.value || student?.postcode || "").trim() || null,
+    licence_stage: String(studentEditLicenceStage?.value || student?.licence_stage || "").trim() || null,
+    notes: String(studentEditNotes?.value || student?.student_notes || "").trim() || null,
+    lesson_access_status: String(studentEditStatus?.value || student?.lesson_status || "Approved").trim(),
+    updated_at: new Date().toISOString(),
+  };
+
+  let query;
+  if (payload.auth_user_id) {
+    query = adminClient.from("students").upsert(payload, {
+      onConflict: "auth_user_id",
+    }).select("id,auth_user_id,email,full_name,phone,postcode,licence_stage,notes,lesson_access_status").single();
+  } else if (student?.progress_student_id) {
+    query = adminClient.from("students").update(payload)
+      .eq("id", student.progress_student_id)
+      .select("id,auth_user_id,email,full_name,phone,postcode,licence_stage,notes,lesson_access_status")
+      .single();
+  } else {
+    delete payload.auth_user_id;
+    query = adminClient.from("students").insert(payload)
+      .select("id,auth_user_id,email,full_name,phone,postcode,licence_stage,notes,lesson_access_status")
+      .single();
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    return { data: null, error };
+  }
+
+  return { data, error: null };
+}
+
+async function saveLessonProgressRecord() {
+  if (!activeStudent || !adminClient || isSavingLessonRecord) return;
+
+  const lessonDateValue = String(lessonRecordDate?.value || "").trim();
+  const lessonHours = Number.parseFloat(String(lessonRecordHours?.value || "").trim());
+  const topic = String(lessonRecordTopic?.value || "").trim() || "Driving lesson";
+  const coveredTopics = getSelectedCoveredTopics();
+  const lessonNotes = String(lessonRecordNotes?.value || "").trim();
+  const homeworkLines = String(lessonRecordHomework?.value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (!lessonDateValue) {
+    setAdminDataStatus("Set the lesson date and time before saving progress.", "error");
+    return;
+  }
+
+  if (!Number.isFinite(lessonHours) || lessonHours <= 0) {
+    setAdminDataStatus("Enter a valid lesson duration in hours.", "error");
+    return;
+  }
+
+  isSavingLessonRecord = true;
+  saveLessonRecordButton.disabled = true;
+  saveLessonRecordButton.textContent = "Saving lesson...";
+  setAdminDataStatus("Saving lesson progress...");
+
+  try {
+    const studentRecordResult = await upsertProgressStudentRecord(activeStudent);
+    if (studentRecordResult.error || !studentRecordResult.data) {
+      setAdminDataStatus(getAdminError(studentRecordResult.error), "error");
+      return;
+    }
+
+    const selectedRatings = getSelectedSkillRatings();
+    const readiness = Math.round(
+      Object.values(selectedRatings).reduce((sum, rating) => sum + (readinessScoreMap[rating] || 0), 0) /
+      Math.max(Object.keys(selectedRatings).length, 1),
+    );
+
+    const weakAreas = (adminData.skillAreas || []).filter((skillArea) => {
+      const rating = selectedRatings[skillArea.id];
+      return rating === "Needs work" || rating === "Not introduced";
+    });
+    const strongAreas = (adminData.skillAreas || []).filter((skillArea) => {
+      const rating = selectedRatings[skillArea.id];
+      return rating === "Developing" || rating === "Test standard";
+    });
+
+    const progressSummary = [
+      coveredTopics.length ? `Covered ${coveredTopics.join(", ")}.` : "",
+      strongAreas.length ? `Stronger areas: ${strongAreas.slice(0, 3).map((area) => area.name).join(", ")}.` : "",
+      weakAreas.length ? `Needs more work on ${weakAreas.slice(0, 3).map((area) => area.name).join(", ")}.` : "",
+      homeworkLines.length ? `Homework: ${homeworkLines.join("; ")}.` : "",
+    ].filter(Boolean).join(" ");
+
+    const lessonPayload = {
+      student_id: activeStudent.student_id || studentRecordResult.data.auth_user_id || null,
+      student_email: studentEditEmail?.value || activeStudent.email || null,
+      student_record_id: studentRecordResult.data.id,
+      starts_at: new Date(lessonDateValue).toISOString(),
+      lesson_date: new Date(lessonDateValue).toISOString(),
+      hours: lessonHours,
+      topic,
+      status: String(lessonRecordStatus?.value || "Delivered").trim(),
+      covered_topics: coveredTopics,
+      progress_notes: lessonNotes || null,
+      summary: lessonNotes || null,
+      progress_summary: progressSummary || null,
+      readiness_percentage: readiness,
+      delivered_at: String(lessonRecordStatus?.value || "").toLowerCase().includes("deliver")
+        ? new Date().toISOString()
+        : null,
+    };
+
+    const lessonQuery = activeLessonRecordId
+      ? adminClient.from("lessons").update(lessonPayload).eq("id", activeLessonRecordId).select("id").single()
+      : adminClient.from("lessons").insert(lessonPayload).select("id").single();
+    const { data: savedLesson, error: lessonError } = await lessonQuery;
+
+    if (lessonError || !savedLesson?.id) {
+      setAdminDataStatus(getAdminError(lessonError), "error");
+      return;
+    }
+
+    await adminClient.from("lesson_skill_ratings").delete().eq("lesson_id", savedLesson.id);
+    const lessonRatingsPayload = (adminData.skillAreas || []).map((skillArea) => ({
+      lesson_id: savedLesson.id,
+      student_id: studentRecordResult.data.id,
+      skill_area_id: skillArea.id,
+      rating: selectedRatings[skillArea.id] || "Not introduced",
+      updated_at: new Date().toISOString(),
+    }));
+    const { error: ratingsError } = await adminClient.from("lesson_skill_ratings").insert(lessonRatingsPayload);
+    if (ratingsError) {
+      setAdminDataStatus(getAdminError(ratingsError), "error");
+      return;
+    }
+
+    await adminClient.from("homework_tasks").delete().eq("lesson_id", savedLesson.id);
+    if (homeworkLines.length) {
+      const homeworkPayload = homeworkLines.map((taskText, index) => ({
+        lesson_id: savedLesson.id,
+        student_id: studentRecordResult.data.id,
+        task_text: taskText,
+        sort_order: index,
+      }));
+      const { error: homeworkError } = await adminClient.from("homework_tasks").insert(homeworkPayload);
+      if (homeworkError) {
+        setAdminDataStatus(getAdminError(homeworkError), "error");
+        return;
+      }
+    }
+
+    activeLessonRecordId = savedLesson.id;
+    await loadAdminData();
+    if (activeStudent) {
+      activeStudent = getApprovedStudentRecords().find((student) => sameStudent(student, activeStudent)) || activeStudent;
+      renderLessonRecordOptions(activeStudent);
+      loadLessonRecordIntoForm(activeStudent, savedLesson.id);
+    }
+    setAdminDataStatus("Lesson progress saved.", "success");
+  } finally {
+    isSavingLessonRecord = false;
+    saveLessonRecordButton.disabled = false;
+    saveLessonRecordButton.textContent = "Save lesson progress";
+  }
+}
+
+function openStudentManager(student) {
+  activeStudent = student || {
+    lesson_status: "Approved",
+    email: "",
+    name: "",
+    full_name: "",
+    phone: "",
+    postcode: "",
+    licence_stage: "",
+    student_notes: "",
+  };
+
+  if (studentDialogTitle) studentDialogTitle.textContent = getStudentName(activeStudent);
+  if (studentEditName) studentEditName.value = activeStudent.name || activeStudent.full_name || "";
+  if (studentEditEmail) studentEditEmail.value = activeStudent.email || "";
+  if (studentEditPhone) studentEditPhone.value = activeStudent.phone || "";
+  if (studentEditPostcode) studentEditPostcode.value = activeStudent.postcode || "";
+  if (studentEditLicenceStage) studentEditLicenceStage.value = activeStudent.licence_stage || "";
+  if (studentEditNotes) studentEditNotes.value = activeStudent.student_notes || "";
+  if (studentEditStatus) studentEditStatus.value = activeStudent.lesson_status || "Approved";
 
   resetStudentPaymentControls();
-  renderStudentPaymentSummary(student);
-  renderStudentHistory(student);
+  renderStudentPaymentSummary(activeStudent);
+  renderStudentHistory(activeStudent);
+  renderLessonRecordOptions(activeStudent);
+  resetLessonRecordForm(activeStudent);
   studentManageDialog?.showModal();
 }
 
@@ -1170,6 +1713,16 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
 
     addItemActions(item, [
       {
+        label: "Record progress",
+        onClick: () => {
+          if (student) {
+            openStudentManager(student);
+            loadLessonRecordIntoForm(student, lesson.id);
+          }
+        },
+        disabled: !student,
+      },
+      {
         label: "Mark as delivered",
         className: "primary-button",
         onClick: () => markLessonDelivered(lesson),
@@ -1226,6 +1779,17 @@ function renderDeliveredLessons(lessons, students = [], requests = []) {
     );
 
     addItemActions(item, [
+      {
+        label: "Edit progress",
+        className: "primary-button",
+        onClick: () => {
+          if (student) {
+            openStudentManager(student);
+            loadLessonRecordIntoForm(student, lesson.id);
+          }
+        },
+        disabled: !student,
+      },
       {
         label: "Undo delivered",
         onClick: () => undoLessonDelivered(lesson),
@@ -1630,20 +2194,37 @@ function applyAdminFiltersFromControls() {
 function rerenderAdminBoard() {
   renderPendingLessonRequests(adminData.lessonRequests);
   renderAvailabilitySlots(adminData.availabilitySlots);
-  renderApprovedStudents(adminData.studentProfiles, adminData.lessonRequests, adminData.lessons, adminData.paymentBalances);
-  renderPaymentTracker(adminData.studentProfiles, adminData.lessonRequests, adminData.lessons, adminData.paymentBalances);
+  renderApprovedStudents(
+    getApprovedStudentRecords(adminData.studentProfiles, adminData.lessonRequests, adminData.studentRecords),
+    adminData.lessonRequests,
+    adminData.lessons,
+    adminData.paymentBalances,
+  );
+  renderPaymentTracker(
+    getApprovedStudentRecords(adminData.studentProfiles, adminData.lessonRequests, adminData.studentRecords),
+    adminData.lessonRequests,
+    adminData.lessons,
+    adminData.paymentBalances,
+  );
   renderSlotRequests(adminData.slotRequests);
   renderSupportRequests(adminData.supportRequests);
-  renderConfirmedLessons(adminData.lessons, adminData.studentProfiles, adminData.lessonRequests);
-  renderDeliveredLessons(adminData.lessons, adminData.studentProfiles, adminData.lessonRequests);
-  renderClosedLessons(adminData.lessons, adminData.studentProfiles, adminData.lessonRequests);
+  renderConfirmedLessons(adminData.lessons, getApprovedStudentRecords(adminData.studentProfiles, adminData.lessonRequests, adminData.studentRecords), adminData.lessonRequests);
+  renderDeliveredLessons(adminData.lessons, getApprovedStudentRecords(adminData.studentProfiles, adminData.lessonRequests, adminData.studentRecords), adminData.lessonRequests);
+  renderClosedLessons(adminData.lessons, getApprovedStudentRecords(adminData.studentProfiles, adminData.lessonRequests, adminData.studentRecords), adminData.lessonRequests);
   renderAdminSummary();
 
   if (activeStudent) {
-    const refreshedStudent = getApprovedStudentRecords().find((student) => sameStudent(student, activeStudent)) || activeStudent;
+    const refreshedStudent = getApprovedStudentRecords(adminData.studentProfiles, adminData.lessonRequests, adminData.studentRecords)
+      .find((student) => sameStudent(student, activeStudent) || findStudentRecord(activeStudent)?.id === student.progress_student_id) || activeStudent;
     activeStudent = refreshedStudent;
     renderStudentPaymentSummary(refreshedStudent);
     renderStudentHistory(refreshedStudent);
+    renderLessonRecordOptions(refreshedStudent);
+    if (activeLessonRecordId) {
+      loadLessonRecordIntoForm(refreshedStudent, activeLessonRecordId);
+    } else {
+      refreshLessonSummaryPreview(refreshedStudent);
+    }
   }
 }
 
@@ -1705,9 +2286,14 @@ async function loadAdminData() {
   const [
     lessonRequests,
     studentProfiles,
+    studentRecords,
+    profileRecords,
     slotRequests,
     supportRequests,
     lessons,
+    lessonSkillRatings,
+    homeworkTasks,
+    skillAreas,
     availabilitySlots,
     paymentBalances,
     paymentEvents,
@@ -1724,6 +2310,18 @@ async function loadAdminData() {
         .order("updated_at", { ascending: false })
         .limit(100),
     ),
+    loadTable("students", (query) =>
+      query
+        .select("id,auth_user_id,email,full_name,phone,postcode,licence_stage,notes,lesson_access_status,created_at,updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(150),
+    ),
+    loadTable("profiles", (query) =>
+      query
+        .select("id,email,full_name,role,created_at,updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(150),
+    ),
     loadTable("lesson_slot_requests", (query) =>
       query
         .select("id,student_id,student_email,availability_slot_id,requested_slot,requested_label,status,created_at")
@@ -1738,8 +2336,26 @@ async function loadAdminData() {
     ),
     loadTable("lessons", (query) =>
       query
-        .select("id,student_id,student_email,availability_slot_id,starts_at,lesson_date,hours,duration_hours,topic,status,notes,summary,delivered_at,created_at")
+        .select("id,student_id,student_email,student_record_id,availability_slot_id,starts_at,lesson_date,hours,duration_hours,topic,status,notes,summary,progress_notes,progress_summary,covered_topics,readiness_percentage,delivered_at,created_at")
         .order("starts_at", { ascending: true })
+        .limit(200),
+    ),
+    loadTable("lesson_skill_ratings", (query) =>
+      query
+        .select("id,lesson_id,student_id,skill_area_id,rating,created_at,updated_at")
+        .order("updated_at", { ascending: false })
+        .limit(4000),
+    ),
+    loadTable("homework_tasks", (query) =>
+      query
+        .select("id,lesson_id,student_id,task_text,status,sort_order,created_at,updated_at")
+        .order("created_at", { ascending: false })
+        .limit(1000),
+    ),
+    loadTable("skill_areas", (query) =>
+      query
+        .select("id,slug,category,name,display_order,created_at")
+        .order("display_order", { ascending: true })
         .limit(100),
     ),
     loadTable("lesson_availability_slots", (query) =>
@@ -1765,9 +2381,14 @@ async function loadAdminData() {
   adminData = {
     lessonRequests: lessonRequests.data,
     studentProfiles: studentProfiles.data,
+    studentRecords: studentRecords.data,
+    profileRecords: profileRecords.data,
     slotRequests: slotRequests.data,
     supportRequests: supportRequests.data,
     lessons: lessons.data,
+    lessonSkillRatings: lessonSkillRatings.data,
+    homeworkTasks: homeworkTasks.data,
+    skillAreas: skillAreas.data,
     availabilitySlots: availabilitySlots.data,
     paymentBalances: paymentBalances.data,
     paymentEvents: paymentEvents.data,
@@ -1784,9 +2405,14 @@ async function loadAdminData() {
   const errors = [
     lessonRequests,
     studentProfiles,
+    studentRecords,
+    profileRecords,
     slotRequests,
     supportRequests,
     lessons,
+    lessonSkillRatings,
+    homeworkTasks,
+    skillAreas,
     availabilitySlots,
     paymentBalances,
     paymentEvents,
@@ -1830,6 +2456,14 @@ async function approveLessonRequest(request) {
 
   let existingProfile = null;
   if (request.student_id) {
+    await adminClient.from("profiles").upsert({
+      id: request.student_id,
+      email: request.email,
+      full_name: request.name || null,
+      role: "student",
+      updated_at: new Date().toISOString(),
+    });
+
     const { data: profileData, error: profileLoadError } = await adminClient
       .from("student_profiles")
       .select("id,student_id,email,name,full_name,lesson_status")
@@ -1855,6 +2489,21 @@ async function approveLessonRequest(request) {
 
     if (profileError) {
       setAdminDataStatus(getAdminError(profileError), "error");
+      return;
+    }
+
+    const { error: studentRecordError } = await adminClient.from("students").upsert({
+      auth_user_id: request.student_id,
+      email: request.email,
+      full_name: request.name || null,
+      lesson_access_status: "Approved",
+      updated_at: new Date().toISOString(),
+    }, {
+      onConflict: "auth_user_id",
+    });
+
+    if (studentRecordError) {
+      setAdminDataStatus(getAdminError(studentRecordError), "error");
       return;
     }
   }
@@ -1900,11 +2549,25 @@ async function saveStudentDetails(event) {
 
   const name = String(studentEditName?.value || "").trim();
   const email = String(studentEditEmail?.value || "").trim();
+  const phone = String(studentEditPhone?.value || "").trim();
+  const postcode = String(studentEditPostcode?.value || "").trim();
+  const licenceStage = String(studentEditLicenceStage?.value || "").trim();
+  const instructorNotes = String(studentEditNotes?.value || "").trim();
   const lessonStatus = String(studentEditStatus?.value || "Approved").trim();
   const studentId = activeStudent.student_id;
   const originalEmail = activeStudent.email;
 
   setAdminDataStatus("Saving student details...");
+
+  if (studentId) {
+    await adminClient.from("profiles").upsert({
+      id: studentId,
+      email,
+      full_name: name || null,
+      role: "student",
+      updated_at: new Date().toISOString(),
+    });
+  }
 
   if (studentId) {
     const { error: profileError } = await adminClient.from("student_profiles").upsert({
@@ -1942,6 +2605,23 @@ async function saveStudentDetails(event) {
       setAdminDataStatus(getAdminError(requestError), "error");
       return;
     }
+  }
+
+  const { error: studentRecordError } = await upsertProgressStudentRecord({
+    ...activeStudent,
+    student_id: activeStudent.student_id,
+    email,
+    name,
+    full_name: name,
+    phone,
+    postcode,
+    licence_stage: licenceStage,
+    student_notes: instructorNotes,
+    lesson_status: lessonStatus,
+  });
+  if (studentRecordError) {
+    setAdminDataStatus(getAdminError(studentRecordError), "error");
+    return;
   }
 
   studentManageDialog?.close();
@@ -2273,6 +2953,14 @@ async function removeStudentAccess(student = activeStudent) {
   const activeSlotRequests = adminData.slotRequests.filter((request) => sameStudent(request, student) && !isClosedWorkflowStatus(request.status));
 
   if (student.student_id) {
+    await adminClient
+      .from("students")
+      .update({
+        lesson_access_status: "Removed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("auth_user_id", student.student_id);
+
     const { error: profileError } = await adminClient
       .from("student_profiles")
       .update({
@@ -2309,6 +2997,14 @@ async function removeStudentAccess(student = activeStudent) {
         return;
       }
     }
+  } else if (student.progress_student_id) {
+    await adminClient
+      .from("students")
+      .update({
+        lesson_access_status: "Removed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", student.progress_student_id);
   } else if (student.email) {
     if (activeLessonRequests.length) {
       const { error: requestError } = await adminClient
@@ -3642,6 +4338,10 @@ adminRefreshButton?.addEventListener("click", () => {
   loadAdminData();
 });
 
+addStudentButton?.addEventListener("click", () => {
+  openStudentManager(null);
+});
+
 adminSearchInput?.addEventListener("input", () => {
   applyAdminFiltersFromControls();
   rerenderAdminBoard();
@@ -3667,9 +4367,26 @@ studentManageDialog?.addEventListener("click", (event) => {
 
 studentManageDialog?.addEventListener("close", () => {
   resetStudentPaymentControls();
+  activeLessonRecordId = null;
 });
 
 studentManageForm?.addEventListener("submit", saveStudentDetails);
+createLessonRecordButton?.addEventListener("click", () => resetLessonRecordForm(activeStudent));
+lessonRecordSelect?.addEventListener("change", (event) => {
+  const lessonId = String(event.target?.value || "");
+  if (lessonId) {
+    loadLessonRecordIntoForm(activeStudent, lessonId);
+  } else {
+    resetLessonRecordForm(activeStudent);
+  }
+});
+lessonRecordDate?.addEventListener("input", () => refreshLessonSummaryPreview());
+lessonRecordHours?.addEventListener("input", () => refreshLessonSummaryPreview());
+lessonRecordStatus?.addEventListener("change", () => refreshLessonSummaryPreview());
+lessonRecordTopic?.addEventListener("input", () => refreshLessonSummaryPreview());
+lessonRecordNotes?.addEventListener("input", () => refreshLessonSummaryPreview());
+lessonRecordHomework?.addEventListener("input", () => refreshLessonSummaryPreview());
+saveLessonRecordButton?.addEventListener("click", saveLessonProgressRecord);
 applyStudentPaymentButton?.addEventListener("click", applyStudentPaymentAdjustment);
 removeStudentButton?.addEventListener("click", () => removeStudentAccess());
 availabilityForm?.addEventListener("submit", createAvailabilitySlot);

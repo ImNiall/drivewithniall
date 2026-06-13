@@ -174,6 +174,42 @@
               <ul class="lesson-record-list" id="lessonHistoryList"></ul>
             </section>
           </div>
+
+          <section class="student-progress-intelligence" aria-labelledby="studentProgressTitle">
+            <div class="diary-heading">
+              <div>
+                <span class="dashboard-kicker">Student Progress Intelligence</span>
+                <h3 id="studentProgressTitle">Your practical driving progress</h3>
+                <p id="studentProgressSummary">Your instructor summary, strengths, weak areas, and homework will appear here after lesson records are added.</p>
+              </div>
+              <div class="readiness-badge">
+                <span id="testReadinessValue">0%</span>
+                <strong>Estimated test readiness</strong>
+              </div>
+            </div>
+
+            <div class="progress-insight-grid">
+              <section class="lesson-record-panel" aria-labelledby="studentStrengthsTitle">
+                <h3 id="studentStrengthsTitle">Strengths</h3>
+                <ul class="dashboard-list" id="studentStrengthsList"></ul>
+              </section>
+              <section class="lesson-record-panel" aria-labelledby="studentWeakAreasTitle">
+                <h3 id="studentWeakAreasTitle">Weak areas</h3>
+                <ul class="dashboard-list" id="studentWeakAreasList"></ul>
+              </section>
+            </div>
+
+            <section class="lesson-record-panel" aria-labelledby="studentHomeworkTitle">
+              <h3 id="studentHomeworkTitle">Homework</h3>
+              <p id="studentHomeworkEmpty">Homework tasks for your next lesson will appear here.</p>
+              <ul class="dashboard-list" id="studentHomeworkList"></ul>
+            </section>
+
+            <section class="lesson-record-panel" aria-labelledby="skillProgressTitle">
+              <h3 id="skillProgressTitle">Progress by skill area</h3>
+              <div class="skill-progress-list" id="skillProgressList"></div>
+            </section>
+          </section>
         </article>
 
         <article class="dashboard-card">

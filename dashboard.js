@@ -40,12 +40,30 @@ const dashboardPaymentMessage = document.querySelector("#dashboardPaymentMessage
 const dashboardRemainingHours = document.querySelector("#dashboardRemainingHours");
 const dashboardPurchasedHours = document.querySelector("#dashboardPurchasedHours");
 const dashboardAccountBalance = document.querySelector("#dashboardAccountBalance");
+const studentProgressSummary = document.querySelector("#studentProgressSummary");
+const testReadinessValue = document.querySelector("#testReadinessValue");
+const studentStrengthsList = document.querySelector("#studentStrengthsList");
+const studentWeakAreasList = document.querySelector("#studentWeakAreasList");
+const studentHomeworkEmpty = document.querySelector("#studentHomeworkEmpty");
+const studentHomeworkList = document.querySelector("#studentHomeworkList");
+const skillProgressList = document.querySelector("#skillProgressList");
 
 let selectedDiarySlot = null;
 let lessonStudentAccess = false;
 let currentDashboardUserId = null;
+let currentStudentRecordId = null;
 let cancellationRequestSlots = new Set();
 let availableDiarySlots = [];
+let dashboardSkillAreas = [];
+let dashboardLessonRatings = [];
+let dashboardHomeworkTasks = [];
+
+const readinessScoreMap = {
+  "Not introduced": 0,
+  "Needs work": 35,
+  Developing: 70,
+  "Test standard": 100,
+};
 
 function setTheme(mode) {
   const isDark = mode === "dark";
@@ -293,6 +311,135 @@ function updateLessonProgress(lessons = []) {
   renderLessonRecordList(lessonHistoryList, completed);
 }
 
+function clearList(element, emptyMessage = "") {
+  if (!element) return;
+  element.innerHTML = "";
+  if (emptyMessage) {
+    const item = document.createElement("li");
+    item.textContent = emptyMessage;
+    element.append(item);
+  }
+}
+
+function getLatestSkillSnapshots() {
+  const lessonsById = new Map((window.dashboardLessons || []).map((lesson) => [lesson.id, lesson]));
+  const latest = new Map();
+
+  (dashboardLessonRatings || []).forEach((rating) => {
+    const lesson = lessonsById.get(rating.lesson_id);
+    const lessonTime = new Date(lesson?.starts_at || lesson?.lesson_date || lesson?.created_at || 0).getTime();
+    const previous = latest.get(rating.skill_area_id);
+    const previousLesson = previous ? lessonsById.get(previous.lesson_id) : null;
+    const previousTime = new Date(previousLesson?.starts_at || previousLesson?.lesson_date || previousLesson?.created_at || 0).getTime();
+
+    if (!previous || lessonTime >= previousTime) {
+      latest.set(rating.skill_area_id, rating);
+    }
+  });
+
+  return (dashboardSkillAreas || []).map((skillArea) => ({
+    skillArea,
+    rating: latest.get(skillArea.id)?.rating || "Not introduced",
+  }));
+}
+
+function calculateReadiness(snapshots = []) {
+  if (!snapshots.length) return 0;
+  return Math.round(
+    snapshots.reduce((sum, snapshot) => sum + (readinessScoreMap[snapshot.rating] || 0), 0) /
+    snapshots.length,
+  );
+}
+
+function renderSimpleInsightList(element, values, fallback) {
+  if (!element) return;
+  element.innerHTML = "";
+
+  if (!values.length) {
+    const item = document.createElement("li");
+    item.textContent = fallback;
+    element.append(item);
+    return;
+  }
+
+  values.forEach((value) => {
+    const item = document.createElement("li");
+    item.textContent = value;
+    element.append(item);
+  });
+}
+
+function renderSkillProgress(snapshots = []) {
+  if (!skillProgressList) return;
+  skillProgressList.innerHTML = "";
+
+  snapshots.forEach((snapshot) => {
+    const score = readinessScoreMap[snapshot.rating] || 0;
+    const row = document.createElement("article");
+    row.className = "skill-progress-row";
+    row.innerHTML = `
+      <div>
+        <strong>${snapshot.skillArea.name}</strong>
+        <span>${snapshot.rating}</span>
+      </div>
+      <div class="skill-progress-bar">
+        <span style="width: ${score}%"></span>
+      </div>
+    `;
+    skillProgressList.append(row);
+  });
+}
+
+function renderHomeworkTasks(tasks = []) {
+  if (!studentHomeworkList) return;
+  studentHomeworkList.innerHTML = "";
+  studentHomeworkEmpty?.toggleAttribute("hidden", tasks.length > 0);
+
+  tasks.forEach((task) => {
+    const item = document.createElement("li");
+    item.innerHTML = `<strong>${task.task_text}</strong><span>${task.status || "Assigned"}</span>`;
+    studentHomeworkList.append(item);
+  });
+}
+
+function renderStudentProgressIntelligence(lessons = []) {
+  window.dashboardLessons = lessons;
+  const snapshots = getLatestSkillSnapshots();
+  const readiness = calculateReadiness(snapshots);
+  const strengths = snapshots
+    .filter((snapshot) => snapshot.rating === "Test standard" || snapshot.rating === "Developing")
+    .slice(0, 4)
+    .map((snapshot) => `${snapshot.skillArea.name} (${snapshot.rating})`);
+  const weakAreas = snapshots
+    .filter((snapshot) => snapshot.rating === "Needs work" || snapshot.rating === "Not introduced")
+    .slice(0, 4)
+    .map((snapshot) => `${snapshot.skillArea.name} (${snapshot.rating})`);
+  const latestLesson = [...lessons]
+    .filter((lesson) => normaliseLessonRecord(lesson).isCompleted)
+    .sort((a, b) => new Date(b.starts_at || b.lesson_date || b.created_at || 0) - new Date(a.starts_at || a.lesson_date || a.created_at || 0))[0];
+  const activeHomework = [...dashboardHomeworkTasks]
+    .filter((task) => task.status === "Assigned")
+    .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
+
+  if (testReadinessValue) {
+    testReadinessValue.textContent = `${readiness}%`;
+  }
+
+  if (studentProgressSummary) {
+    studentProgressSummary.textContent = latestLesson?.progress_summary
+      || [
+        strengths.length ? `Strong areas: ${strengths.map((item) => item.replace(/\s\(.+\)$/, "")).join(", ")}.` : "Strengths will appear after your instructor adds lesson ratings.",
+        weakAreas.length ? `Current focus: ${weakAreas.map((item) => item.replace(/\s\(.+\)$/, "")).join(", ")}.` : "No weak areas have been highlighted yet.",
+        activeHomework.length ? `Homework: ${activeHomework.map((task) => task.task_text).join("; ")}.` : "No homework has been set for your next lesson yet.",
+      ].join(" ");
+  }
+
+  renderSimpleInsightList(studentStrengthsList, strengths, "Strengths will appear once your instructor has added some lesson ratings.");
+  renderSimpleInsightList(studentWeakAreasList, weakAreas, "No weak areas highlighted yet.");
+  renderHomeworkTasks(activeHomework);
+  renderSkillProgress(snapshots);
+}
+
 function updatePaymentBalance(balance) {
   const purchased = Number(balance?.purchased_hours || 0);
   const used = Number(balance?.used_hours || 0);
@@ -346,6 +493,7 @@ function setLessonStudentAccess(hasAccess, message) {
     if (diarySelectedSlot) diarySelectedSlot.value = "";
     if (diarySubmitButton) diarySubmitButton.disabled = true;
     renderDiaryRequests([]);
+    renderStudentProgressIntelligence([]);
   }
 }
 
@@ -437,15 +585,21 @@ async function loadLessonRequests(userId) {
   renderLessonRequests(requests);
 }
 
-async function loadLessonProgress(userId) {
+async function loadLessonProgress(userId, studentRecordId = null) {
   updateLessonProgress([]);
+  renderStudentProgressIntelligence([]);
 
   if (!dashboardClient) return;
 
+  const orFilters = [`student_id.eq.${userId}`];
+  if (studentRecordId) {
+    orFilters.push(`student_record_id.eq.${studentRecordId}`);
+  }
+
   const { data, error } = await dashboardClient
     .from("lessons")
-    .select("id,status,availability_slot_id,starts_at,lesson_date,hours,duration_hours,topic,focus,lesson_type,notes,summary,created_at")
-    .eq("student_id", userId)
+    .select("id,status,availability_slot_id,starts_at,lesson_date,hours,duration_hours,topic,focus,lesson_type,notes,summary,progress_summary,covered_topics,readiness_percentage,created_at")
+    .or(orFilters.join(","))
     .order("starts_at", { ascending: true });
 
   if (error || !data) {
@@ -453,6 +607,74 @@ async function loadLessonProgress(userId) {
   }
 
   updateLessonProgress(data);
+  renderStudentProgressIntelligence(data);
+}
+
+async function loadStudentRecord(userId) {
+  currentStudentRecordId = null;
+  dashboardLessonRatings = [];
+  dashboardHomeworkTasks = [];
+
+  if (!dashboardClient) return null;
+
+  const { data, error } = await dashboardClient
+    .from("students")
+    .select("id,auth_user_id,email,full_name,lesson_access_status")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  currentStudentRecordId = data.id;
+  return data;
+}
+
+async function loadSkillAreas() {
+  dashboardSkillAreas = [];
+
+  if (!dashboardClient) return;
+
+  const { data, error } = await dashboardClient
+    .from("skill_areas")
+    .select("id,slug,category,name,display_order")
+    .order("display_order", { ascending: true });
+
+  if (error || !data) return;
+  dashboardSkillAreas = data;
+}
+
+async function loadProgressBreakdown(studentRecordId) {
+  dashboardLessonRatings = [];
+  dashboardHomeworkTasks = [];
+
+  if (!dashboardClient || !studentRecordId) {
+    renderStudentProgressIntelligence(window.dashboardLessons || []);
+    return;
+  }
+
+  const [{ data: ratings, error: ratingsError }, { data: homework, error: homeworkError }] = await Promise.all([
+    dashboardClient
+      .from("lesson_skill_ratings")
+      .select("id,lesson_id,student_id,skill_area_id,rating,created_at,updated_at")
+      .eq("student_id", studentRecordId),
+    dashboardClient
+      .from("homework_tasks")
+      .select("id,lesson_id,student_id,task_text,status,sort_order,created_at,updated_at")
+      .eq("student_id", studentRecordId)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  if (!ratingsError && ratings) {
+    dashboardLessonRatings = ratings;
+  }
+
+  if (!homeworkError && homework) {
+    dashboardHomeworkTasks = homework;
+  }
+
+  renderStudentProgressIntelligence(window.dashboardLessons || []);
 }
 
 async function loadPaymentBalance(userId) {
@@ -575,10 +797,13 @@ async function initialiseDashboard() {
 
   currentDashboardUserId = data.session.user.id;
   showSignedIn(data.session);
+  await loadSkillAreas();
+  const studentRecord = await loadStudentRecord(data.session.user.id);
   await loadLessonStudentAccess(data.session.user.id);
   await loadLessonRequests(data.session.user.id);
   await loadDiaryRequests(data.session.user.id);
-  await loadLessonProgress(data.session.user.id);
+  await loadLessonProgress(data.session.user.id, studentRecord?.id || null);
+  await loadProgressBreakdown(studentRecord?.id || null);
   await loadPaymentBalance(data.session.user.id);
 }
 
