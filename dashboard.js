@@ -65,6 +65,14 @@ const readinessScoreMap = {
   "Test standard": 100,
 };
 
+const skillRatingDisplayMap = {
+  "Test standard": "Independant",
+};
+
+function formatSkillRatingLabel(rating) {
+  return skillRatingDisplayMap[rating] || rating;
+}
+
 function setTheme(mode) {
   const isDark = mode === "dark";
   document.body.classList.toggle("dark-mode", isDark);
@@ -380,7 +388,7 @@ function renderSkillProgress(snapshots = []) {
     row.innerHTML = `
       <div>
         <strong>${snapshot.skillArea.name}</strong>
-        <span>${snapshot.rating}</span>
+        <span>${formatSkillRatingLabel(snapshot.rating)}</span>
       </div>
       <div class="skill-progress-bar">
         <span style="width: ${score}%"></span>
@@ -409,11 +417,11 @@ function renderStudentProgressIntelligence(lessons = []) {
   const strengths = snapshots
     .filter((snapshot) => snapshot.rating === "Test standard" || snapshot.rating === "Developing")
     .slice(0, 4)
-    .map((snapshot) => `${snapshot.skillArea.name} (${snapshot.rating})`);
+    .map((snapshot) => `${snapshot.skillArea.name} (${formatSkillRatingLabel(snapshot.rating)})`);
   const weakAreas = snapshots
     .filter((snapshot) => snapshot.rating === "Needs work" || snapshot.rating === "Not introduced")
     .slice(0, 4)
-    .map((snapshot) => `${snapshot.skillArea.name} (${snapshot.rating})`);
+    .map((snapshot) => `${snapshot.skillArea.name} (${formatSkillRatingLabel(snapshot.rating)})`);
   const latestLesson = [...lessons]
     .filter((lesson) => normaliseLessonRecord(lesson).isCompleted)
     .sort((a, b) => new Date(b.starts_at || b.lesson_date || b.created_at || 0) - new Date(a.starts_at || a.lesson_date || a.created_at || 0))[0];

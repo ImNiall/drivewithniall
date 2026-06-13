@@ -147,12 +147,39 @@ const skillRatingOptions = [
   "Test standard",
 ];
 
+const skillRatingOptionMeta = {
+  "Not introduced": {
+    title: "Not introduced",
+    hint: "Not yet covered",
+  },
+  "Needs work": {
+    title: "Needs work",
+    hint: "Needs support",
+  },
+  Developing: {
+    title: "Developing",
+    hint: "Making progress",
+  },
+  "Test standard": {
+    title: "Independant",
+    hint: "Ready level",
+  },
+};
+
+const skillRatingDisplayMap = {
+  "Test standard": "Independant",
+};
+
 const readinessScoreMap = {
   "Not introduced": 0,
   "Needs work": 35,
   Developing: 70,
   "Test standard": 100,
 };
+
+function formatSkillRatingLabel(rating) {
+  return skillRatingDisplayMap[rating] || rating;
+}
 
 const eligibleLessonStatuses = ["confirmed", "delivered", "completed", "attended"];
 
@@ -1289,25 +1316,62 @@ function renderSkillRatingsGrid(selectedRatings = {}) {
     row.className = "skill-rating-row";
 
     const legend = document.createElement("legend");
-    legend.innerHTML = `<strong>${skillArea.name}</strong><span>${skillArea.category}</span>`;
+    legend.className = "skill-rating-head";
+
+    const titleWrap = document.createElement("div");
+    titleWrap.className = "skill-rating-title";
+
+    const title = document.createElement("strong");
+    title.textContent = skillArea.name;
+
+    const category = document.createElement("span");
+    category.textContent = skillArea.category;
+
+    titleWrap.append(title, category);
+    legend.append(titleWrap);
     row.append(legend);
 
     const options = document.createElement("div");
     options.className = "skill-rating-options";
 
     skillRatingOptions.forEach((rating) => {
+      const optionMeta = skillRatingOptionMeta[rating] || {
+        title: rating,
+        hint: "",
+      };
       const label = document.createElement("label");
       label.className = "skill-rating-option";
+      label.dataset.rating = rating.toLowerCase().replace(/\s+/g, "-");
       const input = document.createElement("input");
       input.type = "radio";
       input.name = `skill-rating-${skillArea.id}`;
       input.value = rating;
       input.checked = (selectedRatings[skillArea.id] || "Not introduced") === rating;
-      input.addEventListener("change", refreshLessonSummaryPreview);
+      input.addEventListener("change", () => {
+        options.querySelectorAll(".skill-rating-option").forEach((option) => {
+          option.classList.toggle("is-selected", option.contains(input) && input.checked);
+        });
+        refreshLessonSummaryPreview();
+      });
+
+      const indicator = document.createElement("span");
+      indicator.className = "skill-rating-indicator";
+      indicator.setAttribute("aria-hidden", "true");
+
+      const copy = document.createElement("span");
+      copy.className = "skill-rating-option-copy";
 
       const text = document.createElement("span");
-      text.textContent = rating;
-      label.append(input, text);
+      text.className = "skill-rating-option-title";
+      text.textContent = optionMeta.title;
+
+      const hint = document.createElement("span");
+      hint.className = "skill-rating-option-hint";
+      hint.textContent = optionMeta.hint;
+
+      copy.append(text, hint);
+      label.classList.toggle("is-selected", input.checked);
+      label.append(input, indicator, copy);
       options.append(label);
     });
 
@@ -1435,7 +1499,7 @@ function refreshLessonSummaryPreview(student = activeStudent) {
   if (lessonSummaryPreview) {
     const pieces = [
       coveredTopics.length ? `Covered: ${coveredTopics.join(", ")}.` : "Select the topics covered in the lesson.",
-      `Current rating snapshot: ${strongCount} at test standard, ${developingCount} developing.`,
+      `Current rating snapshot: ${strongCount} at ${formatSkillRatingLabel("Test standard").toLowerCase()}, ${developingCount} developing.`,
       weakAreas.length ? `Next focus: ${weakAreas.map((item) => item.name).join(", ")}.` : "No weak areas highlighted from the current ratings.",
       student ? `Student: ${getStudentName(student)}.` : "",
     ];
