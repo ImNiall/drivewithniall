@@ -290,15 +290,15 @@
                 </label>
                 <label>
                   Lesson date and time
-                  <input id="lessonRecordDate" name="lesson_date" type="datetime-local" />
+                  <input id="lessonRecordDate" name="lesson_date" type="text" readonly />
                 </label>
                 <label>
                   Duration (hours)
-                  <input id="lessonRecordHours" min="1" name="lesson_hours" step="0.5" type="number" />
+                  <input id="lessonRecordHours" name="lesson_hours" readonly type="text" />
                 </label>
                 <label>
                   Status
-                  <select id="lessonRecordStatus" name="lesson_status_value">
+                  <select disabled id="lessonRecordStatus" name="lesson_status_value">
                     <option>Delivered</option>
                     <option>Confirmed</option>
                     <option>Cancelled by instructor</option>

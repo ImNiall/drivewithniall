@@ -3050,6 +3050,7 @@ body.dark-mode .dashboard-timeline strong {
 
 .admin-progress-header-grid {
   align-items: end;
+  grid-template-columns: minmax(0, 1.1fr) repeat(3, minmax(0, 0.9fr));
 }
 
 .admin-topic-picker {
@@ -3136,19 +3137,28 @@ body.dark-mode .dashboard-timeline strong {
 }
 
 .skill-rating-options {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
 .skill-rating-option {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  justify-content: center;
+  min-width: 0;
+  padding: 10px 10px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 16px;
   background: var(--paper);
+}
+
+.skill-rating-option span {
+  font-size: 0.95rem;
+  line-height: 1.2;
+  text-align: center;
+  text-wrap: balance;
 }
 
 .admin-summary-panel {
@@ -3843,10 +3853,15 @@ body.dark-mode .area-content p {
   .payment-stats,
   .lesson-record-grid,
   .progress-insight-grid,
+  .admin-progress-header-grid,
   .admin-progress-grid,
   .admin-summary-panel,
   .lesson-record-list li {
     grid-template-columns: 1fr;
+  }
+
+  .skill-rating-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .dashboard-actions {

@@ -153,6 +153,8 @@ const readinessScoreMap = {
   "Test standard": 100,
 };
 
+const eligibleLessonStatuses = ["confirmed", "delivered", "completed", "attended"];
+
 const hasAdminConfig =
   adminConfig.supabaseUrl &&
   adminConfig.supabaseAnonKey &&
@@ -667,6 +669,32 @@ function getStudentClosedLessons(student, lessons = adminData.lessons) {
 
 function getStudentCompletedLessons(student, lessons = adminData.lessons) {
   return getStudentLessons(student, lessons).filter((lesson) => isCompletedLessonStatus(lesson.status));
+}
+
+function isEligibleLessonForProgress(lesson) {
+  if (!lesson) return false;
+  if (isCancelledLessonStatus(lesson.status) || isNoShowLessonStatus(lesson.status)) return false;
+
+  const status = String(lesson.status || "").toLowerCase();
+  return eligibleLessonStatuses.some((value) => status.includes(value));
+}
+
+function lessonHasProgressRecord(lesson) {
+  if (!lesson) return false;
+
+  return Boolean(
+    lesson.progress_notes ||
+      lesson.progress_summary ||
+      (Array.isArray(lesson.covered_topics) && lesson.covered_topics.length) ||
+      (adminData.lessonSkillRatings || []).some((rating) => rating.lesson_id === lesson.id) ||
+      (adminData.homeworkTasks || []).some((task) => task.lesson_id === lesson.id),
+  );
+}
+
+function getProgressEligibleLessons(student) {
+  return getStudentLessons(student)
+    .filter((lesson) => isEligibleLessonForProgress(lesson))
+    .sort((a, b) => new Date(formatLessonDateValue(b) || 0) - new Date(formatLessonDateValue(a) || 0));
 }
 
 function getStudentPaymentHealth(student, lessons = adminData.lessons, paymentBalances = adminData.paymentBalances) {
@@ -1299,8 +1327,8 @@ function getSelectedSkillRatings() {
 function resetLessonRecordForm(student = activeStudent) {
   activeLessonRecordId = null;
   if (lessonRecordSelect) lessonRecordSelect.value = "";
-  if (lessonRecordDate) lessonRecordDate.value = toDateTimeLocalValue(new Date());
-  if (lessonRecordHours) lessonRecordHours.value = "2";
+  if (lessonRecordDate) lessonRecordDate.value = "";
+  if (lessonRecordHours) lessonRecordHours.value = "";
   if (lessonRecordStatus) lessonRecordStatus.value = "Delivered";
   if (lessonRecordTopic) lessonRecordTopic.value = "";
   if (lessonRecordNotes) lessonRecordNotes.value = "";
@@ -1314,24 +1342,32 @@ function renderLessonRecordOptions(student) {
   if (!lessonRecordSelect) return;
 
   lessonRecordSelect.innerHTML = "";
+  const eligibleLessons = getProgressEligibleLessons(student);
 
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = "New lesson record";
+  placeholder.textContent = eligibleLessons.length
+    ? "Choose a lesson"
+    : "No eligible lessons available";
   lessonRecordSelect.append(placeholder);
 
-  getStudentLessons(student)
-    .sort((a, b) => new Date(formatLessonDateValue(b) || 0) - new Date(formatLessonDateValue(a) || 0))
+  eligibleLessons
     .forEach((lesson) => {
       const option = document.createElement("option");
       option.value = lesson.id;
       option.textContent = `${formatAdminDate(formatLessonDateValue(lesson))} · ${formatLessonStatusLabel(lesson.status || "Delivered")}`;
+      if (lessonHasProgressRecord(lesson)) {
+        option.textContent += " · Progress saved";
+      }
       lessonRecordSelect.append(option);
     });
+
+  lessonRecordSelect.disabled = !eligibleLessons.length;
+  createLessonRecordButton.disabled = !eligibleLessons.length;
 }
 
 function loadLessonRecordIntoForm(student, lessonId) {
-  const lesson = getStudentLessons(student).find((item) => item.id === lessonId);
+  const lesson = getProgressEligibleLessons(student).find((item) => item.id === lessonId);
   if (!lesson) {
     resetLessonRecordForm(student);
     return;
@@ -1351,8 +1387,8 @@ function loadLessonRecordIntoForm(student, lessonId) {
 
   activeLessonRecordId = lesson.id;
   if (lessonRecordSelect) lessonRecordSelect.value = lesson.id;
-  if (lessonRecordDate) lessonRecordDate.value = toDateTimeLocalValue(formatLessonDateValue(lesson));
-  if (lessonRecordHours) lessonRecordHours.value = String(lesson.hours || lesson.duration_hours || 2);
+  if (lessonRecordDate) lessonRecordDate.value = formatAdminDate(formatLessonDateValue(lesson));
+  if (lessonRecordHours) lessonRecordHours.value = `${lesson.hours || lesson.duration_hours || 2}`;
   if (lessonRecordStatus) lessonRecordStatus.value = lesson.status || "Delivered";
   if (lessonRecordTopic) lessonRecordTopic.value = lesson.topic || "";
   if (lessonRecordNotes) lessonRecordNotes.value = lesson.progress_notes || lesson.summary || "";
@@ -1433,8 +1469,7 @@ async function upsertProgressStudentRecord(student) {
 async function saveLessonProgressRecord() {
   if (!activeStudent || !adminClient || isSavingLessonRecord) return;
 
-  const lessonDateValue = String(lessonRecordDate?.value || "").trim();
-  const lessonHours = Number.parseFloat(String(lessonRecordHours?.value || "").trim());
+  const activeLesson = getProgressEligibleLessons(activeStudent).find((lesson) => lesson.id === activeLessonRecordId);
   const topic = String(lessonRecordTopic?.value || "").trim() || "Driving lesson";
   const coveredTopics = getSelectedCoveredTopics();
   const lessonNotes = String(lessonRecordNotes?.value || "").trim();
@@ -1443,13 +1478,8 @@ async function saveLessonProgressRecord() {
     .map((line) => line.trim())
     .filter(Boolean);
 
-  if (!lessonDateValue) {
-    setAdminDataStatus("Set the lesson date and time before saving progress.", "error");
-    return;
-  }
-
-  if (!Number.isFinite(lessonHours) || lessonHours <= 0) {
-    setAdminDataStatus("Enter a valid lesson duration in hours.", "error");
+  if (!activeLessonRecordId || !activeLesson) {
+    setAdminDataStatus("Choose an eligible lesson record before saving progress.", "error");
     return;
   }
 
@@ -1488,28 +1518,30 @@ async function saveLessonProgressRecord() {
     ].filter(Boolean).join(" ");
 
     const lessonPayload = {
-      student_id: activeStudent.student_id || studentRecordResult.data.auth_user_id || null,
-      student_email: studentEditEmail?.value || activeStudent.email || null,
+      student_id: activeLesson.student_id || activeStudent.student_id || studentRecordResult.data.auth_user_id || null,
+      student_email: activeLesson.student_email || studentEditEmail?.value || activeStudent.email || null,
       student_record_id: studentRecordResult.data.id,
-      starts_at: new Date(lessonDateValue).toISOString(),
-      lesson_date: new Date(lessonDateValue).toISOString(),
-      hours: lessonHours,
+      starts_at: activeLesson.starts_at || activeLesson.lesson_date || null,
+      lesson_date: activeLesson.lesson_date || activeLesson.starts_at || null,
+      hours: Number(activeLesson.hours || activeLesson.duration_hours || 2),
       topic,
-      status: String(lessonRecordStatus?.value || "Delivered").trim(),
+      status: activeLesson.status || "Delivered",
       covered_topics: coveredTopics,
       progress_notes: lessonNotes || null,
       summary: lessonNotes || null,
       progress_summary: progressSummary || null,
       readiness_percentage: readiness,
-      delivered_at: String(lessonRecordStatus?.value || "").toLowerCase().includes("deliver")
+      delivered_at: activeLesson.delivered_at || (String(activeLesson.status || "").toLowerCase().includes("deliver")
         ? new Date().toISOString()
-        : null,
+        : null),
     };
 
-    const lessonQuery = activeLessonRecordId
-      ? adminClient.from("lessons").update(lessonPayload).eq("id", activeLessonRecordId).select("id").single()
-      : adminClient.from("lessons").insert(lessonPayload).select("id").single();
-    const { data: savedLesson, error: lessonError } = await lessonQuery;
+    const { data: savedLesson, error: lessonError } = await adminClient
+      .from("lessons")
+      .update(lessonPayload)
+      .eq("id", activeLessonRecordId)
+      .select("id")
+      .single();
 
     if (lessonError || !savedLesson?.id) {
       setAdminDataStatus(getAdminError(lessonError), "error");
@@ -4371,7 +4403,18 @@ studentManageDialog?.addEventListener("close", () => {
 });
 
 studentManageForm?.addEventListener("submit", saveStudentDetails);
-createLessonRecordButton?.addEventListener("click", () => resetLessonRecordForm(activeStudent));
+createLessonRecordButton?.addEventListener("click", () => {
+  const nextLesson = getProgressEligibleLessons(activeStudent).find((lesson) => !lessonHasProgressRecord(lesson))
+    || getProgressEligibleLessons(activeStudent)[0];
+
+  if (!nextLesson) {
+    resetLessonRecordForm(activeStudent);
+    setAdminDataStatus("This student has no eligible lesson to attach a progress record to yet.", "error");
+    return;
+  }
+
+  loadLessonRecordIntoForm(activeStudent, nextLesson.id);
+});
 lessonRecordSelect?.addEventListener("change", (event) => {
   const lessonId = String(event.target?.value || "");
   if (lessonId) {
@@ -4380,9 +4423,6 @@ lessonRecordSelect?.addEventListener("change", (event) => {
     resetLessonRecordForm(activeStudent);
   }
 });
-lessonRecordDate?.addEventListener("input", () => refreshLessonSummaryPreview());
-lessonRecordHours?.addEventListener("input", () => refreshLessonSummaryPreview());
-lessonRecordStatus?.addEventListener("change", () => refreshLessonSummaryPreview());
 lessonRecordTopic?.addEventListener("input", () => refreshLessonSummaryPreview());
 lessonRecordNotes?.addEventListener("input", () => refreshLessonSummaryPreview());
 lessonRecordHomework?.addEventListener("input", () => refreshLessonSummaryPreview());
