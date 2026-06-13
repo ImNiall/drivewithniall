@@ -437,6 +437,7 @@ function formatLessonStatusLabel(status) {
   if (normalised === "cancelled by instructor") return "Cancelled by instructor";
   if (normalised === "cancelled by student") return "Cancelled by student";
   if (normalised === "no-show") return "No-show";
+  if (normalised === "no-show charged") return "No-show charged";
 
   return value;
 }
@@ -1143,6 +1144,10 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
       {
         label: "Mark no-show",
         onClick: () => markLessonNoShow(lesson),
+      },
+      {
+        label: "No-show and charge",
+        onClick: () => markLessonNoShow(lesson, { chargeStudent: true }),
       },
       {
         label: "Cancel booking",
@@ -2768,11 +2773,12 @@ async function cancelLessonBooking(lessonOrId, options = {}) {
   return true;
 }
 
-async function markLessonNoShow(lessonOrId) {
+async function markLessonNoShow(lessonOrId, options = {}) {
   const lesson = typeof lessonOrId === "object"
     ? lessonOrId
     : adminData.lessons.find((item) => item.id === lessonOrId);
   const id = lesson?.id || lessonOrId;
+  const shouldChargeStudent = Boolean(options.chargeStudent);
 
   if (!id) return;
   if (isNoShowLessonStatus(lesson?.status)) {
@@ -2780,22 +2786,81 @@ async function markLessonNoShow(lessonOrId) {
     return;
   }
 
-  const confirmed = window.confirm("Mark this booked lesson as a no-show? This closes the lesson without changing paid hours.");
-  if (!confirmed) return;
-  const summaryInput = window.prompt("Add a short no-show note (optional).", lesson?.summary || "");
+  const { balance, error: balanceError } = shouldChargeStudent ? await getPaymentBalanceForLesson(lesson || { id }) : { balance: null, error: null };
+  if (balanceError) {
+    setAdminDataStatus(balanceError, "error");
+    return;
+  }
 
-  setAdminDataStatus("Marking lesson as no-show...");
+  const remainingHours = shouldChargeStudent ? getLessonRemainingHours(balance) : 0;
+  const lessonHours = shouldChargeStudent ? getLessonDurationHours(lesson) : 0;
+  const confirmationMessage = !shouldChargeStudent
+    ? "Mark this booked lesson as a no-show? This closes the lesson without changing paid hours."
+    : !balance
+      ? "Mark this booked lesson as a no-show and try to charge it? No paid balance is linked to this student yet, so no hours can be deducted."
+      : remainingHours <= 0
+        ? "Mark this booked lesson as a no-show and charge it? This student has no paid hours remaining."
+        : remainingHours < lessonHours
+          ? `Mark this booked lesson as a no-show and charge it? Only ${remainingHours} paid hour${remainingHours === 1 ? "" : "s"} remain for a ${lessonHours}-hour lesson.`
+          : "Mark this booked lesson as a no-show and charge it? This will reduce the student's remaining paid hours.";
+  const confirmed = window.confirm(confirmationMessage);
+  if (!confirmed) return;
+  const summaryPrompt = shouldChargeStudent
+    ? "Add a short no-show note (optional). Include why the missed lesson is still being charged if needed."
+    : "Add a short no-show note (optional).";
+  const summaryInput = window.prompt(summaryPrompt, lesson?.summary || "");
+
+  setAdminDataStatus(shouldChargeStudent ? "Marking lesson as chargeable no-show..." : "Marking lesson as no-show...");
+  const nextStatus = shouldChargeStudent ? "No-show charged" : "No-show";
 
   const { error } = await adminClient
     .from("lessons")
     .update({
-      status: "No-show",
+      status: nextStatus,
       summary: summaryInput === null ? (lesson?.summary || null) : summaryInput.trim(),
     })
     .eq("id", id);
 
   if (error) {
     setAdminDataStatus(getAdminError(error), "error");
+    return;
+  }
+
+  if (shouldChargeStudent) {
+    const paymentResult = await consumeLessonPaymentCredit({
+      ...(lesson || { id }),
+      status: nextStatus,
+      summary: summaryInput === null ? (lesson?.summary || null) : summaryInput.trim(),
+    });
+    await loadAdminData();
+
+    if (paymentResult.status === "error") {
+      await adminClient
+        .from("lessons")
+        .update({
+          status: lesson?.status || "Confirmed",
+          summary: lesson?.summary || null,
+        })
+        .eq("id", id);
+      await loadAdminData();
+      setAdminDataStatus(`Lesson marked as a no-show, but the charge could not be applied. ${paymentResult.message}`, "error");
+      return;
+    }
+
+    if (paymentResult.status === "warning" || paymentResult.status === "skipped") {
+      await adminClient
+        .from("lessons")
+        .update({
+          status: "No-show",
+          summary: summaryInput === null ? (lesson?.summary || null) : summaryInput.trim(),
+        })
+        .eq("id", id);
+      await loadAdminData();
+      setAdminDataStatus(`Lesson marked as a no-show, but no credit was deducted. ${paymentResult.message}`, "error");
+      return;
+    }
+
+    setAdminDataStatus("Lesson marked as a no-show and the student's paid hours were deducted.", "success");
     return;
   }
 
