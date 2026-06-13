@@ -110,6 +110,7 @@ let adminData = {
 };
 let activeStudent = null;
 let activeLessonRecordId = null;
+let pendingDeliveryLessonId = null;
 let currentDiaryWeekStart = getStartOfWeek(new Date());
 let adminFilters = {
   search: "",
@@ -1326,6 +1327,7 @@ function getSelectedSkillRatings() {
 
 function resetLessonRecordForm(student = activeStudent) {
   activeLessonRecordId = null;
+  pendingDeliveryLessonId = null;
   if (lessonRecordSelect) lessonRecordSelect.value = "";
   if (lessonRecordDate) lessonRecordDate.value = "";
   if (lessonRecordHours) lessonRecordHours.value = "";
@@ -1335,6 +1337,9 @@ function resetLessonRecordForm(student = activeStudent) {
   if (lessonRecordHomework) lessonRecordHomework.value = "";
   renderCoveredTopicOptions([]);
   renderSkillRatingsGrid({});
+  if (saveLessonRecordButton) {
+    saveLessonRecordButton.textContent = "Save lesson progress";
+  }
   refreshLessonSummaryPreview(student);
 }
 
@@ -1395,7 +1400,19 @@ function loadLessonRecordIntoForm(student, lessonId) {
   if (lessonRecordHomework) lessonRecordHomework.value = homeworkLines.join("\n");
   renderCoveredTopicOptions(lesson.covered_topics || []);
   renderSkillRatingsGrid(selectedRatings);
+  if (saveLessonRecordButton) {
+    saveLessonRecordButton.textContent = pendingDeliveryLessonId === lesson.id
+      ? "Save and mark as delivered"
+      : "Save lesson progress";
+  }
   refreshLessonSummaryPreview(student);
+}
+
+function openLessonProgressEditor(student, lessonId, options = {}) {
+  if (!student) return;
+  openStudentManager(student);
+  pendingDeliveryLessonId = options.markDelivered ? lessonId : null;
+  loadLessonRecordIntoForm(student, lessonId);
 }
 
 function refreshLessonSummaryPreview(student = activeStudent) {
@@ -1517,6 +1534,9 @@ async function saveLessonProgressRecord() {
       homeworkLines.length ? `Homework: ${homeworkLines.join("; ")}.` : "",
     ].filter(Boolean).join(" ");
 
+    const shouldMarkDelivered = pendingDeliveryLessonId === activeLessonRecordId && !isCompletedLessonStatus(activeLesson.status);
+    const deliveredAt = shouldMarkDelivered ? new Date().toISOString() : activeLesson.delivered_at || null;
+
     const lessonPayload = {
       student_id: activeLesson.student_id || activeStudent.student_id || studentRecordResult.data.auth_user_id || null,
       student_email: activeLesson.student_email || studentEditEmail?.value || activeStudent.email || null,
@@ -1525,13 +1545,13 @@ async function saveLessonProgressRecord() {
       lesson_date: activeLesson.lesson_date || activeLesson.starts_at || null,
       hours: Number(activeLesson.hours || activeLesson.duration_hours || 2),
       topic,
-      status: activeLesson.status || "Delivered",
+      status: shouldMarkDelivered ? "Delivered" : (activeLesson.status || "Delivered"),
       covered_topics: coveredTopics,
       progress_notes: lessonNotes || null,
       summary: lessonNotes || null,
       progress_summary: progressSummary || null,
       readiness_percentage: readiness,
-      delivered_at: activeLesson.delivered_at || (String(activeLesson.status || "").toLowerCase().includes("deliver")
+      delivered_at: deliveredAt || (String(activeLesson.status || "").toLowerCase().includes("deliver")
         ? new Date().toISOString()
         : null),
     };
@@ -1577,18 +1597,54 @@ async function saveLessonProgressRecord() {
       }
     }
 
+    if (shouldMarkDelivered) {
+      const paymentResult = await consumeLessonPaymentCredit({
+        ...activeLesson,
+        status: "Delivered",
+        delivered_at: deliveredAt,
+        summary: lessonNotes || null,
+      });
+
+      if (paymentResult.status === "error") {
+        await adminClient
+          .from("lessons")
+          .update({
+            status: activeLesson.status || "Confirmed",
+            delivered_at: activeLesson.delivered_at || null,
+            progress_notes: activeLesson.progress_notes || null,
+            summary: activeLesson.summary || null,
+            progress_summary: activeLesson.progress_summary || null,
+            covered_topics: activeLesson.covered_topics || [],
+            readiness_percentage: activeLesson.readiness_percentage || null,
+          })
+          .eq("id", savedLesson.id);
+        setAdminDataStatus(`Lesson summary saved, but the delivery step failed. ${paymentResult.message}`, "error");
+        await loadAdminData();
+        return;
+      }
+
+      if (paymentResult.status === "warning") {
+        setAdminDataStatus(paymentResult.message, "error");
+        await loadAdminData();
+        return;
+      }
+    }
+
     activeLessonRecordId = savedLesson.id;
+    pendingDeliveryLessonId = null;
     await loadAdminData();
     if (activeStudent) {
       activeStudent = getApprovedStudentRecords().find((student) => sameStudent(student, activeStudent)) || activeStudent;
       renderLessonRecordOptions(activeStudent);
       loadLessonRecordIntoForm(activeStudent, savedLesson.id);
     }
-    setAdminDataStatus("Lesson progress saved.", "success");
+    setAdminDataStatus(shouldMarkDelivered ? "Lesson progress saved and lesson marked as delivered." : "Lesson progress saved.", "success");
   } finally {
     isSavingLessonRecord = false;
     saveLessonRecordButton.disabled = false;
-    saveLessonRecordButton.textContent = "Save lesson progress";
+    saveLessonRecordButton.textContent = pendingDeliveryLessonId === activeLessonRecordId
+      ? "Save and mark as delivered"
+      : "Save lesson progress";
   }
 }
 
@@ -1748,8 +1804,7 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
         label: "Record progress",
         onClick: () => {
           if (student) {
-            openStudentManager(student);
-            loadLessonRecordIntoForm(student, lesson.id);
+            openLessonProgressEditor(student, lesson.id);
           }
         },
         disabled: !student,
@@ -1757,7 +1812,12 @@ function renderConfirmedLessons(lessons, students = [], requests = []) {
       {
         label: "Mark as delivered",
         className: "primary-button",
-        onClick: () => markLessonDelivered(lesson),
+        onClick: () => {
+          if (student) {
+            openLessonProgressEditor(student, lesson.id, { markDelivered: true });
+          }
+        },
+        disabled: !student,
       },
       {
         label: "Mark no-show",
@@ -1816,8 +1876,7 @@ function renderDeliveredLessons(lessons, students = [], requests = []) {
         className: "primary-button",
         onClick: () => {
           if (student) {
-            openStudentManager(student);
-            loadLessonRecordIntoForm(student, lesson.id);
+            openLessonProgressEditor(student, lesson.id);
           }
         },
         disabled: !student,
@@ -4400,6 +4459,7 @@ studentManageDialog?.addEventListener("click", (event) => {
 studentManageDialog?.addEventListener("close", () => {
   resetStudentPaymentControls();
   activeLessonRecordId = null;
+  pendingDeliveryLessonId = null;
 });
 
 studentManageForm?.addEventListener("submit", saveStudentDetails);
