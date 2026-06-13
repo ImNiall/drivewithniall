@@ -1236,6 +1236,14 @@ function renderClosedLessons(lessons, students = [], requests = []) {
       ],
     );
     addStatusPill(item, formatLessonStatusLabel(lesson.status), tone);
+
+    addItemActions(item, [
+      {
+        label: isNoShowLessonStatus(lesson.status) ? "Undo no-show" : "Reopen lesson",
+        onClick: () => reopenClosedLesson(lesson),
+      },
+    ]);
+
     closedLessonList?.append(item);
   });
 }
@@ -2717,6 +2725,55 @@ async function releaseLessonAvailabilitySlot(lesson) {
   return { error };
 }
 
+async function reserveLessonAvailabilitySlot(lesson) {
+  const slotId = lesson?.availability_slot_id;
+  if (!slotId) return { error: null };
+
+  const { data: slot, error: slotLoadError } = await adminClient
+    .from("lesson_availability_slots")
+    .select("id,status,assigned_student_id,assigned_student_email")
+    .eq("id", slotId)
+    .maybeSingle();
+
+  if (slotLoadError) {
+    return { error: slotLoadError };
+  }
+
+  if (!slot?.id) {
+    return { error: { message: "The original diary slot could not be found for this lesson." } };
+  }
+
+  const status = String(slot.status || "").toLowerCase();
+  const sameAssignedStudent = Boolean(
+    (lesson.student_id && slot.assigned_student_id && slot.assigned_student_id === lesson.student_id) ||
+      (lesson.student_email && slot.assigned_student_email && String(slot.assigned_student_email).toLowerCase() === String(lesson.student_email).toLowerCase()),
+  );
+
+  if (status === "booked" && sameAssignedStudent) {
+    return { error: null };
+  }
+
+  if (status !== "available" && status !== "booked") {
+    return { error: { message: "The original diary slot is no longer available to rebook." } };
+  }
+
+  if (status === "booked" && !sameAssignedStudent) {
+    return { error: { message: "The original diary slot has already been booked by someone else." } };
+  }
+
+  const { error } = await adminClient
+    .from("lesson_availability_slots")
+    .update({
+      status: "Booked",
+      assigned_student_id: lesson.student_id || null,
+      assigned_student_email: lesson.student_email || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", slotId);
+
+  return { error };
+}
+
 async function cancelLessonBooking(lessonOrId, options = {}) {
   const lesson = typeof lessonOrId === "object"
     ? lessonOrId
@@ -2866,6 +2923,87 @@ async function markLessonNoShow(lessonOrId, options = {}) {
 
   await loadAdminData();
   setAdminDataStatus("Lesson marked as a no-show.", "success");
+}
+
+async function reopenClosedLesson(lessonOrId) {
+  const lesson = typeof lessonOrId === "object"
+    ? lessonOrId
+    : adminData.lessons.find((item) => item.id === lessonOrId);
+  const id = lesson?.id || lessonOrId;
+
+  if (!id) return;
+
+  const status = String(lesson?.status || "").toLowerCase();
+  const isChargedNoShow = status === "no-show charged";
+  const isNoShow = isNoShowLessonStatus(status);
+  const isCancelled = isCancelledLessonStatus(status);
+
+  if (!isChargedNoShow && !isNoShow && !isCancelled) {
+    setAdminDataStatus("This lesson is not in the closed lesson list.", "error");
+    return;
+  }
+
+  const confirmationMessage = isChargedNoShow
+    ? "Reopen this charged no-show? This will return the lesson to confirmed and restore the student's paid hours."
+    : "Reopen this closed lesson and return it to confirmed status?";
+  const confirmed = window.confirm(confirmationMessage);
+  if (!confirmed) return;
+
+  setAdminDataStatus("Reopening lesson...");
+
+  const { error: lessonError } = await adminClient
+    .from("lessons")
+    .update({
+      status: "Confirmed",
+    })
+    .eq("id", id);
+
+  if (lessonError) {
+    setAdminDataStatus(getAdminError(lessonError), "error");
+    return;
+  }
+
+  const { error: slotError } = await reserveLessonAvailabilitySlot(lesson || { id });
+  if (slotError) {
+    await adminClient
+      .from("lessons")
+      .update({ status: lesson?.status || "Cancelled by instructor" })
+      .eq("id", id);
+    setAdminDataStatus(getAdminError(slotError), "error");
+    return;
+  }
+
+  if (isChargedNoShow) {
+    const paymentResult = await restoreLessonPaymentCredit(lesson || { id });
+    await loadAdminData();
+
+    if (paymentResult.status === "error") {
+      await adminClient
+        .from("lessons")
+        .update({ status: lesson?.status || "No-show charged" })
+        .eq("id", id);
+      await releaseLessonAvailabilitySlot(lesson || { id });
+      await loadAdminData();
+      setAdminDataStatus(`Lesson reopened, but the paid hours could not be restored. ${paymentResult.message}`, "error");
+      return;
+    }
+
+    if (paymentResult.status === "warning") {
+      setAdminDataStatus(paymentResult.message, "error");
+      return;
+    }
+
+    if (paymentResult.status === "skipped") {
+      setAdminDataStatus(`Lesson reopened. ${paymentResult.message}`, "success");
+      return;
+    }
+
+    setAdminDataStatus("Lesson reopened and the student's paid hours were restored.", "success");
+    return;
+  }
+
+  await loadAdminData();
+  setAdminDataStatus("Lesson reopened and returned to confirmed status.", "success");
 }
 
 function getLessonDurationHours(lesson) {
