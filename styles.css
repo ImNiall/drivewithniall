@@ -3152,9 +3152,43 @@ body.dark-mode .dashboard-timeline strong {
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--paper);
+  cursor: pointer;
+}
+
+.skill-rating-option input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 2px solid #8da0b3;
+  border-radius: 50%;
+  background: #fff;
+  display: inline-grid;
+  place-items: center;
+}
+
+.skill-rating-option input[type="radio"]::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: scale(0);
+  transition: transform 0.12s ease-in-out;
+  background: #488867;
+}
+
+.skill-rating-option input[type="radio"]:checked {
+  border-color: #488867;
+}
+
+.skill-rating-option input[type="radio"]:checked::before {
+  transform: scale(1);
 }
 
 .skill-rating-option span {
+  display: block;
   font-size: 0.95rem;
   line-height: 1.2;
   text-align: center;
