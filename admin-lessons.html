@@ -44,12 +44,12 @@
           <h1 id="adminDashboardTitle">Admin dashboard</h1>
           <p>Signed in as <strong id="adminEmail">admin</strong>.</p>
 
-          <section class="admin-page-hero" aria-label="Overview header">
+          <section class="admin-page-hero" aria-label="Lessons header">
             <div class="admin-toolbar">
               <div>
-                <span class="dashboard-kicker">Control centre</span>
-                <h2>Student and lesson management</h2>
-                <p>Approve practical students, review diary requests, and manage confirmed lessons from one place.</p>
+                <span class="dashboard-kicker">Lessons</span>
+                <h2>Booking and lesson flow</h2>
+                <p>Move from requests, to confirmed lessons, to delivered records without crowding the student admin work.</p>
               </div>
               <button class="primary-button" id="adminRefreshButton" type="button">Refresh data</button>
             </div>
@@ -62,26 +62,24 @@
             </div>
           </section>
 
-          <section class="admin-control-deck" aria-label="Admin controls">
+          <section class="admin-control-deck" aria-label="Lesson controls">
             <nav class="admin-section-nav" aria-label="Admin sections">
-              <a class="admin-section-link is-active" href="admin.html">Overview</a>
+              <a class="admin-section-link" href="admin.html">Overview</a>
               <a class="admin-section-link" href="admin-students.html">Students</a>
-              <a class="admin-section-link" href="admin-lessons.html">Lessons</a>
+              <a class="admin-section-link is-active" href="admin-lessons.html">Lessons</a>
               <a class="admin-section-link" href="admin-diary.html">Diary</a>
             </nav>
 
             <section class="admin-filter-bar" aria-label="Admin filters">
               <label>
                 Search students or lessons
-                <input id="adminSearchInput" type="search" placeholder="Search by student, email, topic..." />
+                <input id="adminSearchInput" type="search" placeholder="Search by student, date, topic..." />
               </label>
               <label>
                 Quick focus
                 <select id="adminFocusFilter">
-                  <option value="all">All admin data</option>
+                  <option value="all">All lesson records</option>
                   <option value="pending">Pending requests</option>
-                  <option value="unpaid">Students needing payment</option>
-                  <option value="low">Low remaining hours</option>
                   <option value="upcoming">Upcoming lessons</option>
                   <option value="delivered">Delivered lessons</option>
                   <option value="closed">Cancelled / no-show lessons</option>
@@ -108,24 +106,12 @@
               <span>Pending lesson requests</span>
             </article>
             <article>
-              <strong id="approvedStudentCount">0</strong>
-              <span>Approved students</span>
-            </article>
-            <article>
               <strong id="slotRequestCount">0</strong>
               <span>Diary requests</span>
             </article>
             <article>
               <strong id="confirmedLessonCount">0</strong>
               <span>Confirmed lessons</span>
-            </article>
-            <article>
-              <strong id="supportRequestCount">0</strong>
-              <span>Support requests</span>
-            </article>
-            <article>
-              <strong id="lowCreditCount">0</strong>
-              <span>Low credit students</span>
             </article>
             <article>
               <strong id="unpaidLessonCount">0</strong>
@@ -141,29 +127,17 @@
             </article>
           </section>
 
-          <section class="admin-workspace" aria-label="Admin workflow">
+          <section class="admin-workspace" aria-label="Lesson management workspace">
             <section class="admin-board-section admin-board-section-priority">
               <div class="admin-section-heading">
                 <div>
-                  <span class="dashboard-kicker">Action centre</span>
-                  <h2>What needs attention now</h2>
+                  <span class="dashboard-kicker">Lessons</span>
+                  <h2>Bookings that need action</h2>
                 </div>
-                <p>Keep urgent admin actions, bookings, and lesson follow-up in one clear working lane.</p>
+                <p>Move cleanly from incoming requests, to confirmed bookings, to delivered lesson records.</p>
               </div>
 
               <div class="admin-board admin-board-priority">
-                <article class="admin-board-card admin-card-spotlight">
-                  <div class="admin-card-heading">
-                    <div>
-                      <span class="dashboard-kicker">Instructor diary</span>
-                      <h2>Diary planner</h2>
-                    </div>
-                    <span class="status-pill">Separate page</span>
-                  </div>
-                  <p>Open the weekly diary to publish availability, allocate students, and tidy upcoming bookings.</p>
-                  <a class="primary-button admin-card-link" href="admin-diary.html">Open diary planner</a>
-                </article>
-
                 <article class="admin-board-card">
                   <div class="admin-card-heading">
                     <div>
@@ -188,69 +162,55 @@
                   <div class="admin-list" id="slotRequestList"></div>
                 </article>
 
-                <article class="admin-board-card">
+                <article class="admin-board-card admin-card-spotlight">
                   <div class="admin-card-heading">
                     <div>
-                      <span class="dashboard-kicker">Lessons</span>
+                      <span class="dashboard-kicker">Deliver</span>
                       <h2>Confirmed lessons</h2>
                     </div>
                     <span class="status-pill">Deliver next</span>
                   </div>
-                  <p>Use this lane to mark completed lessons, save progress, and move them into lesson history.</p>
+                  <p>Record progress, save the lesson summary, and move the booking into the learner history.</p>
                   <div class="admin-list compact" id="confirmedLessonList"></div>
                 </article>
               </div>
             </section>
 
-            <div class="admin-board-shell">
-              <section class="admin-board-section">
-                <div class="admin-section-heading">
-                  <div>
-                    <span class="dashboard-kicker">Student records</span>
-                    <h2>Learners and payment watch</h2>
-                  </div>
-                  <p>Open a learner record, review readiness and strengths, and spot students who need payment or follow-up.</p>
+            <section class="admin-board-section">
+              <div class="admin-section-heading">
+                <div>
+                  <span class="dashboard-kicker">Lesson review</span>
+                  <h2>Delivered and closed lesson records</h2>
                 </div>
+                <p>Open full lesson overviews, revisit past teaching notes, and keep cancellations separate from completed lessons.</p>
+              </div>
 
-                <div class="admin-board admin-board-records">
-                  <article class="admin-board-card">
-                    <div class="admin-card-heading">
-                      <div>
-                        <span class="dashboard-kicker">Support</span>
-                        <h2>1 - 1 online coaching requests</h2>
-                      </div>
-                      <span class="status-pill">Needs reply</span>
+              <div class="admin-board admin-board-review">
+                <article class="admin-board-card">
+                  <div class="admin-card-heading">
+                    <div>
+                      <span class="dashboard-kicker">Lesson history</span>
+                      <h2>Delivered lessons</h2>
                     </div>
-                    <p>Keep student support and private breakdown requests separate from normal lesson workflow.</p>
-                    <div class="admin-list compact" id="supportRequestList"></div>
-                  </article>
-                </div>
-              </section>
-
-              <section class="admin-board-section">
-                <div class="admin-section-heading">
-                  <div>
-                    <span class="dashboard-kicker">Lesson review</span>
-                    <h2>Delivered and closed records</h2>
+                    <span class="status-pill">Review</span>
                   </div>
-                  <p>Review what happened in each lesson, open the full overview, and keep a clean audit trail.</p>
-                </div>
+                  <p>Open a delivered lesson to see the summary, skill ratings, notes, homework, and readiness snapshot.</p>
+                  <div class="admin-list compact" id="deliveredLessonList"></div>
+                </article>
 
-                <div class="admin-board admin-board-review">
-                  <article class="admin-board-card">
-                    <div class="admin-card-heading">
-                      <div>
-                        <span class="dashboard-kicker">Lesson changes</span>
-                        <h2>Cancelled and no-show lessons</h2>
-                      </div>
-                      <span class="status-pill">Closed</span>
+                <article class="admin-board-card">
+                  <div class="admin-card-heading">
+                    <div>
+                      <span class="dashboard-kicker">Lesson changes</span>
+                      <h2>Cancelled and no-show lessons</h2>
                     </div>
-                    <p>Keep cancellations and no-shows in a separate review area so they do not clutter delivered lesson history.</p>
-                    <div class="admin-list compact" id="closedLessonList"></div>
-                  </article>
-                </div>
-              </section>
-            </div>
+                    <span class="status-pill">Closed</span>
+                  </div>
+                  <p>Keep cancellations and no-shows in their own audit lane so lesson history stays clean.</p>
+                  <div class="admin-list compact" id="closedLessonList"></div>
+                </article>
+              </div>
+            </section>
           </section>
 
           <button class="outline-button" id="adminSignOutButton" type="button">Sign out</button>

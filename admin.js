@@ -38,6 +38,18 @@ const paidThisMonthValue = document.querySelector("#paidThisMonthValue");
 const studentManageDialog = document.querySelector("#studentManageDialog");
 const studentManageForm = document.querySelector("#studentManageForm");
 const closeStudentDialog = document.querySelector("#closeStudentDialog");
+const lessonOverviewDialog = document.querySelector("#lessonOverviewDialog");
+const closeLessonOverviewDialog = document.querySelector("#closeLessonOverviewDialog");
+const lessonOverviewTitle = document.querySelector("#lessonOverviewTitle");
+const lessonOverviewMeta = document.querySelector("#lessonOverviewMeta");
+const lessonOverviewReadiness = document.querySelector("#lessonOverviewReadiness");
+const lessonOverviewPayment = document.querySelector("#lessonOverviewPayment");
+const lessonOverviewSummary = document.querySelector("#lessonOverviewSummary");
+const lessonOverviewFocus = document.querySelector("#lessonOverviewFocus");
+const lessonOverviewNotes = document.querySelector("#lessonOverviewNotes");
+const lessonOverviewTopics = document.querySelector("#lessonOverviewTopics");
+const lessonOverviewHomework = document.querySelector("#lessonOverviewHomework");
+const lessonOverviewRatings = document.querySelector("#lessonOverviewRatings");
 const addStudentButton = document.querySelector("#addStudentButton");
 const studentDialogTitle = document.querySelector("#studentDialogTitle");
 const studentEditName = document.querySelector("#studentEditName");
@@ -1926,6 +1938,10 @@ function renderDeliveredLessons(lessons, students = [], requests = []) {
 
     addItemActions(item, [
       {
+        label: "View overview",
+        onClick: () => openLessonOverview(lesson, student),
+      },
+      {
         label: "Edit progress",
         className: "primary-button",
         onClick: () => {
@@ -1943,6 +1959,126 @@ function renderDeliveredLessons(lessons, students = [], requests = []) {
 
     deliveredLessonList?.append(item);
   });
+}
+
+function getLessonHomework(lessonId) {
+  return (adminData.homeworkTasks || [])
+    .filter((task) => task.lesson_id === lessonId)
+    .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
+}
+
+function getLessonRatings(lessonId) {
+  const ratingsBySkillArea = new Map(
+    (adminData.lessonSkillRatings || [])
+      .filter((rating) => rating.lesson_id === lessonId)
+      .map((rating) => [rating.skill_area_id, rating]),
+  );
+
+  return (adminData.skillAreas || []).map((skillArea) => ({
+    skillArea,
+    rating: ratingsBySkillArea.get(skillArea.id)?.rating || "Not introduced",
+  }));
+}
+
+function getLessonPaymentOutcome(lesson) {
+  const usageEvent = findLessonUsageEventInMemory(lesson?.id);
+  if (!usageEvent) {
+    return "No balance charge recorded for this lesson.";
+  }
+
+  const chargedHours = Math.abs(Number(usageEvent.hours_delta || 0));
+  const chargedAmount = Math.abs(Number(usageEvent.amount_pence || 0));
+  return `Charged from balance: ${formatAdminHours(chargedHours)}h · ${formatPoundsFromPence(chargedAmount)}.`;
+}
+
+function openLessonOverview(lesson, student = findStudentForLesson(lesson, getApprovedStudentRecords(adminData.studentProfiles, adminData.lessonRequests, adminData.studentRecords), adminData.lessonRequests)) {
+  if (!lessonOverviewDialog || !lesson) return;
+
+  const lessonStudentName = student ? getStudentName(student) : lesson.student_email || "Driving lesson";
+  const homeworkTasks = getLessonHomework(lesson.id);
+  const ratings = getLessonRatings(lesson.id);
+
+  if (lessonOverviewTitle) {
+    lessonOverviewTitle.textContent = lessonStudentName;
+  }
+
+  if (lessonOverviewMeta) {
+    lessonOverviewMeta.textContent = [
+      formatAdminDate(formatLessonDateValue(lesson)),
+      `${lesson.hours || lesson.duration_hours || 2}h`,
+      formatLessonStatusLabel(lesson.status || "Delivered"),
+    ].join(" · ");
+  }
+
+  if (lessonOverviewReadiness) {
+    lessonOverviewReadiness.textContent = `${lesson.readiness_percentage || 0}%`;
+  }
+
+  if (lessonOverviewPayment) {
+    lessonOverviewPayment.textContent = getLessonPaymentOutcome(lesson);
+  }
+
+  if (lessonOverviewSummary) {
+    lessonOverviewSummary.textContent = lesson.progress_summary || "No saved progress summary for this lesson.";
+  }
+
+  if (lessonOverviewFocus) {
+    lessonOverviewFocus.textContent = lesson.topic || "Driving lesson";
+  }
+
+  if (lessonOverviewNotes) {
+    lessonOverviewNotes.textContent = lesson.progress_notes || lesson.summary || "No lesson notes saved.";
+  }
+
+  if (lessonOverviewTopics) {
+    lessonOverviewTopics.innerHTML = "";
+    const topics = Array.isArray(lesson.covered_topics) ? lesson.covered_topics : [];
+    if (!topics.length) {
+      const empty = document.createElement("p");
+      empty.className = "admin-empty-state";
+      empty.textContent = "No covered topics were saved for this lesson.";
+      lessonOverviewTopics.append(empty);
+    } else {
+      topics.forEach((topic) => {
+        const chip = document.createElement("span");
+        chip.className = "topic-chip is-selected";
+        chip.innerHTML = `<span>${topic}</span>`;
+        lessonOverviewTopics.append(chip);
+      });
+    }
+  }
+
+  if (lessonOverviewHomework) {
+    lessonOverviewHomework.innerHTML = "";
+    if (!homeworkTasks.length) {
+      lessonOverviewHomework.append(createEmptyState("No homework was set for this lesson."));
+    } else {
+      homeworkTasks.forEach((task) => {
+        const item = document.createElement("article");
+        item.className = "admin-overview-list-item";
+        item.innerHTML = `<strong>${task.task_text}</strong><span>${task.status || "Assigned"}</span>`;
+        lessonOverviewHomework.append(item);
+      });
+    }
+  }
+
+  if (lessonOverviewRatings) {
+    lessonOverviewRatings.innerHTML = "";
+    ratings.forEach((entry) => {
+      const item = document.createElement("article");
+      item.className = "admin-overview-rating-item";
+      item.innerHTML = `
+        <header>
+          <strong>${entry.skillArea.name}</strong>
+          <span class="admin-overview-rating-meta">${entry.skillArea.category}</span>
+        </header>
+        <p>${formatSkillRatingLabel(entry.rating)}</p>
+      `;
+      lessonOverviewRatings.append(item);
+    });
+  }
+
+  lessonOverviewDialog.showModal();
 }
 
 function renderClosedLessons(lessons, students = [], requests = []) {
@@ -4338,8 +4474,16 @@ closeStudentDialog?.addEventListener("click", () => {
   studentManageDialog?.close();
 });
 
+closeLessonOverviewDialog?.addEventListener("click", () => {
+  lessonOverviewDialog?.close();
+});
+
 studentManageDialog?.addEventListener("click", (event) => {
   if (event.target === studentManageDialog) studentManageDialog.close();
+});
+
+lessonOverviewDialog?.addEventListener("click", (event) => {
+  if (event.target === lessonOverviewDialog) lessonOverviewDialog.close();
 });
 
 studentManageDialog?.addEventListener("close", () => {
