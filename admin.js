@@ -59,6 +59,8 @@ const lessonRecordHomework = document.querySelector("#lessonRecordHomework");
 const skillRatingsGrid = document.querySelector("#skillRatingsGrid");
 const lessonReadinessValue = document.querySelector("#lessonReadinessValue");
 const lessonSummaryPreview = document.querySelector("#lessonSummaryPreview");
+const lessonChargeControls = document.querySelector("#lessonChargeControls");
+const lessonChargeAction = document.querySelector("#lessonChargeAction");
 const saveLessonRecordButton = document.querySelector("#saveLessonRecordButton");
 const studentPaymentSummary = document.querySelector("#studentPaymentSummary");
 const studentPaymentAction = document.querySelector("#studentPaymentAction");
@@ -1399,6 +1401,8 @@ function resetLessonRecordForm(student = activeStudent) {
   if (lessonRecordTopic) lessonRecordTopic.value = "";
   if (lessonRecordNotes) lessonRecordNotes.value = "";
   if (lessonRecordHomework) lessonRecordHomework.value = "";
+  if (lessonChargeAction) lessonChargeAction.value = "charge_balance";
+  if (lessonChargeControls) lessonChargeControls.hidden = true;
   renderCoveredTopicOptions([]);
   renderSkillRatingsGrid({});
   if (saveLessonRecordButton) {
@@ -1462,6 +1466,8 @@ function loadLessonRecordIntoForm(student, lessonId) {
   if (lessonRecordTopic) lessonRecordTopic.value = lesson.topic || "";
   if (lessonRecordNotes) lessonRecordNotes.value = lesson.progress_notes || lesson.summary || "";
   if (lessonRecordHomework) lessonRecordHomework.value = homeworkLines.join("\n");
+  if (lessonChargeAction) lessonChargeAction.value = "charge_balance";
+  if (lessonChargeControls) lessonChargeControls.hidden = pendingDeliveryLessonId !== lesson.id;
   renderCoveredTopicOptions(lesson.covered_topics || []);
   renderSkillRatingsGrid(selectedRatings);
   if (saveLessonRecordButton) {
@@ -1661,36 +1667,46 @@ async function saveLessonProgressRecord() {
       }
     }
 
+    let deliveredStatusMessage = "Lesson progress saved and lesson marked as delivered.";
+
     if (shouldMarkDelivered) {
-      const paymentResult = await consumeLessonPaymentCredit({
-        ...activeLesson,
-        status: "Delivered",
-        delivered_at: deliveredAt,
-        summary: lessonNotes || null,
-      });
+      const chargeAction = String(lessonChargeAction?.value || "charge_balance");
 
-      if (paymentResult.status === "error") {
-        await adminClient
-          .from("lessons")
-          .update({
-            status: activeLesson.status || "Confirmed",
-            delivered_at: activeLesson.delivered_at || null,
-            progress_notes: activeLesson.progress_notes || null,
-            summary: activeLesson.summary || null,
-            progress_summary: activeLesson.progress_summary || null,
-            covered_topics: activeLesson.covered_topics || [],
-            readiness_percentage: activeLesson.readiness_percentage || null,
-          })
-          .eq("id", savedLesson.id);
-        setAdminDataStatus(`Lesson summary saved, but the delivery step failed. ${paymentResult.message}`, "error");
-        await loadAdminData();
-        return;
-      }
+      if (chargeAction === "charge_balance") {
+        const paymentResult = await consumeLessonPaymentCredit({
+          ...activeLesson,
+          status: "Delivered",
+          delivered_at: deliveredAt,
+          summary: lessonNotes || null,
+        });
 
-      if (paymentResult.status === "warning") {
-        setAdminDataStatus(paymentResult.message, "error");
-        await loadAdminData();
-        return;
+        if (paymentResult.status === "error") {
+          await adminClient
+            .from("lessons")
+            .update({
+              status: activeLesson.status || "Confirmed",
+              delivered_at: activeLesson.delivered_at || null,
+              progress_notes: activeLesson.progress_notes || null,
+              summary: activeLesson.summary || null,
+              progress_summary: activeLesson.progress_summary || null,
+              covered_topics: activeLesson.covered_topics || [],
+              readiness_percentage: activeLesson.readiness_percentage || null,
+            })
+            .eq("id", savedLesson.id);
+          setAdminDataStatus(`Lesson summary saved, but the delivery step failed. ${paymentResult.message}`, "error");
+          await loadAdminData();
+          return;
+        }
+
+        if (paymentResult.status === "warning") {
+          setAdminDataStatus(paymentResult.message, "error");
+          await loadAdminData();
+          return;
+        }
+
+        deliveredStatusMessage = "Lesson progress saved, lesson marked as delivered, and the paid balance was charged.";
+      } else {
+        deliveredStatusMessage = "Lesson progress saved and lesson marked as delivered without charging the paid balance.";
       }
     }
 
@@ -1702,7 +1718,7 @@ async function saveLessonProgressRecord() {
       renderLessonRecordOptions(activeStudent);
       loadLessonRecordIntoForm(activeStudent, savedLesson.id);
     }
-    setAdminDataStatus(shouldMarkDelivered ? "Lesson progress saved and lesson marked as delivered." : "Lesson progress saved.", "success");
+    setAdminDataStatus(shouldMarkDelivered ? deliveredStatusMessage : "Lesson progress saved.", "success");
   } finally {
     isSavingLessonRecord = false;
     saveLessonRecordButton.disabled = false;
@@ -2798,7 +2814,7 @@ async function applyStudentPaymentAdjustment() {
   }
 
   if (action === "payment_received" && amountPenceInput <= 0) {
-    setAdminDataStatus("Enter the payment amount in pounds for a cash or bank-transfer payment.", "error");
+    setAdminDataStatus("Enter the payment amount in pounds for the lesson payment being recorded.", "error");
     return;
   }
 
@@ -2845,9 +2861,9 @@ async function applyStudentPaymentAdjustment() {
     debit_correction: "manual_credit_deducted",
   }[action] || "manual_payment_received";
   const statusMessage = {
-    payment_received: "Recording manual payment...",
-    credit_only: "Adding lesson credit...",
-    debit_correction: "Applying manual deduction...",
+    payment_received: "Recording lesson payment...",
+    credit_only: "Adding free lesson credit...",
+    debit_correction: "Removing lesson credit...",
   }[action] || "Updating payment balance...";
 
   setAdminDataStatus(statusMessage);
