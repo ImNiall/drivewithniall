@@ -1727,6 +1727,44 @@ body.dark-mode .account-status[data-type="error"] {
   line-height: 1.55;
 }
 
+.dashboard-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 24px;
+}
+
+.dashboard-section-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid rgba(31, 41, 55, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #243b53;
+  font-size: 0.98rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-section-link:hover,
+.dashboard-section-link:focus-visible {
+  border-color: rgba(72, 136, 103, 0.42);
+  background: #ffffff;
+  color: #1f684f;
+  box-shadow: 0 10px 24px rgba(20, 50, 74, 0.08);
+}
+
+.dashboard-section-link.is-active {
+  border-color: rgba(72, 136, 103, 0.42);
+  background: linear-gradient(135deg, rgba(72, 136, 103, 0.16), rgba(159, 208, 177, 0.12));
+  color: #1f684f;
+  box-shadow: 0 12px 26px rgba(72, 136, 103, 0.12);
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1789,6 +1827,38 @@ body.dark-mode .account-status[data-type="error"] {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 4px;
+}
+
+.dashboard-feature-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dashboard-feature-tile {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-height: 180px;
+  padding: 22px;
+  border: 1px solid rgba(199, 234, 214, 0.9);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ffffff, #f3fbf7);
+  color: inherit;
+  text-decoration: none;
+  box-shadow: 0 14px 30px rgba(20, 50, 74, 0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.dashboard-feature-tile:hover,
+.dashboard-feature-tile:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(72, 136, 103, 0.38);
+  box-shadow: 0 18px 34px rgba(20, 50, 74, 0.1);
+}
+
+.dashboard-feature-tile h2,
+.dashboard-feature-tile p {
+  margin: 0;
 }
 
 .dashboard-actions .primary-button,
@@ -1892,8 +1962,8 @@ body.dark-mode .account-status[data-type="error"] {
 
 .diary-slot {
   display: grid;
-  gap: 6px;
-  min-height: 92px;
+  gap: 4px;
+  min-height: 88px;
   padding: 14px;
   color: var(--ink);
   text-align: left;
@@ -1905,12 +1975,12 @@ body.dark-mode .account-status[data-type="error"] {
 }
 
 .diary-slot strong {
-  font-size: 1rem;
+  font-size: 0.96rem;
 }
 
 .diary-slot span {
   color: var(--green);
-  font-size: 1.15rem;
+  font-size: 0.98rem;
   font-weight: 950;
 }
 
@@ -1985,6 +2055,10 @@ body.dark-mode .account-status[data-type="error"] {
   gap: 10px;
 }
 
+.lessons-summary-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .payment-stats {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -2007,6 +2081,12 @@ body.dark-mode .account-status[data-type="error"] {
 
 .lesson-stats strong {
   color: var(--ink);
+}
+
+.lesson-stats small {
+  color: var(--ink-muted);
+  font-size: 0.84rem;
+  font-weight: 700;
 }
 
 .lesson-record-grid {
@@ -2220,6 +2300,32 @@ body.dark-mode .account-status[data-type="error"] {
   gap: 10px;
 }
 
+.student-lesson-overview .admin-summary-value {
+  font-size: clamp(1.85rem, 4vw, 2.85rem);
+}
+
+.student-lesson-overview .topic-chip span {
+  cursor: default;
+}
+
+.modal-close {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--navy);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-close:hover,
+.modal-close:focus-visible {
+  border-color: rgba(72, 136, 103, 0.42);
+  box-shadow: 0 10px 20px rgba(18, 39, 64, 0.08);
+}
+
 .lesson-cancel-button {
   min-height: 40px;
   padding: 10px 14px;
@@ -2298,6 +2404,25 @@ body.dark-mode .lesson-access-card {
   border-color: #2f7d62;
 }
 
+body.dark-mode .dashboard-section-link {
+  background: rgba(15, 23, 42, 0.86);
+  border-color: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+}
+
+body.dark-mode .dashboard-section-link:hover,
+body.dark-mode .dashboard-section-link:focus-visible,
+body.dark-mode .dashboard-section-link.is-active {
+  border-color: rgba(110, 231, 183, 0.32);
+  background: rgba(30, 41, 59, 0.96);
+  color: #d1fae5;
+}
+
+body.dark-mode .dashboard-feature-tile {
+  background: linear-gradient(135deg, #17202f, #152b22);
+  border-color: #2f7d62;
+}
+
 body.dark-mode .payment-option-card-featured {
   background: linear-gradient(135deg, #17202f, #152b22);
   border-color: #2f7d62;
@@ -2350,6 +2475,12 @@ body.dark-mode .lesson-record-list p {
 
 body.dark-mode .lesson-action-note {
   color: #9ee6bf;
+}
+
+body.dark-mode .modal-close {
+  background: #111827;
+  border-color: #31405f;
+  color: #f7fbff;
 }
 
 body.dark-mode .dashboard-timeline strong {
@@ -4187,6 +4318,10 @@ body.dark-mode .area-content p {
   .dashboard-shell {
     width: min(100% - 28px, 1180px);
     padding: 48px 0;
+  }
+
+  .dashboard-feature-grid {
+    grid-template-columns: 1fr;
   }
 
   .dashboard-grid {

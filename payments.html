@@ -40,6 +40,13 @@
         <p class="dashboard-status payment-return-notice" id="paymentReturnNotice" role="status" hidden></p>
       </section>
 
+      <nav class="dashboard-section-nav" aria-label="Student dashboard sections">
+        <a class="dashboard-section-link" href="dashboard.html">Overview</a>
+        <a class="dashboard-section-link" href="dashboard-lessons.html">Lessons</a>
+        <a class="dashboard-section-link" href="dashboard-progress.html">Progress</a>
+        <a class="dashboard-section-link is-active" href="payments.html">Payments</a>
+      </nav>
+
       <section class="dashboard-grid" id="signedOutPayments">
         <article class="dashboard-card dashboard-card-wide">
           <h2>Sign in required</h2>
@@ -81,6 +88,17 @@
           </div>
         </article>
 
+        <article class="dashboard-card dashboard-card-wide payment-coverage-card">
+          <div class="diary-heading">
+            <div>
+              <span class="dashboard-kicker">Next lesson cover</span>
+              <h2 id="paymentCoverageTitle">Checking your next lesson</h2>
+              <p id="paymentCoverageBody">This section will show whether your next lesson is already covered by your paid balance.</p>
+            </div>
+            <span class="status-pill" id="paymentCoverageStatus">Checking</span>
+          </div>
+        </article>
+
         <article class="dashboard-card payment-option-card">
           <span class="dashboard-kicker">Pay per lesson</span>
           <h2>£37 per hour</h2>
@@ -93,16 +111,6 @@
           <h2>10 hours for £350</h2>
           <p>Buy a 10 hour block and track the hours remaining from your dashboard.</p>
           <button class="primary-button stripe-checkout-button" id="tenHourPackageLink" type="button" data-plan="tenHourPackage">Buy 10 hours</button>
-        </article>
-
-        <article class="dashboard-card dashboard-card-wide">
-          <span class="dashboard-kicker">Secure checkout</span>
-          <h2>Pay online with Stripe</h2>
-          <p id="stripeSetupMessage">Your payment opens in a secure Stripe Checkout page and your lesson credit updates automatically when the payment is confirmed.</p>
-          <div class="dashboard-actions">
-            <a class="secondary-button" href="dashboard.html">Return to dashboard</a>
-            <a class="secondary-button" href="index.html#book">Request a lesson</a>
-          </div>
         </article>
 
         <article class="dashboard-card dashboard-card-wide payment-history-card">

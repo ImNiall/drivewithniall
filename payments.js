@@ -23,6 +23,9 @@ const accountBalance = document.querySelector("#accountBalance");
 const stripeSetupMessage = document.querySelector("#stripeSetupMessage");
 const paymentHistoryList = document.querySelector("#paymentHistoryList");
 const paymentReturnNotice = document.querySelector("#paymentReturnNotice");
+const paymentCoverageTitle = document.querySelector("#paymentCoverageTitle");
+const paymentCoverageBody = document.querySelector("#paymentCoverageBody");
+const paymentCoverageStatus = document.querySelector("#paymentCoverageStatus");
 const checkoutButtons = Array.from(document.querySelectorAll(".stripe-checkout-button"));
 
 let currentPaymentsSession = null;
@@ -132,6 +135,40 @@ function renderPaymentBalance(balance) {
       ? "Your paid lesson hours and account balance are shown below."
       : "No payment balance has been added to this account yet. Once Stripe confirms a payment, your remaining hours will appear here.";
   }
+}
+
+function renderNextLessonCoverage(lesson, balance) {
+  if (!paymentCoverageTitle || !paymentCoverageBody || !paymentCoverageStatus) return;
+
+  if (!lesson) {
+    paymentCoverageTitle.textContent = "No upcoming lesson booked";
+    paymentCoverageBody.textContent = "Once your next lesson is confirmed, this page will show whether your paid balance already covers it.";
+    paymentCoverageStatus.textContent = "Waiting";
+    paymentCoverageStatus.className = "status-pill is-muted";
+    return;
+  }
+
+  const remaining = Math.max(Number(balance?.purchased_hours || 0) - Number(balance?.used_hours || 0), 0);
+  const lessonHours = Number(lesson.hours || lesson.duration_hours || 2);
+  const lessonLabel = lesson.topic || lesson.focus || lesson.lesson_type || "Driving lesson";
+  const lessonDate = lesson.starts_at || lesson.lesson_date || lesson.created_at;
+  const formattedDate = lessonDate
+    ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(lessonDate))
+    : "Date to confirm";
+
+  paymentCoverageTitle.textContent = lessonLabel;
+
+  if (remaining >= lessonHours) {
+    paymentCoverageBody.textContent = `Your next lesson is ${formattedDate} for ${lessonHours} hour${lessonHours === 1 ? "" : "s"}, and your current balance already covers it.`;
+    paymentCoverageStatus.textContent = "Covered";
+    paymentCoverageStatus.className = "status-pill is-success";
+    return;
+  }
+
+  const shortfall = Math.max(lessonHours - remaining, 0);
+  paymentCoverageBody.textContent = `Your next lesson is ${formattedDate} for ${lessonHours} hour${lessonHours === 1 ? "" : "s"}. You are currently ${formatHours(shortfall)} hour${shortfall === 1 ? "" : "s"} short, so payment is needed before that lesson.`;
+  paymentCoverageStatus.textContent = "Payment needed";
+  paymentCoverageStatus.className = "status-pill is-warning";
 }
 
 function shouldDisplayPaymentEvent(event) {
@@ -277,6 +314,45 @@ async function loadPaymentHistory(userId) {
   renderPaymentHistory(data || []);
 }
 
+async function loadNextLessonCoverage(userId) {
+  renderNextLessonCoverage(null, null);
+
+  if (!paymentsClient) return;
+
+  const { data: studentRecord } = await paymentsClient
+    .from("students")
+    .select("id")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+
+  const orFilters = [`student_id.eq.${userId}`];
+  if (studentRecord?.id) {
+    orFilters.push(`student_record_id.eq.${studentRecord.id}`);
+  }
+
+  const { data: lessons } = await paymentsClient
+    .from("lessons")
+    .select("id,status,starts_at,lesson_date,hours,duration_hours,topic,focus,lesson_type,created_at")
+    .or(orFilters.join(","))
+    .order("starts_at", { ascending: true })
+    .limit(20);
+
+  const upcomingLesson = (lessons || []).find((lesson) => {
+    const status = String(lesson.status || "").toLowerCase();
+    const isCompleted = status.includes("complete") || status.includes("done") || status.includes("deliver") || status.includes("attended");
+    const isCancelled = status.includes("cancel") || status.includes("no-show") || status.includes("no show");
+    return !isCompleted && !isCancelled;
+  }) || null;
+
+  const { data: balance } = await paymentsClient
+    .from("student_payment_balances")
+    .select("purchased_hours,used_hours,account_balance_pence")
+    .eq("student_id", userId)
+    .maybeSingle();
+
+  renderNextLessonCoverage(upcomingLesson, balance);
+}
+
 function setCheckoutButtonsBusy(isBusy) {
   checkoutButtons.forEach((button) => {
     button.disabled = isBusy;
@@ -410,6 +486,7 @@ async function initialisePayments() {
   await Promise.all([
     loadPaymentBalance(data.session.user.id),
     loadPaymentHistory(data.session.user.id),
+    loadNextLessonCoverage(data.session.user.id),
   ]);
   if (returnParams.result) {
     clearPaymentReturnParams();

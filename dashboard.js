@@ -29,6 +29,7 @@ const diaryRequestsEmpty = document.querySelector("#diaryRequestsEmpty");
 const totalLessonHours = document.querySelector("#totalLessonHours");
 const upcomingLessonCount = document.querySelector("#upcomingLessonCount");
 const completedLessonCount = document.querySelector("#completedLessonCount");
+const completedLessonMeta = document.querySelector("#completedLessonMeta");
 const upcomingLessonsList = document.querySelector("#upcomingLessonsList");
 const lessonHistoryList = document.querySelector("#lessonHistoryList");
 const upcomingLessonsEmpty = document.querySelector("#upcomingLessonsEmpty");
@@ -47,6 +48,29 @@ const studentWeakAreasList = document.querySelector("#studentWeakAreasList");
 const studentHomeworkEmpty = document.querySelector("#studentHomeworkEmpty");
 const studentHomeworkList = document.querySelector("#studentHomeworkList");
 const skillProgressList = document.querySelector("#skillProgressList");
+const studentLessonOverviewDialog = document.querySelector("#studentLessonOverviewDialog");
+const closeStudentLessonOverviewDialog = document.querySelector("#closeStudentLessonOverviewDialog");
+const studentLessonOverviewTitle = document.querySelector("#studentLessonOverviewTitle");
+const studentLessonOverviewMeta = document.querySelector("#studentLessonOverviewMeta");
+const studentLessonOverviewReadiness = document.querySelector("#studentLessonOverviewReadiness");
+const studentLessonOverviewFocus = document.querySelector("#studentLessonOverviewFocus");
+const studentLessonOverviewSummary = document.querySelector("#studentLessonOverviewSummary");
+const studentLessonOverviewTopics = document.querySelector("#studentLessonOverviewTopics");
+const studentLessonOverviewNotes = document.querySelector("#studentLessonOverviewNotes");
+const studentLessonOverviewHomework = document.querySelector("#studentLessonOverviewHomework");
+const studentLessonOverviewRatings = document.querySelector("#studentLessonOverviewRatings");
+const dashboardNextStepKicker = document.querySelector("#dashboardNextStepKicker");
+const dashboardNextStepTitle = document.querySelector("#dashboardNextStepTitle");
+const dashboardNextStepBody = document.querySelector("#dashboardNextStepBody");
+const dashboardNextStepButton = document.querySelector("#dashboardNextStepButton");
+const lessonsSpotlightKicker = document.querySelector("#lessonsSpotlightKicker");
+const lessonsSpotlightTitle = document.querySelector("#lessonsSpotlightTitle");
+const lessonsSpotlightBody = document.querySelector("#lessonsSpotlightBody");
+const lessonsSpotlightStatus = document.querySelector("#lessonsSpotlightStatus");
+const lessonsSpotlightButton = document.querySelector("#lessonsSpotlightButton");
+const progressCurrentFocus = document.querySelector("#progressCurrentFocus");
+const progressHomeworkPreview = document.querySelector("#progressHomeworkPreview");
+const dashboardPage = document.body.dataset.dashboardPage || "overview";
 
 let selectedDiarySlot = null;
 let lessonStudentAccess = false;
@@ -57,6 +81,9 @@ let availableDiarySlots = [];
 let dashboardSkillAreas = [];
 let dashboardLessonRatings = [];
 let dashboardHomeworkTasks = [];
+let dashboardLessonsData = [];
+let dashboardLessonRequestsData = [];
+let dashboardPaymentBalance = null;
 
 const readinessScoreMap = {
   "Not introduced": 0,
@@ -69,8 +96,27 @@ const skillRatingDisplayMap = {
   "Test standard": "Independant",
 };
 
+const dashboardIntroCopy = {
+  overview: {
+    signedOut: "Sign in to view lesson requests, support options, and course access updates.",
+    signedIn: "A simple home for your lesson requests, support options, and course updates.",
+  },
+  lessons: {
+    signedOut: "Sign in to request lesson times, check bookings, and review completed lessons.",
+    signedIn: "Manage your lesson diary, upcoming bookings, and lesson history from one place.",
+  },
+  progress: {
+    signedOut: "Sign in to see your strengths, weak areas, homework, and readiness.",
+    signedIn: "Track your practical driving progress, homework, and readiness across every lesson.",
+  },
+};
+
 function formatSkillRatingLabel(rating) {
   return skillRatingDisplayMap[rating] || rating;
+}
+
+function getDashboardIntro(state) {
+  return dashboardIntroCopy[dashboardPage]?.[state] || dashboardIntroCopy.overview[state];
 }
 
 function setTheme(mode) {
@@ -160,7 +206,7 @@ function renderDiarySlots(slots = availableDiarySlots) {
     const button = document.createElement("button");
     button.className = "diary-slot";
     button.type = "button";
-    const [datePart, timePart = "Time to confirm"] = slot.label.split(", ");
+    const [datePart, timePart = "Pending confirmation"] = slot.label.split(", ");
     button.innerHTML = `<strong>${datePart}</strong><span>${timePart}</span>`;
     button.addEventListener("click", () => selectDiarySlot(slot, button));
     diarySlotList.append(button);
@@ -209,16 +255,133 @@ function normaliseLessonRecord(lesson) {
   return {
     id: lesson.id,
     availability_slot_id: lesson.availability_slot_id,
+    starts_at: lesson.starts_at,
+    lesson_date: lesson.lesson_date,
+    created_at: lesson.created_at,
     date: dateValue,
     label: formatLessonDate(dateValue),
     hours: Number.isFinite(hours) ? hours : 2,
     topic: lesson.topic || lesson.focus || lesson.lesson_type || "Driving lesson",
+    focus: lesson.focus || "",
+    lesson_type: lesson.lesson_type || "",
     notes: lesson.summary || lesson.notes || "",
+    summary: lesson.summary || "",
+    progress_notes: lesson.progress_notes || "",
+    progress_summary: lesson.progress_summary || "",
+    covered_topics: Array.isArray(lesson.covered_topics) ? lesson.covered_topics : [],
+    readiness_percentage: lesson.readiness_percentage || 0,
     status: lesson.status || (isCompleted ? "Completed" : "Confirmed"),
     isCompleted,
     isCancelled,
     hasCancellationRequest,
   };
+}
+
+function getLessonSkillSnapshots(lessonId) {
+  const ratingsBySkillArea = new Map(
+    (dashboardLessonRatings || [])
+      .filter((rating) => rating.lesson_id === lessonId)
+      .map((rating) => [rating.skill_area_id, rating]),
+  );
+
+  return (dashboardSkillAreas || []).map((skillArea) => ({
+    skillArea,
+    rating: ratingsBySkillArea.get(skillArea.id)?.rating || "Not introduced",
+  }));
+}
+
+function getLessonHomeworkTasks(lessonId) {
+  return (dashboardHomeworkTasks || [])
+    .filter((task) => task.lesson_id === lessonId)
+    .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
+}
+
+function openStudentLessonOverview(lesson) {
+  if (!studentLessonOverviewDialog || !lesson) return;
+
+  const snapshots = getLessonSkillSnapshots(lesson.id);
+  const homework = getLessonHomeworkTasks(lesson.id);
+  const topics = Array.isArray(lesson.covered_topics) ? lesson.covered_topics : [];
+
+  if (studentLessonOverviewTitle) {
+    studentLessonOverviewTitle.textContent = lesson.topic || lesson.focus || lesson.lesson_type || "Driving lesson";
+  }
+
+  if (studentLessonOverviewMeta) {
+    studentLessonOverviewMeta.textContent = [
+      formatLessonDate(lesson.starts_at || lesson.lesson_date || lesson.created_at),
+      `${Number(lesson.hours || lesson.duration_hours || 2)} hour${Number(lesson.hours || lesson.duration_hours || 2) === 1 ? "" : "s"}`,
+      lesson.status || "Delivered",
+    ].join(" · ");
+  }
+
+  if (studentLessonOverviewReadiness) {
+    studentLessonOverviewReadiness.textContent = `${lesson.readiness_percentage || 0}%`;
+  }
+
+  if (studentLessonOverviewFocus) {
+    studentLessonOverviewFocus.textContent = lesson.topic || lesson.focus || lesson.lesson_type || "Driving lesson";
+  }
+
+  if (studentLessonOverviewSummary) {
+    studentLessonOverviewSummary.textContent = lesson.progress_summary || "Your instructor has not added a lesson summary yet.";
+  }
+
+  if (studentLessonOverviewNotes) {
+    studentLessonOverviewNotes.textContent = lesson.progress_notes || lesson.summary || lesson.notes || "No lesson notes were saved for this lesson.";
+  }
+
+  if (studentLessonOverviewTopics) {
+    studentLessonOverviewTopics.innerHTML = "";
+    if (!topics.length) {
+      const empty = document.createElement("p");
+      empty.className = "admin-empty-state";
+      empty.textContent = "No topics were saved for this lesson.";
+      studentLessonOverviewTopics.append(empty);
+    } else {
+      topics.forEach((topic) => {
+        const chip = document.createElement("span");
+        chip.className = "topic-chip is-selected";
+        chip.innerHTML = `<span>${topic}</span>`;
+        studentLessonOverviewTopics.append(chip);
+      });
+    }
+  }
+
+  if (studentLessonOverviewHomework) {
+    studentLessonOverviewHomework.innerHTML = "";
+    if (!homework.length) {
+      const empty = document.createElement("p");
+      empty.className = "admin-empty-state";
+      empty.textContent = "No homework was set for this lesson.";
+      studentLessonOverviewHomework.append(empty);
+    } else {
+      homework.forEach((task) => {
+        const item = document.createElement("article");
+        item.className = "admin-overview-list-item";
+        item.innerHTML = `<strong>${task.task_text}</strong><span>${task.status || "Assigned"}</span>`;
+        studentLessonOverviewHomework.append(item);
+      });
+    }
+  }
+
+  if (studentLessonOverviewRatings) {
+    studentLessonOverviewRatings.innerHTML = "";
+    snapshots.forEach((entry) => {
+      const item = document.createElement("article");
+      item.className = "admin-overview-rating-item";
+      item.innerHTML = `
+        <header>
+          <strong>${entry.skillArea.name}</strong>
+          <span class="admin-overview-rating-meta">${entry.skillArea.category}</span>
+        </header>
+        <p>${formatSkillRatingLabel(entry.rating)}</p>
+      `;
+      studentLessonOverviewRatings.append(item);
+    });
+  }
+
+  studentLessonOverviewDialog.showModal();
 }
 
 function renderLessonRecordList(listElement, lessons, options = {}) {
@@ -236,6 +399,18 @@ function renderLessonRecordList(listElement, lessons, options = {}) {
       <em>${lesson.hasCancellationRequest ? "Cancellation requested" : lesson.status}</em>
       ${lesson.notes ? `<p>${lesson.notes}</p>` : ""}
     `;
+
+    if (options.allowOverview) {
+      const actions = document.createElement("div");
+      actions.className = "lesson-record-actions";
+      const overviewButton = document.createElement("button");
+      overviewButton.className = "secondary-button";
+      overviewButton.type = "button";
+      overviewButton.textContent = "View lesson recap";
+      overviewButton.addEventListener("click", () => openStudentLessonOverview(lesson));
+      actions.append(overviewButton);
+      item.append(actions);
+    }
 
     if (options.allowCancellation) {
       const actions = document.createElement("div");
@@ -311,12 +486,15 @@ function updateLessonProgress(lessons = []) {
   if (totalLessonHours) totalLessonHours.textContent = String(completedHours);
   if (upcomingLessonCount) upcomingLessonCount.textContent = String(upcoming.length);
   if (completedLessonCount) completedLessonCount.textContent = String(completed.length);
+  if (completedLessonMeta) {
+    completedLessonMeta.textContent = `Across ${completed.length} lesson${completed.length === 1 ? "" : "s"}`;
+  }
 
   upcomingLessonsEmpty?.toggleAttribute("hidden", upcoming.length > 0);
   lessonHistoryEmpty?.toggleAttribute("hidden", completed.length > 0);
 
   renderLessonRecordList(upcomingLessonsList, upcoming, { allowCancellation: true });
-  renderLessonRecordList(lessonHistoryList, completed);
+  renderLessonRecordList(lessonHistoryList, completed, { allowOverview: true });
 }
 
 function clearList(element, emptyMessage = "") {
@@ -410,8 +588,128 @@ function renderHomeworkTasks(tasks = []) {
   });
 }
 
+function getDashboardUpcomingLessons() {
+  return dashboardLessonsData
+    .map(normaliseLessonRecord)
+    .filter((lesson) => !lesson.isCompleted && !lesson.isCancelled)
+    .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+}
+
+function getDashboardCompletedLessons() {
+  return dashboardLessonsData
+    .map(normaliseLessonRecord)
+    .filter((lesson) => lesson.isCompleted)
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+}
+
+function getActiveHomeworkTasks() {
+  return [...dashboardHomeworkTasks]
+    .filter((task) => task.status === "Assigned")
+    .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
+}
+
+function renderOverviewNextStep() {
+  if (!dashboardNextStepTitle || !dashboardNextStepBody || !dashboardNextStepButton) return;
+
+  const upcoming = getDashboardUpcomingLessons();
+  const homework = getActiveHomeworkTasks();
+
+  if (!lessonStudentAccess) {
+    if (dashboardNextStepKicker) dashboardNextStepKicker.textContent = "Next step";
+    dashboardNextStepTitle.textContent = "Request practical lessons";
+    dashboardNextStepBody.textContent = dashboardLessonRequestsData.length
+      ? "Your lesson request is under review. You can still check support options and payments while you wait for approval."
+      : "Start by sending your practical lesson request so diary access and progress tools can be unlocked.";
+    dashboardNextStepButton.textContent = dashboardLessonRequestsData.length ? "View lesson status" : "Request driving lessons";
+    dashboardNextStepButton.href = dashboardLessonRequestsData.length ? "dashboard-lessons.html" : "index.html#book";
+    return;
+  }
+
+  if (upcoming.length) {
+    const nextLesson = upcoming[0];
+    if (dashboardNextStepKicker) dashboardNextStepKicker.textContent = "Next lesson";
+    dashboardNextStepTitle.textContent = nextLesson.topic || "Driving lesson";
+    dashboardNextStepBody.textContent = `Your next confirmed lesson is ${nextLesson.label} for ${nextLesson.hours} hour${nextLesson.hours === 1 ? "" : "s"}. Review the lesson area for bookings and changes.`;
+    dashboardNextStepButton.textContent = "Open lesson area";
+    dashboardNextStepButton.href = "dashboard-lessons.html";
+    return;
+  }
+
+  if (homework.length) {
+    if (dashboardNextStepKicker) dashboardNextStepKicker.textContent = "Practice";
+    dashboardNextStepTitle.textContent = "Review your homework";
+    dashboardNextStepBody.textContent = `You have ${homework.length} homework task${homework.length === 1 ? "" : "s"} waiting for your next lesson.`;
+    dashboardNextStepButton.textContent = "Open progress";
+    dashboardNextStepButton.href = "dashboard-progress.html";
+    return;
+  }
+
+  if (dashboardNextStepKicker) dashboardNextStepKicker.textContent = "Book next";
+  dashboardNextStepTitle.textContent = "Request your next lesson time";
+  dashboardNextStepBody.textContent = "You have practical lesson access. Open the lesson area to choose a time from the diary.";
+  dashboardNextStepButton.textContent = "Open lessons";
+  dashboardNextStepButton.href = "dashboard-lessons.html";
+}
+
+function renderLessonsSpotlight() {
+  if (!lessonsSpotlightTitle || !lessonsSpotlightBody || !lessonsSpotlightStatus || !lessonsSpotlightButton) return;
+
+  const upcoming = getDashboardUpcomingLessons();
+
+  if (upcoming.length) {
+    const nextLesson = upcoming[0];
+    if (lessonsSpotlightKicker) lessonsSpotlightKicker.textContent = "Next lesson";
+    lessonsSpotlightTitle.textContent = nextLesson.topic || "Driving lesson";
+    lessonsSpotlightBody.textContent = `${nextLesson.label} for ${nextLesson.hours} hour${nextLesson.hours === 1 ? "" : "s"}. If you need to change it, use the actions below in your upcoming lessons list.`;
+    lessonsSpotlightStatus.textContent = "Confirmed";
+    lessonsSpotlightStatus.className = "status-pill is-success";
+    lessonsSpotlightButton.textContent = "Jump to upcoming lessons";
+    lessonsSpotlightButton.href = "#upcomingLessonsTitle";
+    return;
+  }
+
+  if (dashboardLessonRequestsData.length) {
+    if (lessonsSpotlightKicker) lessonsSpotlightKicker.textContent = "Waiting";
+    lessonsSpotlightTitle.textContent = "A request is waiting for confirmation";
+    lessonsSpotlightBody.textContent = "Your requested lesson times stay here until they are confirmed and moved into your upcoming lessons.";
+    lessonsSpotlightStatus.textContent = "Pending";
+    lessonsSpotlightStatus.className = "status-pill is-warning";
+    lessonsSpotlightButton.textContent = "Jump to requests";
+    lessonsSpotlightButton.href = "#diaryRequestsTitle";
+    return;
+  }
+
+  if (lessonsSpotlightKicker) lessonsSpotlightKicker.textContent = "Book next";
+  lessonsSpotlightTitle.textContent = "Choose a lesson time";
+  lessonsSpotlightBody.textContent = "Open the diary below and request a time that works for you. I will confirm it before it becomes fully booked.";
+  lessonsSpotlightStatus.textContent = "Ready";
+  lessonsSpotlightStatus.className = "status-pill";
+  lessonsSpotlightButton.textContent = "Jump to diary";
+  lessonsSpotlightButton.href = "#diarySlotList";
+}
+
+function renderProgressSpotlight() {
+  if (!progressCurrentFocus || !progressHomeworkPreview) return;
+
+  const snapshots = getLatestSkillSnapshots();
+  const weakAreas = snapshots
+    .filter((snapshot) => snapshot.rating === "Needs work" || snapshot.rating === "Not introduced")
+    .slice(0, 3)
+    .map((snapshot) => snapshot.skillArea.name);
+  const homework = getActiveHomeworkTasks().slice(0, 3);
+
+  progressCurrentFocus.textContent = weakAreas.length
+    ? `Focus next on ${weakAreas.join(", ")}.`
+    : "No weak areas have been highlighted yet. Your instructor will add focus areas after more lesson ratings are saved.";
+
+  progressHomeworkPreview.textContent = homework.length
+    ? homework.map((task) => task.task_text).join(" ")
+    : "No homework has been set for your next lesson yet.";
+}
+
 function renderStudentProgressIntelligence(lessons = []) {
   window.dashboardLessons = lessons;
+  dashboardLessonsData = lessons;
   const snapshots = getLatestSkillSnapshots();
   const readiness = calculateReadiness(snapshots);
   const strengths = snapshots
@@ -425,9 +723,7 @@ function renderStudentProgressIntelligence(lessons = []) {
   const latestLesson = [...lessons]
     .filter((lesson) => normaliseLessonRecord(lesson).isCompleted)
     .sort((a, b) => new Date(b.starts_at || b.lesson_date || b.created_at || 0) - new Date(a.starts_at || a.lesson_date || a.created_at || 0))[0];
-  const activeHomework = [...dashboardHomeworkTasks]
-    .filter((task) => task.status === "Assigned")
-    .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
+  const activeHomework = getActiveHomeworkTasks();
 
   if (testReadinessValue) {
     testReadinessValue.textContent = `${readiness}%`;
@@ -446,9 +742,13 @@ function renderStudentProgressIntelligence(lessons = []) {
   renderSimpleInsightList(studentWeakAreasList, weakAreas, "No weak areas highlighted yet.");
   renderHomeworkTasks(activeHomework);
   renderSkillProgress(snapshots);
+  renderOverviewNextStep();
+  renderLessonsSpotlight();
+  renderProgressSpotlight();
 }
 
 function updatePaymentBalance(balance) {
+  dashboardPaymentBalance = balance;
   const purchased = Number(balance?.purchased_hours || 0);
   const used = Number(balance?.used_hours || 0);
   const remaining = Math.max(purchased - used, 0);
@@ -503,6 +803,10 @@ function setLessonStudentAccess(hasAccess, message) {
     renderDiaryRequests([]);
     renderStudentProgressIntelligence([]);
   }
+
+  renderOverviewNextStep();
+  renderLessonsSpotlight();
+  renderProgressSpotlight();
 }
 
 function isApprovedStatus(status) {
@@ -524,9 +828,10 @@ function showSignedOut(message) {
   signedOutDashboard?.removeAttribute("hidden");
   signedInDashboard?.setAttribute("hidden", "");
   if (dashboardIntro) {
-    dashboardIntro.textContent = "Sign in to view lesson requests, support options, and course access updates.";
+    dashboardIntro.textContent = getDashboardIntro("signedOut");
   }
   setDashboardStatus(message || "", message ? "info" : "info");
+  renderOverviewNextStep();
 }
 
 function showSignedIn(session) {
@@ -543,7 +848,7 @@ function showSignedIn(session) {
   }
 
   if (dashboardIntro) {
-    dashboardIntro.textContent = "A simple home for your lesson requests, support options, and course updates.";
+    dashboardIntro.textContent = getDashboardIntro("signedIn");
   }
 
   setDashboardStatus("");
@@ -551,6 +856,7 @@ function showSignedIn(session) {
 
 function renderLessonRequests(requests) {
   if (!lessonRequestList) return;
+  dashboardLessonRequestsData = requests || [];
   lessonRequestList.innerHTML = "";
 
   requests.forEach((request) => {
@@ -562,6 +868,8 @@ function renderLessonRequests(requests) {
     item.innerHTML = `<strong>${label}</strong><span>${status}${area} · ${date}</span>`;
     lessonRequestList.append(item);
   });
+  renderOverviewNextStep();
+  renderLessonsSpotlight();
 }
 
 async function loadLessonRequests(userId) {
@@ -606,7 +914,7 @@ async function loadLessonProgress(userId, studentRecordId = null) {
 
   const { data, error } = await dashboardClient
     .from("lessons")
-    .select("id,status,availability_slot_id,starts_at,lesson_date,hours,duration_hours,topic,focus,lesson_type,notes,summary,progress_summary,covered_topics,readiness_percentage,created_at")
+    .select("id,status,availability_slot_id,starts_at,lesson_date,hours,duration_hours,topic,focus,lesson_type,notes,summary,progress_notes,progress_summary,covered_topics,readiness_percentage,created_at")
     .or(orFilters.join(","))
     .order("starts_at", { ascending: true });
 
@@ -829,6 +1137,16 @@ dashboardSignOut?.addEventListener("click", async () => {
   }
 
   window.location.href = "index.html";
+});
+
+closeStudentLessonOverviewDialog?.addEventListener("click", () => {
+  studentLessonOverviewDialog?.close();
+});
+
+studentLessonOverviewDialog?.addEventListener("click", (event) => {
+  if (event.target === studentLessonOverviewDialog) {
+    studentLessonOverviewDialog.close();
+  }
 });
 
 diaryRequestForm?.addEventListener("submit", async (event) => {
