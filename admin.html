@@ -363,38 +363,6 @@
               </div>
             </section>
 
-            <section class="admin-payment-panel">
-              <div class="admin-payment-heading">
-                <div>
-                  <h3>Payment controls</h3>
-                  <p>Use this only to top up or correct a student's prepaid balance. Lesson charging is handled above when you mark a lesson as delivered.</p>
-                </div>
-                <div class="admin-payment-summary" id="studentPaymentSummary">No payment balance recorded yet.</div>
-              </div>
-
-              <div class="admin-edit-grid admin-payment-grid">
-                <label>
-                  Balance action
-                  <select id="studentPaymentAction" name="payment_action">
-                    <option value="payment_received">Record lesson payment</option>
-                    <option value="credit_only">Add free lesson credit</option>
-                    <option value="debit_correction">Remove lesson credit / correction</option>
-                  </select>
-                </label>
-                <label>Hours <input id="studentPaymentHours" min="0" name="payment_hours" placeholder="2" step="0.5" type="number" /></label>
-                <label>Amount (£) <input id="studentPaymentAmount" min="0" name="payment_amount" placeholder="74" step="0.01" type="number" /></label>
-              </div>
-
-              <label class="admin-notes-field">
-                Note or reason
-                <textarea id="studentPaymentNote" name="payment_note" placeholder="Cash payment, free credit, refund, or correction note..."></textarea>
-              </label>
-
-              <div class="admin-payment-actions">
-                <button class="secondary-button" id="applyStudentPaymentButton" type="button">Apply payment change</button>
-              </div>
-            </section>
-
             <section class="admin-history-panel">
               <h3>Booking history</h3>
               <div class="admin-history-list" id="studentHistoryList"></div>

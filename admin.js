@@ -62,12 +62,6 @@ const lessonSummaryPreview = document.querySelector("#lessonSummaryPreview");
 const lessonChargeControls = document.querySelector("#lessonChargeControls");
 const lessonChargeAction = document.querySelector("#lessonChargeAction");
 const saveLessonRecordButton = document.querySelector("#saveLessonRecordButton");
-const studentPaymentSummary = document.querySelector("#studentPaymentSummary");
-const studentPaymentAction = document.querySelector("#studentPaymentAction");
-const studentPaymentHours = document.querySelector("#studentPaymentHours");
-const studentPaymentAmount = document.querySelector("#studentPaymentAmount");
-const studentPaymentNote = document.querySelector("#studentPaymentNote");
-const applyStudentPaymentButton = document.querySelector("#applyStudentPaymentButton");
 const studentHistoryList = document.querySelector("#studentHistoryList");
 const removeStudentButton = document.querySelector("#removeStudentButton");
 const availabilityForm = document.querySelector("#availabilityForm");
@@ -918,24 +912,6 @@ function getPaymentSummaryLines(student) {
   ];
 }
 
-function renderStudentPaymentSummary(student) {
-  if (!studentPaymentSummary) return;
-  studentPaymentSummary.innerHTML = "";
-
-  getPaymentSummaryLines(student).forEach((line) => {
-    const detail = document.createElement("div");
-    detail.textContent = line;
-    studentPaymentSummary.append(detail);
-  });
-}
-
-function resetStudentPaymentControls() {
-  if (studentPaymentAction) studentPaymentAction.value = "payment_received";
-  if (studentPaymentHours) studentPaymentHours.value = "";
-  if (studentPaymentAmount) studentPaymentAmount.value = "";
-  if (studentPaymentNote) studentPaymentNote.value = "";
-}
-
 function getPaymentEventMetadata(event) {
   return event?.metadata && typeof event.metadata === "object" ? event.metadata : {};
 }
@@ -1749,8 +1725,6 @@ function openStudentManager(student) {
   if (studentEditNotes) studentEditNotes.value = activeStudent.student_notes || "";
   if (studentEditStatus) studentEditStatus.value = activeStudent.lesson_status || "Approved";
 
-  resetStudentPaymentControls();
-  renderStudentPaymentSummary(activeStudent);
   renderStudentHistory(activeStudent);
   renderLessonRecordOptions(activeStudent);
   resetLessonRecordForm(activeStudent);
@@ -2388,7 +2362,6 @@ function rerenderAdminBoard() {
     const refreshedStudent = getApprovedStudentRecords(adminData.studentProfiles, adminData.lessonRequests, adminData.studentRecords)
       .find((student) => sameStudent(student, activeStudent) || findStudentRecord(activeStudent)?.id === student.progress_student_id) || activeStudent;
     activeStudent = refreshedStudent;
-    renderStudentPaymentSummary(refreshedStudent);
     renderStudentHistory(refreshedStudent);
     renderLessonRecordOptions(refreshedStudent);
     if (activeLessonRecordId) {
@@ -2800,172 +2773,6 @@ async function saveStudentDetails(event) {
   setAdminDataStatus("Student details saved.", "success");
 }
 
-async function applyStudentPaymentAdjustment() {
-  if (!activeStudent) return;
-
-  const action = String(studentPaymentAction?.value || "payment_received");
-  const hoursDelta = Number.parseFloat(String(studentPaymentHours?.value || "").trim());
-  const amountPenceInput = parsePoundsToPence(studentPaymentAmount?.value || "");
-  const note = String(studentPaymentNote?.value || "").trim();
-
-  if (!Number.isFinite(hoursDelta) || hoursDelta <= 0) {
-    setAdminDataStatus("Enter the number of hours to add or deduct.", "error");
-    return;
-  }
-
-  if (action === "payment_received" && amountPenceInput <= 0) {
-    setAdminDataStatus("Enter the payment amount in pounds for the lesson payment being recorded.", "error");
-    return;
-  }
-
-  const existingBalance = findPaymentBalanceForStudent(activeStudent);
-  const purchasedHours = Number(existingBalance?.purchased_hours || 0);
-  const usedHours = Number(existingBalance?.used_hours || 0);
-  const currentBalancePence = Number(existingBalance?.account_balance_pence || 0);
-  const remainingHours = Math.max(purchasedHours - usedHours, 0);
-  const normalisedHours = Math.round(hoursDelta * 10) / 10;
-  const adjustmentHours = action === "debit_correction" ? -normalisedHours : normalisedHours;
-  const adjustmentAmountPence = action === "debit_correction" ? -Math.abs(amountPenceInput) : Math.abs(amountPenceInput);
-
-  if (action === "debit_correction") {
-    if (normalisedHours > remainingHours) {
-      setAdminDataStatus(`Only ${formatAdminHours(remainingHours)} hour${remainingHours === 1 ? "" : "s"} can be deducted from the remaining balance.`, "error");
-      return;
-    }
-
-    if (Math.abs(adjustmentAmountPence) > currentBalancePence) {
-      setAdminDataStatus(`Only ${formatPoundsFromPence(currentBalancePence)} can be deducted from the current account balance.`, "error");
-      return;
-    }
-  }
-
-  const nextPurchasedHours = purchasedHours + adjustmentHours;
-  const nextBalancePence = currentBalancePence + adjustmentAmountPence;
-
-  if (nextPurchasedHours < usedHours) {
-    setAdminDataStatus("This change would reduce purchased hours below the hours already used.", "error");
-    return;
-  }
-
-  if (nextBalancePence < 0) {
-    setAdminDataStatus("This change would make the account balance negative.", "error");
-    return;
-  }
-
-  const studentId = activeStudent.student_id || null;
-  const studentEmail = activeStudent.email || activeStudent.student_email || "";
-  const now = new Date().toISOString();
-  const eventType = {
-    payment_received: "manual_payment_received",
-    credit_only: "manual_credit_added",
-    debit_correction: "manual_credit_deducted",
-  }[action] || "manual_payment_received";
-  const statusMessage = {
-    payment_received: "Recording lesson payment...",
-    credit_only: "Adding free lesson credit...",
-    debit_correction: "Removing lesson credit...",
-  }[action] || "Updating payment balance...";
-
-  setAdminDataStatus(statusMessage);
-  if (applyStudentPaymentButton) applyStudentPaymentButton.disabled = true;
-
-  const balancePayload = {
-    student_id: studentId,
-    student_email: studentEmail,
-    purchased_hours: nextPurchasedHours,
-    used_hours: usedHours,
-    account_balance_pence: nextBalancePence,
-    last_payment_at: action === "debit_correction" ? existingBalance?.last_payment_at || null : now,
-    updated_at: now,
-  };
-
-  let balanceError = null;
-  let createdBalanceRow = false;
-
-  if (existingBalance?.id) {
-    const result = await adminClient
-      .from("student_payment_balances")
-      .update(balancePayload)
-      .eq("id", existingBalance.id);
-    balanceError = result.error;
-  } else {
-    const result = await adminClient
-      .from("student_payment_balances")
-      .insert(balancePayload);
-    balanceError = result.error;
-    createdBalanceRow = !result.error;
-  }
-
-  if (balanceError) {
-    if (applyStudentPaymentButton) applyStudentPaymentButton.disabled = false;
-    setAdminDataStatus(getAdminError(balanceError), "error");
-    return;
-  }
-
-  const metadata = {
-    source: action === "payment_received" ? "admin_manual_payment" : "admin_manual_adjustment",
-    note: note || null,
-    adjusted_by: adminUsernameEmail || adminName,
-    adjustment_action: action,
-  };
-
-  const { error: eventError } = await adminClient
-    .from("student_payment_events")
-    .insert({
-      student_id: studentId,
-      student_email: studentEmail,
-      event_type: eventType,
-      event_status: "completed",
-      plan_key: action === "payment_received" ? "offline_payment" : "manual_adjustment",
-      hours_delta: adjustmentHours,
-      amount_pence: adjustmentAmountPence,
-      currency: "gbp",
-      metadata,
-      updated_at: now,
-    });
-
-  if (eventError) {
-    if (existingBalance) {
-      await adminClient
-        .from("student_payment_balances")
-        .update({
-          purchased_hours: purchasedHours,
-          used_hours: usedHours,
-          account_balance_pence: currentBalancePence,
-          last_payment_at: existingBalance.last_payment_at || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existingBalance.id);
-    } else if (createdBalanceRow) {
-      const deleteQuery = adminClient
-        .from("student_payment_balances")
-        .delete()
-        .eq("student_email", studentEmail);
-
-      if (studentId) {
-        await deleteQuery.eq("student_id", studentId);
-      } else {
-        await deleteQuery;
-      }
-    }
-
-    if (applyStudentPaymentButton) applyStudentPaymentButton.disabled = false;
-    setAdminDataStatus(getAdminError(eventError), "error");
-    return;
-  }
-
-  resetStudentPaymentControls();
-  await loadAdminData();
-
-  const refreshedStudent = getApprovedStudentRecords().find((student) => sameStudent(student, activeStudent)) || activeStudent;
-  activeStudent = refreshedStudent;
-  renderStudentPaymentSummary(refreshedStudent);
-  renderStudentHistory(refreshedStudent);
-
-  if (applyStudentPaymentButton) applyStudentPaymentButton.disabled = false;
-  setAdminDataStatus("Payment balance updated.", "success");
-}
-
 async function reverseStudentPaymentEvent(event) {
   if (!activeStudent || !event?.id) return;
 
@@ -3097,7 +2904,6 @@ async function reverseStudentPaymentEvent(event) {
   await loadAdminData();
   const refreshedStudent = getApprovedStudentRecords().find((student) => sameStudent(student, activeStudent)) || activeStudent;
   activeStudent = refreshedStudent;
-  renderStudentPaymentSummary(refreshedStudent);
   renderStudentHistory(refreshedStudent);
 
   setAdminDataStatus(
@@ -4537,7 +4343,6 @@ studentManageDialog?.addEventListener("click", (event) => {
 });
 
 studentManageDialog?.addEventListener("close", () => {
-  resetStudentPaymentControls();
   activeLessonRecordId = null;
   pendingDeliveryLessonId = null;
 });
@@ -4567,7 +4372,6 @@ lessonRecordTopic?.addEventListener("input", () => refreshLessonSummaryPreview()
 lessonRecordNotes?.addEventListener("input", () => refreshLessonSummaryPreview());
 lessonRecordHomework?.addEventListener("input", () => refreshLessonSummaryPreview());
 saveLessonRecordButton?.addEventListener("click", saveLessonProgressRecord);
-applyStudentPaymentButton?.addEventListener("click", applyStudentPaymentAdjustment);
 removeStudentButton?.addEventListener("click", () => removeStudentAccess());
 availabilityForm?.addEventListener("submit", createAvailabilitySlot);
 weeklyAvailabilityForm?.addEventListener("submit", createWeeklyAvailability);
