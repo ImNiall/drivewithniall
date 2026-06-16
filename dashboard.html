@@ -35,8 +35,8 @@
     <main class="dashboard-shell">
       <section class="dashboard-hero">
         <p class="eyebrow">Student account</p>
-        <h1>Your Drive with Niall dashboard</h1>
-        <p id="dashboardIntro">Sign in to view lesson requests, support options, and course updates.</p>
+        <h1>Your student dashboard</h1>
+        <p id="dashboardIntro">A simple overview of your next lesson, current balance, and driving progress.</p>
       </section>
 
       <nav class="dashboard-section-nav" aria-label="Student dashboard sections">
@@ -57,140 +57,107 @@
         </article>
       </section>
 
-      <section class="dashboard-grid" id="signedInDashboard" hidden>
-        <article class="dashboard-card dashboard-card-wide dashboard-welcome-card">
+      <section class="dashboard-grid dashboard-overview-grid" id="signedInDashboard" hidden>
+        <article class="dashboard-card dashboard-card-wide dashboard-welcome-card dashboard-overview-header">
           <div>
             <span class="dashboard-kicker">Account</span>
             <h2>Welcome back</h2>
             <p>You are signed in as <strong id="dashboardEmail">your account</strong>.</p>
           </div>
-          <span class="status-pill">Active account</span>
-        </article>
-
-        <article class="dashboard-card dashboard-card-wide dashboard-action-panel">
-          <div>
-            <span class="dashboard-kicker">Dashboard</span>
-            <h2>Your learning hub</h2>
-            <p>Use your account for course updates, support requests, and practical lesson tools once your lesson request has been approved.</p>
-          </div>
           <div class="dashboard-actions">
-            <a class="primary-button" href="dashboard-lessons.html">Open lessons</a>
-            <a class="secondary-button" href="dashboard-progress.html">Open progress</a>
-            <a class="secondary-button" href="payments.html">Payments</a>
+            <span class="status-pill">Active account</span>
             <button class="outline-button" id="dashboardSignOut" type="button">Sign out</button>
           </div>
         </article>
 
-        <article class="dashboard-card dashboard-card-wide dashboard-next-step-card">
+        <article class="dashboard-card dashboard-card-wide lesson-access-card" id="lessonAccessNotice">
           <div>
-            <span class="dashboard-kicker" id="dashboardNextStepKicker">Next step</span>
-            <h2 id="dashboardNextStepTitle">Set up your next step</h2>
-            <p id="dashboardNextStepBody">Your dashboard will guide you to the next useful action once your lesson data is loaded.</p>
+            <span class="dashboard-kicker">Practical lessons</span>
+            <h2>Lesson area status</h2>
+            <p id="lessonAccessMessage">Your lesson request is being reviewed. Once you are accepted as a practical lesson student, your diary, upcoming lessons, lesson history and completed hours will appear here.</p>
           </div>
           <div class="dashboard-actions">
-            <a class="primary-button" id="dashboardNextStepButton" href="index.html#book">Request driving lessons</a>
+            <a class="primary-button" href="dashboard-lessons.html">Open lessons</a>
+            <a class="secondary-button" href="payments.html">Payments</a>
           </div>
         </article>
 
-        <article class="dashboard-card dashboard-card-wide payment-shortcut-card">
-          <div class="diary-heading">
+        <article class="dashboard-card dashboard-next-step-card">
+          <div>
+            <span class="dashboard-kicker" id="dashboardNextStepKicker">Next lesson</span>
+            <h2 id="dashboardNextStepTitle">No lesson booked yet</h2>
+            <p id="dashboardNextStepBody">Your next confirmed lesson, pending booking status, or lesson access update will appear here.</p>
+          </div>
+          <div class="dashboard-actions">
+            <a class="primary-button" id="dashboardNextStepButton" href="dashboard-lessons.html">Open lessons</a>
+          </div>
+        </article>
+
+        <article class="dashboard-card payment-shortcut-card">
+          <div class="dashboard-summary-heading">
             <div>
               <span class="dashboard-kicker">Payments</span>
-              <h2>Lesson payments and balance</h2>
-              <p id="dashboardPaymentMessage">View the 2 hour lesson payment option or 10 hour package, then track your remaining paid lesson hours.</p>
+              <h2>Your balance</h2>
+              <p id="dashboardPaymentMessage">Check your remaining lesson credit and use the payments page when you need to top up.</p>
             </div>
             <a class="primary-button" href="payments.html">Pay for lessons</a>
           </div>
-          <div class="lesson-stats payment-stats" aria-label="Payment balance summary">
+          <div class="lesson-stats overview-payment-stats" aria-label="Payment balance summary">
             <div>
               <span id="dashboardRemainingHours">0</span>
               <strong>Hours remaining</strong>
-            </div>
-            <div>
-              <span id="dashboardPurchasedHours">0</span>
-              <strong>Hours purchased</strong>
+              <small id="dashboardPurchasedMeta">0 purchased hours recorded</small>
             </div>
             <div>
               <span id="dashboardAccountBalance">£0</span>
               <strong>Account balance</strong>
+              <small>Opens full payment options and history</small>
             </div>
           </div>
         </article>
 
-        <article class="dashboard-card dashboard-card-wide course-access-card">
-          <span class="dashboard-kicker">Online course</span>
-          <h2>Course coming soon</h2>
-          <p>The online video course is being built to explain learner driving topics clearly, step by step. When it is ready, course access and progress will appear here.</p>
-          <a class="secondary-action" href="learn-online.html">View course plan</a>
-        </article>
-
-        <article class="dashboard-card dashboard-card-wide lesson-access-card" id="lessonAccessNotice">
-          <span class="dashboard-kicker">Practical lessons</span>
-          <h2>Lesson area status</h2>
-          <p id="lessonAccessMessage">Your lesson request is being reviewed. Once you are accepted as a practical lesson student, your diary, upcoming lessons, lesson history and completed hours will appear here.</p>
-          <div class="dashboard-actions">
-            <a class="primary-button" href="dashboard-lessons.html">Go to lessons</a>
-            <a class="secondary-button" href="dashboard-progress.html">Go to progress</a>
-          </div>
-        </article>
-
-        <article class="dashboard-card dashboard-card-wide dashboard-feature-grid lesson-student-only" hidden>
-          <a class="dashboard-feature-tile" href="dashboard-lessons.html">
-            <span class="dashboard-kicker">Lessons</span>
-            <h2>Diary and bookings</h2>
-            <p>Request lesson times, review upcoming bookings, and open your lesson history.</p>
-          </a>
-          <a class="dashboard-feature-tile" href="dashboard-progress.html">
-            <span class="dashboard-kicker">Progress</span>
-            <h2>Driving progress</h2>
-            <p>See readiness, strengths, weak areas, homework, and progress by skill area.</p>
-          </a>
-        </article>
-
-        <article class="dashboard-card dashboard-card-wide lesson-progress-card lesson-student-only" hidden>
-          <div class="diary-heading">
+        <article class="dashboard-card lesson-progress-card lesson-student-only" hidden>
+          <div class="dashboard-summary-heading">
             <div>
-              <span class="dashboard-kicker">At a glance</span>
-              <h2>Your practical progress summary</h2>
-              <p id="studentProgressSummary">Your instructor summary, strengths, weak areas, and homework will appear here after lesson records are added.</p>
+              <span class="dashboard-kicker">Progress</span>
+              <h2>Your progress summary</h2>
+              <p id="studentProgressSummary">Your latest progress summary will appear here after lesson records are added.</p>
             </div>
             <div class="readiness-badge">
               <span id="testReadinessValue">0%</span>
               <strong>Estimated test readiness</strong>
             </div>
           </div>
-          <div class="lesson-stats" aria-label="Lesson progress summary">
+          <div class="lesson-stats lessons-summary-stats" aria-label="Lesson progress summary">
             <div>
               <span id="totalLessonHours">0</span>
               <strong>Hours completed</strong>
+              <small id="completedLessonMeta">Across 0 lessons</small>
             </div>
             <div>
               <span id="upcomingLessonCount">0</span>
               <strong>Upcoming lessons</strong>
             </div>
-            <div>
-              <span id="completedLessonCount">0</span>
-              <strong>Lessons completed</strong>
-            </div>
           </div>
           <div class="dashboard-actions">
-            <a class="primary-button" href="dashboard-progress.html">Open progress breakdown</a>
-            <a class="secondary-button" href="dashboard-lessons.html">Open lesson area</a>
+            <a class="primary-button" href="dashboard-progress.html">Open progress</a>
+            <a class="secondary-button" href="dashboard-lessons.html">Open lessons</a>
           </div>
         </article>
 
-        <article class="dashboard-card">
-          <span class="dashboard-kicker">Lesson requests</span>
-          <h2>Current status</h2>
-          <p id="lessonRequestStatus">Checking your lesson requests...</p>
+        <article class="dashboard-card dashboard-card-wide dashboard-quick-links">
+          <div>
+            <span class="dashboard-kicker">Quick links</span>
+            <h2>Go straight to what you need</h2>
+            <p id="lessonRequestStatus">Choose lessons, progress, or payments without wading through extra detail on the overview page.</p>
+          </div>
+          <div class="dashboard-actions">
+            <a class="primary-button" href="dashboard-lessons.html">Lessons</a>
+            <a class="secondary-button" href="dashboard-progress.html">Progress</a>
+            <a class="secondary-button" href="payments.html">Payments</a>
+            <a class="secondary-button" href="index.html#webinars">1 - 1 coaching</a>
+          </div>
           <ul class="dashboard-list" id="lessonRequestList"></ul>
-        </article>
-
-        <article class="dashboard-card">
-          <span class="dashboard-kicker">Personal support</span>
-          <h2>Need help before your next lesson?</h2>
-          <p>Use 1 - 1 online coaching for a support call or private video breakdown of a driving topic that is not clicking yet.</p>
-          <a class="secondary-action" href="index.html#webinars">Request coaching</a>
         </article>
       </section>
 

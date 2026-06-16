@@ -1771,6 +1771,10 @@ body.dark-mode .account-status[data-type="error"] {
   gap: 18px;
 }
 
+.dashboard-overview-grid {
+  align-items: start;
+}
+
 .dashboard-grid[hidden] {
   display: none;
 }
@@ -1801,6 +1805,15 @@ body.dark-mode .account-status[data-type="error"] {
   align-items: center;
 }
 
+.dashboard-overview-header {
+  gap: 18px;
+}
+
+.dashboard-overview-header .dashboard-actions {
+  align-items: center;
+  justify-content: flex-end;
+}
+
 .dashboard-card h2 {
   margin: 0;
   font-size: clamp(1.55rem, 3vw, 2.3rem);
@@ -1827,6 +1840,13 @@ body.dark-mode .account-status[data-type="error"] {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 4px;
+}
+
+.dashboard-summary-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 18px;
 }
 
 .dashboard-feature-grid {
@@ -2063,6 +2083,10 @@ body.dark-mode .account-status[data-type="error"] {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.overview-payment-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .lesson-stats div {
   display: grid;
   gap: 6px;
@@ -2087,6 +2111,14 @@ body.dark-mode .account-status[data-type="error"] {
   color: var(--ink-muted);
   font-size: 0.84rem;
   font-weight: 700;
+}
+
+.dashboard-quick-links {
+  gap: 18px;
+}
+
+.dashboard-quick-links .dashboard-list {
+  margin-top: 4px;
 }
 
 .lesson-record-grid {
@@ -4330,6 +4362,7 @@ body.dark-mode .area-content p {
 
   .dashboard-welcome-card,
   .dashboard-action-panel,
+  .dashboard-summary-heading,
   .diary-heading,
   .admin-page-hero,
   .admin-toolbar,

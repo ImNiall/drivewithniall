@@ -40,6 +40,7 @@ const lessonStudentOnlySections = document.querySelectorAll(".lesson-student-onl
 const dashboardPaymentMessage = document.querySelector("#dashboardPaymentMessage");
 const dashboardRemainingHours = document.querySelector("#dashboardRemainingHours");
 const dashboardPurchasedHours = document.querySelector("#dashboardPurchasedHours");
+const dashboardPurchasedMeta = document.querySelector("#dashboardPurchasedMeta");
 const dashboardAccountBalance = document.querySelector("#dashboardAccountBalance");
 const studentProgressSummary = document.querySelector("#studentProgressSummary");
 const testReadinessValue = document.querySelector("#testReadinessValue");
@@ -83,6 +84,7 @@ let dashboardLessonRatings = [];
 let dashboardHomeworkTasks = [];
 let dashboardLessonsData = [];
 let dashboardLessonRequestsData = [];
+let dashboardDiaryRequestsData = [];
 let dashboardPaymentBalance = null;
 
 const readinessScoreMap = {
@@ -98,8 +100,8 @@ const skillRatingDisplayMap = {
 
 const dashboardIntroCopy = {
   overview: {
-    signedOut: "Sign in to view lesson requests, support options, and course access updates.",
-    signedIn: "A simple home for your lesson requests, support options, and course updates.",
+    signedOut: "Sign in to view your next lesson, current balance, and progress summary.",
+    signedIn: "A simple overview of your next lesson, balance, and driving progress.",
   },
   lessons: {
     signedOut: "Sign in to request lesson times, check bookings, and review completed lessons.",
@@ -438,9 +440,12 @@ function renderLessonRecordList(listElement, lessons, options = {}) {
 }
 
 function renderDiaryRequests(requests = []) {
-  if (!diaryRequestList) return;
-
   const activeRequests = requests.filter((request) => !isClosedDiaryRequestStatus(request.status));
+  dashboardDiaryRequestsData = activeRequests;
+  if (!diaryRequestList) {
+    renderOverviewNextStep();
+    return;
+  }
 
   cancellationRequestSlots = new Set(
     activeRequests
@@ -471,6 +476,8 @@ function renderDiaryRequests(requests = []) {
     `;
     diaryRequestList.append(item);
   });
+
+  renderOverviewNextStep();
 }
 
 function updateLessonProgress(lessons = []) {
@@ -612,15 +619,17 @@ function renderOverviewNextStep() {
   if (!dashboardNextStepTitle || !dashboardNextStepBody || !dashboardNextStepButton) return;
 
   const upcoming = getDashboardUpcomingLessons();
-  const homework = getActiveHomeworkTasks();
+  const pendingDiaryRequest = dashboardDiaryRequestsData[0];
 
   if (!lessonStudentAccess) {
-    if (dashboardNextStepKicker) dashboardNextStepKicker.textContent = "Next step";
-    dashboardNextStepTitle.textContent = "Request practical lessons";
+    if (dashboardNextStepKicker) dashboardNextStepKicker.textContent = "Lesson access";
+    dashboardNextStepTitle.textContent = dashboardLessonRequestsData.length
+      ? "Practical lesson request under review"
+      : "Request practical lessons";
     dashboardNextStepBody.textContent = dashboardLessonRequestsData.length
-      ? "Your lesson request is under review. You can still check support options and payments while you wait for approval."
-      : "Start by sending your practical lesson request so diary access and progress tools can be unlocked.";
-    dashboardNextStepButton.textContent = dashboardLessonRequestsData.length ? "View lesson status" : "Request driving lessons";
+      ? "Your practical lesson request is still being reviewed. Once approved, your diary and confirmed lesson dates will appear here."
+      : "Start by sending your practical lesson request so your lesson diary, progress summary, and booking tools can be unlocked.";
+    dashboardNextStepButton.textContent = dashboardLessonRequestsData.length ? "Open lessons" : "Request driving lessons";
     dashboardNextStepButton.href = dashboardLessonRequestsData.length ? "dashboard-lessons.html" : "index.html#book";
     return;
   }
@@ -629,24 +638,24 @@ function renderOverviewNextStep() {
     const nextLesson = upcoming[0];
     if (dashboardNextStepKicker) dashboardNextStepKicker.textContent = "Next lesson";
     dashboardNextStepTitle.textContent = nextLesson.topic || "Driving lesson";
-    dashboardNextStepBody.textContent = `Your next confirmed lesson is ${nextLesson.label} for ${nextLesson.hours} hour${nextLesson.hours === 1 ? "" : "s"}. Review the lesson area for bookings and changes.`;
-    dashboardNextStepButton.textContent = "Open lesson area";
+    dashboardNextStepBody.textContent = `Your next confirmed lesson is ${nextLesson.label} for ${nextLesson.hours} hour${nextLesson.hours === 1 ? "" : "s"}. Open lessons for bookings, changes, and recap history.`;
+    dashboardNextStepButton.textContent = "Open lessons";
     dashboardNextStepButton.href = "dashboard-lessons.html";
     return;
   }
 
-  if (homework.length) {
-    if (dashboardNextStepKicker) dashboardNextStepKicker.textContent = "Practice";
-    dashboardNextStepTitle.textContent = "Review your homework";
-    dashboardNextStepBody.textContent = `You have ${homework.length} homework task${homework.length === 1 ? "" : "s"} waiting for your next lesson.`;
-    dashboardNextStepButton.textContent = "Open progress";
-    dashboardNextStepButton.href = "dashboard-progress.html";
+  if (pendingDiaryRequest) {
+    if (dashboardNextStepKicker) dashboardNextStepKicker.textContent = "Pending booking";
+    dashboardNextStepTitle.textContent = pendingDiaryRequest.requested_label || "Lesson time requested";
+    dashboardNextStepBody.textContent = "That lesson time is waiting for instructor confirmation. Once confirmed, it will move into your upcoming lessons.";
+    dashboardNextStepButton.textContent = "View lesson requests";
+    dashboardNextStepButton.href = "dashboard-lessons.html#diaryRequestsTitle";
     return;
   }
 
   if (dashboardNextStepKicker) dashboardNextStepKicker.textContent = "Book next";
-  dashboardNextStepTitle.textContent = "Request your next lesson time";
-  dashboardNextStepBody.textContent = "You have practical lesson access. Open the lesson area to choose a time from the diary.";
+  dashboardNextStepTitle.textContent = "No lesson booked yet";
+  dashboardNextStepBody.textContent = "You have lesson access, but no confirmed lesson is showing yet. Open lessons to request your next time.";
   dashboardNextStepButton.textContent = "Open lessons";
   dashboardNextStepButton.href = "dashboard-lessons.html";
 }
@@ -755,12 +764,17 @@ function updatePaymentBalance(balance) {
 
   if (dashboardRemainingHours) dashboardRemainingHours.textContent = formatPaymentHours(remaining);
   if (dashboardPurchasedHours) dashboardPurchasedHours.textContent = formatPaymentHours(purchased);
+  if (dashboardPurchasedMeta) {
+    dashboardPurchasedMeta.textContent = balance
+      ? `${formatPaymentHours(purchased)} purchased · ${formatPaymentHours(used)} used`
+      : "No paid lesson hours recorded yet";
+  }
   if (dashboardAccountBalance) dashboardAccountBalance.textContent = formatPoundsFromPence(balance?.account_balance_pence || 0);
 
   if (dashboardPaymentMessage) {
     dashboardPaymentMessage.textContent = balance
-      ? "Your latest payment balance is shown below for 2 hour lesson payments and 10 hour packages."
-      : "No payment balance has been added yet. Use the payments page to pay £74 for a 2 hour lesson or buy a 10 hour package, then your balance will appear here.";
+      ? "Your latest prepaid lesson balance is shown below. Open payments to top up or review activity."
+      : "No payment balance has been added yet. Open payments to pay for single lessons or a 10 hour package.";
   }
 }
 
@@ -855,8 +869,12 @@ function showSignedIn(session) {
 }
 
 function renderLessonRequests(requests) {
-  if (!lessonRequestList) return;
   dashboardLessonRequestsData = requests || [];
+  if (!lessonRequestList) {
+    renderOverviewNextStep();
+    renderLessonsSpotlight();
+    return;
+  }
   lessonRequestList.innerHTML = "";
 
   requests.forEach((request) => {
@@ -1006,7 +1024,7 @@ async function loadPaymentBalance(userId) {
 
   if (error) {
     if (dashboardPaymentMessage) {
-      dashboardPaymentMessage.textContent = "Payment tracking is ready in the dashboard, but the Supabase payment balance table still needs to be added.";
+      dashboardPaymentMessage.textContent = "Payment tracking is ready here, but the payment balance table still needs to be connected.";
     }
     return;
   }
