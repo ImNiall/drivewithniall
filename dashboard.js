@@ -892,7 +892,9 @@ function renderLessonRequests(requests) {
 
 async function loadLessonRequests(userId) {
   if (!dashboardClient) {
-    setLessonStatus("Lesson request syncing is not connected yet. For now, lesson requests are still sent to your email.");
+    setLessonStatus(dashboardPage === "overview"
+      ? "Open lessons, progress, or payments from here."
+      : "Lesson request syncing is not connected yet. For now, lesson requests are still sent to your email.");
     return;
   }
 
@@ -904,18 +906,24 @@ async function loadLessonRequests(userId) {
     .limit(5);
 
   if (error) {
-    setLessonStatus("Lesson request syncing is not fully connected yet. Your lesson requests are still safely sent by email.");
+    setLessonStatus(dashboardPage === "overview"
+      ? "Open lessons to review booking updates and request times."
+      : "Lesson request syncing is not fully connected yet. Your lesson requests are still safely sent by email.");
     return;
   }
 
   const requests = data || [];
 
   if (!requests.length) {
-    setLessonStatus("No lesson requests are linked to this account yet. Use the request button when you are ready.");
+    setLessonStatus(dashboardPage === "overview"
+      ? "Open lessons, progress, or payments from here."
+      : "No lesson requests are linked to this account yet. Use the request button when you are ready.");
     return;
   }
 
-  setLessonStatus("Your latest linked requests:");
+  setLessonStatus(dashboardPage === "overview"
+    ? "Open lessons to view your latest requests and booking updates."
+    : "Your latest linked requests:");
   renderLessonRequests(requests);
 }
 

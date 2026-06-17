@@ -35,7 +35,7 @@
     <main class="dashboard-shell">
       <section class="dashboard-hero">
         <p class="eyebrow">Student account</p>
-        <h1>Your student dashboard</h1>
+        <h1>Dashboard</h1>
         <p id="dashboardIntro">A simple overview of your next lesson, current balance, and driving progress.</p>
       </section>
 
@@ -58,7 +58,7 @@
       </section>
 
       <section class="dashboard-grid dashboard-overview-grid" id="signedInDashboard" hidden>
-        <article class="dashboard-card dashboard-card-wide dashboard-welcome-card dashboard-overview-header">
+        <article class="dashboard-card dashboard-card-account dashboard-welcome-card dashboard-overview-header">
           <div>
             <span class="dashboard-kicker">Account</span>
             <h2>Welcome back</h2>
@@ -67,6 +67,17 @@
           <div class="dashboard-actions">
             <span class="status-pill">Active account</span>
             <button class="outline-button" id="dashboardSignOut" type="button">Sign out</button>
+          </div>
+        </article>
+
+        <article class="dashboard-card dashboard-card-feature dashboard-next-step-card">
+          <div>
+            <span class="dashboard-kicker" id="dashboardNextStepKicker">Next lesson</span>
+            <h2 id="dashboardNextStepTitle">No lesson booked yet</h2>
+            <p id="dashboardNextStepBody">Your next confirmed lesson, pending booking status, or lesson access update will appear here.</p>
+          </div>
+          <div class="dashboard-actions">
+            <a class="primary-button" id="dashboardNextStepButton" href="dashboard-lessons.html">Open lessons</a>
           </div>
         </article>
 
@@ -82,18 +93,7 @@
           </div>
         </article>
 
-        <article class="dashboard-card dashboard-next-step-card">
-          <div>
-            <span class="dashboard-kicker" id="dashboardNextStepKicker">Next lesson</span>
-            <h2 id="dashboardNextStepTitle">No lesson booked yet</h2>
-            <p id="dashboardNextStepBody">Your next confirmed lesson, pending booking status, or lesson access update will appear here.</p>
-          </div>
-          <div class="dashboard-actions">
-            <a class="primary-button" id="dashboardNextStepButton" href="dashboard-lessons.html">Open lessons</a>
-          </div>
-        </article>
-
-        <article class="dashboard-card payment-shortcut-card">
+        <article class="dashboard-card dashboard-card-payments payment-shortcut-card">
           <div class="dashboard-summary-heading">
             <div>
               <span class="dashboard-kicker">Payments</span>
@@ -116,7 +116,7 @@
           </div>
         </article>
 
-        <article class="dashboard-card lesson-progress-card lesson-student-only" hidden>
+        <article class="dashboard-card dashboard-card-progress lesson-progress-card lesson-student-only" hidden>
           <div class="dashboard-summary-heading">
             <div>
               <span class="dashboard-kicker">Progress</span>
@@ -145,20 +145,6 @@
           </div>
         </article>
 
-        <article class="dashboard-card dashboard-card-wide dashboard-quick-links">
-          <div>
-            <span class="dashboard-kicker">Quick links</span>
-            <h2>Go straight to what you need</h2>
-            <p id="lessonRequestStatus">Choose lessons, progress, or payments without wading through extra detail on the overview page.</p>
-          </div>
-          <div class="dashboard-actions">
-            <a class="primary-button" href="dashboard-lessons.html">Lessons</a>
-            <a class="secondary-button" href="dashboard-progress.html">Progress</a>
-            <a class="secondary-button" href="payments.html">Payments</a>
-            <a class="secondary-button" href="index.html#webinars">1 - 1 coaching</a>
-          </div>
-          <ul class="dashboard-list" id="lessonRequestList"></ul>
-        </article>
       </section>
 
       <p class="dashboard-status" id="dashboardStatus" role="status"></p>
