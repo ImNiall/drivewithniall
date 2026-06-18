@@ -4212,20 +4212,24 @@ body.dark-mode .area-content p {
   }
 
   .site-header {
-    display: grid;
-    grid-template-columns: auto auto;
-    gap: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
     padding: 10px 14px;
-    justify-content: stretch;
   }
 
   .brand {
-    grid-column: 1 / -1;
     min-width: 0;
-    width: 100%;
+    width: auto;
+    flex: 1 1 auto;
   }
 
   .brand small {
+    display: none;
+  }
+
+  .desktop-nav {
     display: none;
   }
 
@@ -4251,7 +4255,7 @@ body.dark-mode .area-content p {
   }
 
   .theme-toggle {
-    justify-self: start;
+    flex: 0 0 auto;
     width: 54px;
     min-height: 42px;
     padding: 0;
@@ -4275,9 +4279,9 @@ body.dark-mode .area-content p {
   }
 
   .account-button {
-    justify-self: end;
+    flex: 0 0 auto;
     min-height: 42px;
-    padding: 0 16px;
+    padding: 0 14px;
   }
 
   .dashboard-page .site-header {
@@ -4368,7 +4372,7 @@ body.dark-mode .area-content p {
 
   .hero {
     min-height: auto;
-    padding: 96px 18px 44px;
+    padding: 72px 18px 40px;
     align-items: end;
   }
 
@@ -4497,7 +4501,7 @@ body.dark-mode .area-content p {
 
   .area-hero {
     min-height: auto;
-    padding: 96px 18px 48px;
+    padding: 72px 18px 42px;
   }
 
   .area-hero h1 {
@@ -4550,7 +4554,7 @@ body.dark-mode .area-content p {
 
   .dashboard-shell {
     width: min(100% - 22px, 1180px);
-    padding: 30px 0 38px;
+    padding: 30px 0 calc(56px + env(safe-area-inset-bottom));
   }
 
   .dashboard-hero {

@@ -20,8 +20,15 @@ const appHasSupabaseConfig =
   appAuthConfig.supabaseAnonKey &&
   !appAuthConfig.supabaseUrl.includes("PASTE_") &&
   !appAuthConfig.supabaseAnonKey.includes("PASTE_");
+const appSharedSupabaseClients = window.__driveSupabaseClients || (window.__driveSupabaseClients = {});
+const appSupabaseKey = appHasSupabaseConfig
+  ? `${appAuthConfig.supabaseUrl}::${appAuthConfig.supabaseAnonKey}`
+  : "";
 const appSupabaseClient = appHasSupabaseConfig && window.supabase
-  ? window.supabase.createClient(appAuthConfig.supabaseUrl, appAuthConfig.supabaseAnonKey)
+  ? (appSharedSupabaseClients[appSupabaseKey] ||= window.supabase.createClient(
+      appAuthConfig.supabaseUrl,
+      appAuthConfig.supabaseAnonKey,
+    ))
   : null;
 
 function setFormMessage(message, text, type = "info") {

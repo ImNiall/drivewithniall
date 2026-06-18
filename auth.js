@@ -4,9 +4,16 @@ const hasSupabaseConfig =
   authConfig.supabaseAnonKey &&
   !authConfig.supabaseUrl.includes("PASTE_") &&
   !authConfig.supabaseAnonKey.includes("PASTE_");
+const authSharedSupabaseClients = window.__driveSupabaseClients || (window.__driveSupabaseClients = {});
+const authClientKey = hasSupabaseConfig
+  ? `${authConfig.supabaseUrl}::${authConfig.supabaseAnonKey}`
+  : "";
 
 const authClient = hasSupabaseConfig && window.supabase
-  ? window.supabase.createClient(authConfig.supabaseUrl, authConfig.supabaseAnonKey)
+  ? (authSharedSupabaseClients[authClientKey] ||= window.supabase.createClient(
+      authConfig.supabaseUrl,
+      authConfig.supabaseAnonKey,
+    ))
   : null;
 
 const accountStatus = document.querySelector("#accountStatus");
