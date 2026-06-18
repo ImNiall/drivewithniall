@@ -4264,6 +4264,44 @@ body.dark-mode .area-content p {
     padding: 0 16px;
   }
 
+  .dashboard-page .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+  }
+
+  .dashboard-page .brand {
+    grid-column: auto;
+    width: auto;
+    flex: 1 1 auto;
+  }
+
+  .dashboard-page .theme-toggle {
+    flex: 0 0 auto;
+    justify-self: auto;
+    width: 52px;
+    min-height: 40px;
+  }
+
+  .dashboard-page .brand-wordmark::after {
+    width: 30px;
+    height: 3px;
+  }
+
+  .dashboard-page .brand-drive {
+    font-size: 1.08rem;
+  }
+
+  .dashboard-page .brand-with {
+    font-size: 0.8rem;
+  }
+
+  .dashboard-page .brand-niall {
+    font-size: 0.94rem;
+  }
+
   .admin-week-builder {
     grid-template-columns: 1fr;
   }
@@ -4495,8 +4533,50 @@ body.dark-mode .area-content p {
   }
 
   .dashboard-shell {
-    width: min(100% - 28px, 1180px);
-    padding: 48px 0;
+    width: min(100% - 22px, 1180px);
+    padding: 30px 0 38px;
+  }
+
+  .dashboard-hero {
+    gap: 8px;
+    max-width: none;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+  }
+
+  .dashboard-hero h1 {
+    font-size: clamp(1.84rem, 10.8vw, 2.48rem);
+    letter-spacing: -0.03em;
+  }
+
+  .dashboard-page[data-dashboard-page="lessons"] .dashboard-hero h1 {
+    font-size: clamp(1.78rem, 10.2vw, 2.34rem);
+  }
+
+  .dashboard-page[data-dashboard-page="progress"] .dashboard-hero h1,
+  .dashboard-page[data-dashboard-page="payments"] .dashboard-hero h1 {
+    font-size: clamp(1.68rem, 9.7vw, 2.18rem);
+  }
+
+  .dashboard-hero p:not(.eyebrow) {
+    max-width: none;
+    font-size: 0.98rem;
+    line-height: 1.45;
+  }
+
+  .dashboard-section-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 0;
+  }
+
+  .dashboard-section-link {
+    width: 100%;
+    min-height: 38px;
+    padding: 0 14px;
+    font-size: 0.9rem;
   }
 
   .dashboard-feature-grid {
@@ -4612,5 +4692,39 @@ body.dark-mode .area-content p {
   .dashboard-actions .secondary-button,
   .dashboard-actions .outline-button {
     width: 100%;
+  }
+
+  .dashboard-card {
+    gap: 10px;
+    padding: 16px 16px 18px;
+    border-radius: 16px;
+  }
+
+  .dashboard-card h2 {
+    font-size: clamp(1.35rem, 7vw, 2rem);
+  }
+
+  .dashboard-card p {
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
+
+  .dashboard-next-step-card h2,
+  .lesson-progress-card h2 {
+    font-size: clamp(1.8rem, 10vw, 2.4rem);
+  }
+
+  .dashboard-summary-heading {
+    gap: 10px;
+  }
+
+  .readiness-badge {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .lesson-stats div {
+    padding: 16px;
+    border-radius: 14px;
   }
 }
