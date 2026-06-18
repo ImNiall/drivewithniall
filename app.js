@@ -178,6 +178,7 @@ if (appSupabaseClient && bookingRequestForm) {
 
 function setTheme(mode) {
   const isDark = mode === "dark";
+  document.documentElement.classList.toggle("dark-mode", isDark);
   document.body.classList.toggle("dark-mode", isDark);
 
   if (themeToggle) {
